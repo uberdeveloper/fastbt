@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+
+<head>
+    <!-- Development version -->
+    <script src="../static/vue.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
+    <title>%% name %%</title>
+</head>
+
+<body>
+    <div id="app">
+        <form action='/test' method="POST">
+            <input type="date" name="start">
+            <input type="date" name="end">
+            <br/>
+            <select name="universe">
+                <option value="Nifty 50">Nifty 50</option>
+                <option value="Nifty Next 50">Nifty Next 50</option>
+                <option value="Nifty Midcap 50">Nifty Midcap 50</option>
+            </select>
+            <br/>
+
+            
+            <input type="text" v-model='message' name='message'>
+            <input type="submit" value="submit">
+            <textarea v-model="result" name="result">
+                
+            </textarea>
+        </form>
+        <ul>
+            <li v-for="num in collect">
+                {{num}}
+            </li>
+        </ul>
+        <p></p>
+        <canvas id="myChart" width="100" height="100">
+
+        </canvas>
+    </div>
+    <div>
+
+    </div>
+    <script src="../static/script.js"></script>
+
+</body>
+
+</html>
