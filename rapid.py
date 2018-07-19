@@ -44,7 +44,8 @@ def fetch_data(universe, start, end, connection, tablename,
 	query = ' AND '.join(q).format(universe=tuple(universe), 
 		start=start, end=end)
 	query = select + query + order_by
-	data = pd.read_sql_query(query, connection)
+	# This should be any column
+	data = pd.read_sql_query(query, connection, parse_dates=['timestamp'])
 	# Delete index column if any
 	del data['index']
 	return data
@@ -56,6 +57,18 @@ def prepare_data(data, columns):
 def apply_prices(data, conditions, price, stop_loss, order):
 	"""
 	Filter conditions and apply prices
+	data
+		datasource object
+	conditions
+		list of conditions as string
+	price
+		price at which order is to be booked
+		as a formula string
+	stop_loss
+		stop loss as percentage from price
+	order
+		whether the order is Buy or Sell
+		accepted values B or S
 	"""
 
 	if order.upper() == 'B':
@@ -91,7 +104,6 @@ def apply_prices(data, conditions, price, stop_loss, order):
 
 def run_strategy(data):
 	return data
-
 
 def backtest(start='2018-04-01', end='2018-06-30',
 			capital=100000, leverage=1, commission=0,
