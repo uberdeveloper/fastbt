@@ -142,10 +142,16 @@ class TestBackTest(unittest.TestCase):
 		with open('backtest.yaml') as f:
 			self.kwargs = yaml.load(f)
 
-	def test_what(self):
-		self.bt(**self.kwargs[0])
-
-
+	def test_strategy_one(self):
+		kwargs = self.kwargs[0]
+		result = self.bt(**kwargs)
+		self.assertEqual(R(result.profit.sum()), -715.09)
+		kwargs.update({'leverage': 2})
+		result = self.bt(**kwargs)
+		self.assertEqual(R(result.profit.sum()), -1429.31)
+		kwargs.update({'capital': 10000, 'leverage': 10})
+		result = self.bt(**kwargs)
+		self.assertEqual(R(result.profit.sum()), -715.09)
 
 def test_empty_dataframe_result():
 	"""
