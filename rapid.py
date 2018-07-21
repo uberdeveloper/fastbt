@@ -102,13 +102,28 @@ def apply_prices(data, conditions, price, stop_loss, order):
 	f.loc[f.sell == 0, 'sell'] = f.loc[f.sell == 0, 'close']
 	return f
 
-def run_strategy(data):
-	return data
+def run_strategy(data, capital, leverage, limit, sort_by, sort_mode):
+	total_capital = capital * leverage
+	grouped = data.groupby('timestamp')
+	collect = []
+	for name, group in grouped:
+		temp = group.sort_values(by=sort_by, ascending=sort_mode).iloc[:limit]
+		L = len(temp)
+		# Test for zero len
+		if L > 0:
+			capital_per_stock = total_capital/L
+			temp['qty'] = (capital_per_stock/temp['price']).round(0)
+			collect.append(temp)
+	df = pd.concat(collect)
+	df['profit'] = df.eval('(sell-buy)*qty')
+	return df
+		
 
 def backtest(start='2018-04-01', end='2018-06-30',
 			capital=100000, leverage=1, commission=0,
-			slippage=0, price=0, stop_loss=0, order=None,
-			universe=None, limit=5, columns=None, conditions=None,
+			slippage=0, price='open', stop_loss=0, order='B',
+			universe='all', limit=5, columns=None, conditions=None,
+            sort_by=None, sort_mode=True,
 			connection=None, tablename=None):	
 	data = fetch_data(universe=universe, start=start, end=end,
 					 connection=connection, tablename=tablename)
@@ -118,7 +133,7 @@ def backtest(start='2018-04-01', end='2018-06-30',
 	if len(data) == 0:
 		return
 	final = apply_prices(data, conditions, price, stop_loss, order)
-	result = run_strategy(final)
+	result = run_strategy(final, capital, leverage, limit, sort_by, sort_mode)
 	return result
 
 def parse_input(input_data):
@@ -139,7 +154,8 @@ def main():
 	]
 	result = bt(universe=universe, start='2018-01-01', end='2018-01-06',
 			columns=column, conditions = condition, 
-			price='open', stop_loss=3, order='S')
+			price='open', stop_loss=3, order='S',
+			sort_by='price')
 
 
 if __name__ == "__main__":
