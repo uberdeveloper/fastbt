@@ -4,7 +4,8 @@ import sys
 from sqlalchemy import create_engine
 
 sys.path.append('../')
-from rapid import fetch_data, prepare_data, apply_prices
+from rapid import *
+R = lambda x: round(x, 2)
 
 class TestRapidFetchData(unittest.TestCase):
 
@@ -106,15 +107,53 @@ class TestRapidApplyPrices(unittest.TestCase):
 		self.assertEqual(df.query('stop_loss >= high').shape[0], 13)
 		self.assertEqual(R(df.at[idx['2018-01-02', 'three'], 'stop_loss']), 105.05)
 		self.assertEqual(df.at[idx['2018-01-05', 'four'], 'price'], 174.5)
-		self.assertEqual(df.at[idx['2018-01-03', 'three'], 'buy'], 110)
+		self.assertEqual(df.at[idx['2018-01-03', 'three'], 'buy'], 110)	
 
 	def test_order_raise_error(self):
 		pass
+
+class TestRapidRunStrategy(unittest.TestCase):
+
+	def setUp(self):
+		from sqlalchemy import create_engine
+		con = create_engine('sqlite:///data.sqlite3')
+		tbl = 'eod'
+		universe = ['one', 'two', 'three', 'four', 'five', 'six']
+		start, end = '2018-01-01 00:00:00.000000', '2018-01-06 00:00:00.000000'
+		data = fetch_data(universe, start, end, con, tbl)
+		conditions = ['open > prevclose']
+		self.data = apply_prices(data, conditions, 'open', 3, 'B')
+
+	def test_run_strategy_simple(self):
+		result = run_strategy(self.data, 100000, 1, 5, 'price', True)
+		self.assertEqual(R(result.profit.sum()), -715.09)
+		self.assertEqual(result.qty.sum(), 26506)
+		by_day = result.groupby('timestamp').profit.sum()
+		self.assertEqual(R(by_day.loc['2018-01-04']), -3153.15)
+
+class TestBackTest(unittest.TestCase):
+	def setUp(self):
+		from sqlalchemy import create_engine
+		con = create_engine('sqlite:///data.sqlite3')
+		tbl = 'eod'
+		from functools import partial
+		self.bt = partial(backtest, connection=con, tablename=tbl)
+		import yaml
+		with open('backtest.yaml') as f:
+			self.kwargs = yaml.load(f)
+
+	def test_what(self):
+		self.bt(**self.kwargs[0])
+
+
 
 def test_empty_dataframe_result():
 	"""
 	Program to terminate in case there is no result at any stage
 	"""
+	pass
+
+def test_stop_loss_zero():
 	pass
 
 if __name__ == '__main__':
