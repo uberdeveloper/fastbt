@@ -124,19 +124,24 @@ def run_strategy(data, capital, leverage, limit,
     return df
 
 def metrics(data, capital, benchmark=None):
+    """
+    Don't use this
+    This is just to check results
+    """
     if benchmark is None:
         benchmark = 0.08
-    data['cumCap'] = data['net_profit'].cumsum() + capital
+    grouped = data.groupby('timestamp')
+    cols = ['profit', 'commission', 'slippage', 'net_profit']
     profit = data.profit.sum()
     commission = data.commission.sum()
     slippage = data.slippage.sum()
     net_profit = data.net_profit.sum()
-    high = data.cumCap.max()
-    low = data.cumCap.min()
+    high = grouped.net_profit.sum().cumsum().max()
+    low = grouped.net_profit.sum().cumsum().min()
     drawdown = low/capital
     returns = net_profit/capital
-    ret = data.groupby('timestamp').agg({'profit': sum})/capital
-    sharpe = ret.mean() / ret.std()
+    ret = grouped.agg({'profit': sum})
+    sharpe = (ret.mean()/ret.std())[0]
     return {
         'profit': profit,
         'commission': commission,
@@ -170,7 +175,8 @@ def backtest(start='2018-04-01', end='2018-06-30',
         raise ValueError('No data fetched from database')
 
     if isNotEmpty(final):
-        result = run_strategy(final, capital, leverage, limit, sort_by, sort_mode)
+        result = run_strategy(final, capital, leverage, limit, 
+            sort_by, sort_mode, commission, slippage)
     else:
         raise ValueError('No data after filtering all conditions')
 
