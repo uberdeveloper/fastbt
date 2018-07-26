@@ -3,12 +3,22 @@ console.log("Hello world");
 var app = new Vue({
   el: "#app",
   data: {
-    message: "Hi!",
-    first: "Tech",
     start: "2018-06-01",
     end: "2018-06-30",
-    collect: [{ num: 4 }, { num: 7 }],
+    capital: 100000,
+    leverage: 1,
+    commission: 0,
+    slippage: 0,
+    selector: null,
+    columns_list: [
+      'open', 'high', 'low', 'close', 'volume'
+    ],
+    indicator_list: [
+      'SMA', 'EMA'
+
+    ],
     columns: [],
+    temp_column: '',
     conditions: [],
     temp: null,
     col: null,
@@ -16,11 +26,16 @@ var app = new Vue({
     col_name: null
   },
   methods: {
-    clickMe() {
-      alert("Hello");
+    clickMe(text) {
+      alert(text);
+    },
+    addToText(text) {
+      this.temp_column = this.temp_column + text
     },
     addToList() {
-      this.collect.push({ num: this.temp });
+      this.collect.push({
+        num: this.temp
+      });
       this.result = JSON.stringify(this.collect);
       console.log("LOGGED", JSON.stringify(this.collect));
       this.temp = null;

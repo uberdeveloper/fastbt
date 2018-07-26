@@ -1,48 +1,142 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 
 <head>
-    <!-- Development version -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hello [[name]]</title>
+    <style>
+        .gap {
+            margin: 10px;
+            padding: 10px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
     <script src="../static/vue.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
-    <title>%% name %%</title>
 </head>
 
 <body>
     <div id="app">
-        <form action='/test' method="POST">
-            <input type="date" name="start">
-            <input type="date" name="end">
-            <br/>
-            <select name="universe">
-                <option value="Nifty 50">Nifty 50</option>
-                <option value="Nifty Next 50">Nifty Next 50</option>
-                <option value="Nifty Midcap 50">Nifty Midcap 50</option>
-            </select>
-            <br/>
+        <div class="columns gap">
+            <div class="column is-two-thirds box gap">
 
-            
-            <input type="text" v-model='message' name='message'>
-            <input type="submit" value="submit">
-            <textarea v-model="result" name="result">
-                
-            </textarea>
-        </form>
-        <ul>
-            <li v-for="num in collect">
-                {{num}}
-            </li>
-        </ul>
-        <p></p>
-        <canvas id="myChart" width="100" height="100">
+                <form action="/test" method="POST">
+                    <fieldset class="gap">
+                        <legend>General</legend>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">From Date</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <p class="control">
+                                        <input class="input" type="date" name="start" v-model="start">
+                                    </p>
+                                </div>
+                            </div>
 
-        </canvas>
+                            <div class="field-label is-normal">
+                                <label class="label">To Date</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <p class="control">
+                                        <input class="input" type="date" name="end" v-model="end">
+                                    </p>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">Capital</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <p class="control">
+                                        <input class="input" type="number" name="capital" v-model="capital">
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="field-label is-normal">
+                                <label class="label">Leverage</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <p class="control">
+                                        <input class="input" type="number" name="leverage" v-model="leverage">
+                                    </p>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">Commission</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <p class="control">
+                                        <input class="input" type="number" name="commission" v-model="commission">
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="field-label is-normal">
+                                <label class="label">Slippage</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <p class="control">
+                                        <input class="input" type="number" name="slippage" v-model="slippage">
+                                    </p>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                    </fieldset>
+
+                    <fieldset class="gap">
+                        <legend>Add columns</legend>
+
+                        <div class="select">
+                            <select v-model="selector">
+                                <option value="F">Formula</option>
+                                <option value="I">Indicator</option>
+                                </option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <div class="control">
+                                <input class="input" type="text" placeholder="Formula for this column" v-model="temp_column" ref="temp_column">
+                            </div>
+                        </div>
+
+
+
+                    </fieldset>
+
+                    <button class="button is-primary" type="submit">Submit</button>
+                </form>
+
+            </div>
+
+            <div class="column gap box">
+                <div class="buttons">
+                    <span v-for='(item, index) in columns_list' :key='index' class="button" @click='addToText(item)'>
+                        {{item}}</span>
+                </div>
+
+            </div>
+        </div>
     </div>
-    <div>
 
-    </div>
-    <script src="../static/script.js"></script>
-
+    <script src='../static/script.js'></script>
 </body>
 
 </html>
