@@ -190,7 +190,9 @@ bt = partial(backtest, connection=con, tablename=tbl)
 @pytest.mark.parametrize("kwargs, expected", _build_input_output())
 def test_backtest_results(kwargs, expected):    
     result = metrics(bt(**kwargs), kwargs['capital'])
-    assert pytest.approx(result, 3) == expected
+    for k,v in result.items():
+        assert pytest.approx(v, rel=0.001, abs=0.001) == expected[k]
+
 
 if __name__ == '__main__':
     unittest.main()
