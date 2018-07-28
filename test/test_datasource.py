@@ -39,6 +39,7 @@ class TestDataSource(unittest.TestCase):
         self.assertEqual(self.ds.data.columns[1], 'symbol')
 
     def test_add_lag(self):
+        length = len(self.ds.data)
         idx = pd.IndexSlice
         self.ds.add_lag(on='close')
         self.ds.add_lag(on='volume', period=2)
@@ -46,6 +47,7 @@ class TestDataSource(unittest.TestCase):
         self.assertEqual(d.at[idx['2018-01-04', 'one'], 'lag_close_1'], 11)
         self.assertEqual(d.at[idx['2018-01-06', 'six'], 'lag_volume_2'], 86014)
         self.assertEqual(len(self.ds.data.columns), 10)
+        self.assertEqual(len(self.ds.data), length)
 
     def test_add_lag_column_rename(self):
         idx = pd.IndexSlice
@@ -121,6 +123,7 @@ class TestDataSource(unittest.TestCase):
         self.assertEqual(R(d.at[idx['2018-01-05', 'two'], 'new_col_3']), 200389.97)
 
     def test_batch(self):
+        length = len(self.ds.data)
         batch = [
             {'P': {'on': 'close', 'period': 1, 'lag': 1}},
             {'L': {'on': 'volume', 'period': 1}},
@@ -131,6 +134,7 @@ class TestDataSource(unittest.TestCase):
         d = self.ds.batch_process(batch).set_index(['timestamp', 'symbol'])
         self.assertEqual(len(d.columns), 11)
         self.assertEqual(len(self.ds.data.columns), 13)
+        self.assertEqual(len(self.ds.data), length)
 
     def test_raise_error_if_not_dataframe(self):
         pass
