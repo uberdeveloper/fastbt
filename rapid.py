@@ -48,11 +48,12 @@ def fetch_data(universe, start, end, connection, tablename,
     # This should be any column
     data = pd.read_sql_query(query, connection, parse_dates=['timestamp'])
     # Delete index column if any
-    del data['index']
+    if 'index' in data.columns:
+        del data['index']
     return data
 
 def prepare_data(data, columns):
-    ds = DataSource(data, sort=False)
+    ds = DataSource(data, sort=False)    
     return ds.batch_process(columns)
 
 def apply_prices(data, conditions, price, stop_loss, order):
@@ -159,14 +160,16 @@ def backtest(start='2018-04-01', end='2018-06-30',
             slippage=0, price='open', stop_loss=0, order='B',
             universe='all', limit=5, columns=None, conditions=None,
             sort_by=None, sort_mode=True,
-            connection=None, tablename=None):
+            connection=None, tablename=None,
+            where_clause=None):
 
     # Check whether any data is available
 
     isNotEmpty = lambda x: True if len(data) > 0 else False
 
     data = fetch_data(universe=universe, start=start, end=end,
-                     connection=connection, tablename=tablename)
+                     connection=connection, tablename=tablename,
+                     where_clause=where_clause)
 
     if isNotEmpty(data):
         data = prepare_data(data, columns) 
