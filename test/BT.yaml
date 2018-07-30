@@ -1,0 +1,9 @@
+s_0:
+  price: open
+  order: B
+  columns:
+    - F:
+        formula: '(open+close)/2'
+        col_name: avgPrice
+  conditions:
+    - open > prevclose
