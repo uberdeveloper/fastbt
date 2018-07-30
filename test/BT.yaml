@@ -3,7 +3,16 @@ s_0:
   order: B
   columns:
     - F:
-        formula: '(open+close)/2'
+        formula: (open+close)/2
         col_name: avgPrice
   conditions:
     - open > prevclose
+s_1:
+  price: open * 0.999
+  order: S
+  columns:
+    - P:
+        col_name: ret
+        lag: 1
+  conditions:
+    - open < 100
