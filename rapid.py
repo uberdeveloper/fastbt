@@ -107,18 +107,19 @@ def apply_prices(data, conditions, price, stop_loss, order):
 
 def run_strategy(data, capital, leverage, limit, 
     sort_by, sort_mode, commission=0, slippage=0):
+    """
+    By default, NA's are dropped
+    """
     total_capital = capital * leverage
-    grouped = data.groupby('timestamp')
+    grouped = data.dropna().groupby('timestamp')
     collect = []
     for name, group in grouped:
         temp = group.sort_values(by=sort_by, ascending=sort_mode).iloc[:limit]
-        L = len(temp)
-        # Test for zero len
-        if L > 0:
-            capital_per_stock = total_capital/L
-            temp['qty'] = (capital_per_stock/temp['price']).round(0)
-            collect.append(temp)
+        collect.append(temp)    
     df = pd.concat(collect)
+    df['cnt'] = df.groupby('timestamp')['symbol'].transform(
+        lambda x: len(x))
+    df['qty'] = (total_capital/df['cnt']/df['price']).round()
     df['profit'] = df.eval('(sell-buy)*qty')
     df['commission'] = df.eval('(sell+buy)*qty') * commission * 0.01
     df['slippage'] = df.eval('(sell+buy)*qty') *  slippage * 0.01

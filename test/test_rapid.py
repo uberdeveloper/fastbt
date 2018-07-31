@@ -150,8 +150,6 @@ def test_backtest_data():
     result_two = backtest(**kwargs)
     assert metrics(result_one, 100000) == metrics(result_two, 100000)
 
-
-
 def test_empty_dataframe_result():
     """
     Program to terminate in case there is no result at any stage
