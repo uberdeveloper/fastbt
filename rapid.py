@@ -8,6 +8,7 @@ Assumptions
     3. Orders are closed when stop loss is hit or at the end of the day
     4. No target or pre-closing of orders
     5. All orders are placed/closed at the same time
+    6. Calculations are based on simple returns
 """
 
 import pandas as pd
@@ -161,15 +162,24 @@ def backtest(start='2018-04-01', end='2018-06-30',
             universe='all', limit=5, columns=None, conditions=None,
             sort_by=None, sort_mode=True,
             connection=None, tablename=None,
-            where_clause=None):
+            where_clause=None, data=None):
+    """
+    run the backtest
+    start
+        start date for the backtest
+    end
+        end date for the backtest
+    capital
+        capital to be invested
+    """    
 
-    # Check whether any data is available
-
-    isNotEmpty = lambda x: True if len(data) > 0 else False
-
-    data = fetch_data(universe=universe, start=start, end=end,
+    if data is None:
+        data = fetch_data(universe=universe, start=start, end=end,
                      connection=connection, tablename=tablename,
                      where_clause=where_clause)
+
+    # Check whether any data is available
+    isNotEmpty = lambda x: True if len(data) > 0 else False
 
     if isNotEmpty(data):
         data = prepare_data(data, columns) 

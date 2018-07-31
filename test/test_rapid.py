@@ -77,6 +77,7 @@ class TestRapidPrepareData(unittest.TestCase):
         self.assertEqual(data.query('sig2==1').shape[0], 5) 
 
 class TestRapidApplyPrices(unittest.TestCase):
+
     def setUp(self):
         from sqlalchemy import create_engine
         con = create_engine('sqlite:///data.sqlite3')
@@ -133,6 +134,23 @@ class TestRapidRunStrategy(unittest.TestCase):
         self.assertEqual(result.qty.sum(), 26506)
         by_day = result.groupby('timestamp').profit.sum()
         self.assertEqual(R(by_day.loc['2018-01-04']), -3153.15)
+
+def test_backtest_data():
+    import yaml
+    with open('backtest.yaml') as f:
+        kwargs = yaml.load(f)
+    kwargs['connection'] = create_engine('sqlite:///data.sqlite3')
+    kwargs['tablename'] = 'eod'
+    result_one = backtest(**kwargs)
+
+    data = pd.read_csv('sample.csv', parse_dates=['timestamp'])
+    del kwargs['connection']
+    del kwargs['tablename']
+    kwargs['data'] = data
+    result_two = backtest(**kwargs)
+    assert metrics(result_one, 100000) == metrics(result_two, 100000)
+
+
 
 def test_empty_dataframe_result():
     """
