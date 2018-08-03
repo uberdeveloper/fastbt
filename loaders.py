@@ -5,7 +5,7 @@ Load data to database
 import os
 import pandas as pd
 
-from .utils import *
+#from .utils import *
 
 PATH = '/home/machine/Projects/finance/data/other'
 CONSTITUENTS_FILE = os.path.join(PATH, 'IndexConstituents.xlsx')
