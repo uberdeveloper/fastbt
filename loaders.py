@@ -71,8 +71,10 @@ class DataLoader(object):
         self._parse_dates = parse_dates
         
     def _initialize_HDF_file(self):
+        import hashlib
+        hash = hashlib.sha1().hexdigest()
         with pd.HDFStore(self.engine) as store:
-            s = pd.Series(['zxcf'*25])            
+            s = pd.Series(['hash'*2])            
             if len(store.keys()) == 0:
                 store.append('updated/'+self.tablename, s)
 
