@@ -86,13 +86,40 @@ class DataLoader(object):
             if update_table in store.keys():
                 updated_list = store.get(update_table).values
 
+
+        if kwargs.get('columns'):
+            columns = kwargs.pop('columns')
+        else:
+            columns = None
+
+        if kwargs.get('parse_dates'):
+            parse_dates = kwargs.get('parse_dates')
+        else:
+            parse_dates = None
+
+        if kwargs.get('postfunc'):
+            postfunc = kwargs.pop('postfunc')
+        else:
+            postfunc = None
+
+
         # Iterating over the files
         for root, direc, files in os.walk(self.directory):
             for file in files:
                 if file not in updated_list:
                     filename = os.path.join(root, file)
-                    df = pd.read_csv(filename, parse_dates = self._parse_dates, **kwargs)
+                    print('KWARGS ', kwargs)
+                    df = pd.read_csv(filename, **kwargs)       
                     df = df.rename(str.lower, axis='columns')
+                    if columns:
+                        df = df.rename(columns, axis='columns')
+                    if not(parse_dates):
+                        date_cols = ['date', 'time', 'datetime', 'timestamp']
+                        for c in df.columns:
+                            if c in date_cols:
+                                df[c] = pd.to_datetime(df[c])
+                    if postfunc:
+                        df = postfunc(df, file, root)
                     df.to_hdf(self.engine, key=data_table, format='table',
                         append=True, data_columns=True)
                     # Updating the file data
@@ -109,13 +136,22 @@ class DataLoader(object):
         if self.engine.has_table(update_table):
             updated_list = pd.read_sql_table(update_table, self.engine).values
 
+        if kwargs.get('columns'):
+            columns = kwargs.pop('columns')
+        else:
+            columns = None
+
+
         # Iterating over the files
         for root, direc, files in os.walk(self.directory):
             for file in files:
                 if file not in updated_list:
                     filename = os.path.join(root, file)
-                    df = pd.read_csv(filename, parse_dates = self._parse_dates, **kwargs)
+                    df = pd.read_csv(filename, **kwargs)
                     df = df.rename(str.lower, axis='columns')
+                    if columns:
+                        df = df.rename(columns, axis='columns')
+
                     s = pd.Series([file])
                     df.to_sql(data_table, con=self.engine, if_exists='append',
                     index=False, chunksize=1500)
@@ -139,10 +175,10 @@ class DataLoader(object):
             If not given, any column with name
             date, datetime, time, timestamp is 
             automatically parse
-        prefunc
-            function to be run before reading the csv file
         postfunc
-            function to be run after reading the csv file            
+            function to be run after reading the csv file  
+        kwargs
+            Any other arguments to the pandas read_csv function          
         """
         if self.mode == 'HDF':
             self._write_to_HDF(**kwargs)
