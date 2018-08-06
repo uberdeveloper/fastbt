@@ -45,7 +45,7 @@ class DataLoader(object):
     Data Loader class
     """
     def __init__(self, directory, mode='HDF', engine=None, 
-                 tablename=None, parse_dates=[]):
+                 tablename=None):
         """
         Initialize parameters
         directory
@@ -66,9 +66,6 @@ class DataLoader(object):
         self.mode = mode
         self.engine = engine
         self.tablename = tablename
-        if type(parse_dates) != list:
-            raise TypeError('parse dates should be a list')
-        self._parse_dates = parse_dates
         
     def _initialize_HDF_file(self):
         import hashlib
@@ -129,6 +126,23 @@ class DataLoader(object):
     def load_data(self, **kwargs):
         """
         Load data into database
+        kwargs
+        columns
+            column names as dictionary
+            with key being column name from file
+            and value being the column to be renamed
+            ```
+            {'OPENING': 'open', 'CLOSING': 'close'}
+            ```
+        parse_dates
+            columns to be parsed as list
+            If not given, any column with name
+            date, datetime, time, timestamp is 
+            automatically parse
+        prefunc
+            function to be run before reading the csv file
+        postfunc
+            function to be run after reading the csv file            
         """
         if self.mode == 'HDF':
             self._write_to_HDF(**kwargs)
