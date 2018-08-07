@@ -19,11 +19,6 @@ class CustomFlask(Flask):
 
 app = CustomFlask(__name__)
 
-from intraday import TradingSystem
-import strategy as st
-
-s_map = {x: getattr(st, x) for x in dir(st) if not(x.startswith('_'))}
-
 
 @app.route('/')
 def hello_world():
@@ -36,6 +31,15 @@ def test():
     # Test function
     if request.method == 'POST':
         return str(request.form)
+
+@app.route('/ds', methods=['GET', 'POST'])
+def ds():
+    if request.method == 'GET':
+        return render_template('datastore.html')
+    elif request.method == 'POST':
+        print(request.form)
+        return 'Hello Info Posted'
+
 
 
 if __name__ == "__main__":
