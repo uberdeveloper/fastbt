@@ -108,7 +108,6 @@ class DataLoader(object):
             for file in files:
                 if file not in updated_list:
                     filename = os.path.join(root, file)
-                    print('KWARGS ', kwargs)
                     df = pd.read_csv(filename, **kwargs)       
                     df = df.rename(str.lower, axis='columns')
                     if columns:
@@ -141,6 +140,15 @@ class DataLoader(object):
         else:
             columns = None
 
+        if kwargs.get('parse_dates'):
+            parse_dates = kwargs.get('parse_dates')
+        else:
+            parse_dates = None
+
+        if kwargs.get('postfunc'):
+            postfunc = kwargs.pop('postfunc')
+        else:
+            postfunc = None
 
         # Iterating over the files
         for root, direc, files in os.walk(self.directory):
@@ -151,7 +159,13 @@ class DataLoader(object):
                     df = df.rename(str.lower, axis='columns')
                     if columns:
                         df = df.rename(columns, axis='columns')
-
+                    if not(parse_dates):
+                        date_cols = ['date', 'time', 'datetime', 'timestamp']
+                        for c in df.columns:
+                            if c in date_cols:
+                                df[c] = pd.to_datetime(df[c])
+                    if postfunc:
+                        df = postfunc(df, file, root)
                     s = pd.Series([file])
                     df.to_sql(data_table, con=self.engine, if_exists='append',
                     index=False, chunksize=1500)

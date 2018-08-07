@@ -92,27 +92,27 @@ rename =  {
 
 
 def test_HDF_rename_columns():
-		dl = DataLoader('eoddata', engine='test.h5',
-			mode='HDF', tablename='eod')
-		dl.load_data(columns=rename)
-		df = pd.read_hdf('test.h5', 'data/eod')
-		assert len(df) == 10030
-		assert len(pd.read_hdf('test.h5', 'updated/eod')) == 5
-		cols = ['symbol', 'date', 'open', 'high', 'low', 'close', 'vol']
-		for x,y in zip(df.columns, cols):
-			assert x == y
-		os.remove('test.h5')
+	dl = DataLoader('eoddata', engine='test.h5',
+		mode='HDF', tablename='eod')
+	dl.load_data(columns=rename)
+	df = pd.read_hdf('test.h5', 'data/eod')
+	assert len(df) == 10030
+	assert len(pd.read_hdf('test.h5', 'updated/eod')) == 5
+	cols = ['symbol', 'date', 'open', 'high', 'low', 'close', 'vol']
+	for x,y in zip(df.columns, cols):
+		assert x == y
+	os.remove('test.h5')
 
 def test_SQL_rename_columns():
-		engine = create_engine('sqlite://')
-		dl = DataLoader('eoddata', engine=engine, 
-			mode='SQL', tablename='eod')
-		dl.load_data(columns=rename)
-		df = pd.read_sql_table('eod', engine)
-		assert len(df) == 10030
-		cols = ['symbol', 'date', 'open', 'high', 'low', 'close', 'vol']
-		for x,y in zip(df.columns, cols):
-			assert x == y
+	engine = create_engine('sqlite://')
+	dl = DataLoader('eoddata', engine=engine, 
+		mode='SQL', tablename='eod')
+	dl.load_data(columns=rename)
+	df = pd.read_sql_table('eod', engine)
+	assert len(df) == 10030
+	cols = ['symbol', 'date', 'open', 'high', 'low', 'close', 'vol']
+	for x,y in zip(df.columns, cols):
+		assert x == y
 
 def test_HDF_parse_dates():
 		dl = DataLoader('eoddata', engine='test.h5',
@@ -122,22 +122,29 @@ def test_HDF_parse_dates():
 		assert df.dtypes['date'] == dtype('<M8[ns]')
 		os.remove('test.h5')
 
-	def test_HDF_parse_dates():
-		dl = DataLoader('eoddata', engine='test.h5',
-			mode='HDF', tablename='eod')
-		dl.load_data(columns=rename, parse_dates=['<date>'])
-		df = pd.read_hdf('test.h5', 'data/eod')
-		assert df.dtypes['date'] == dtype('<M8[ns]')
-		os.remove('test.h5')
+def test_SQL_parse_dates():
+	engine = create_engine('sqlite://')
+	dl = DataLoader('eoddata', engine=engine, 
+		mode='SQL', tablename='eod')
+	dl.load_data(columns=rename, parse_dates=['<date>'])
+	df = pd.read_sql_table('eod', engine)
+	assert df.dtypes['date'] == dtype('<M8[ns]')
 
 def test_HDF_parse_dates_auto():
-		dl = DataLoader('eoddata', engine='test.h5',
-			mode='HDF', tablename='eod')
+	dl = DataLoader('eoddata', engine='test.h5',
+		mode='HDF', tablename='eod')
+	dl.load_data(columns=rename)
+	df = pd.read_hdf('test.h5', 'data/eod')
+	assert df.dtypes['date'] == dtype('<M8[ns]')
+	os.remove('test.h5')
 
-		dl.load_data(columns=rename)
-		df = pd.read_hdf('test.h5', 'data/eod')
-		assert df.dtypes['date'] == dtype('<M8[ns]')
-		os.remove('test.h5')
+def test_SQL_parse_dates_auto():
+	engine = create_engine('sqlite://')
+	dl = DataLoader('eoddata', engine=engine, 
+		mode='SQL', tablename='eod')
+	dl.load_data(columns=rename)
+	df = pd.read_sql_table('eod', engine)
+	assert df.dtypes['date'] == dtype('<M8[ns]')
 
 def test_HDF_post_func():
 	dl = DataLoader('eoddata', engine='test.h5',
@@ -148,6 +155,27 @@ def test_HDF_post_func():
 		return x
 	dl.load_data(columns=rename, postfunc=add_filename)
 	df = pd.read_hdf('test.h5', 'data/eod')
+	assert df.dtypes['date'] == dtype('<M8[ns]')
+	assert df.shape[1] == 9
+	assert 'filename' in df.columns
+	assert 'avgprice' in df.columns
+	os.remove('test.h5')
+
+def test_SQL_post_func():
+	engine = create_engine('sqlite://')
+	dl = DataLoader('eoddata', engine=engine, 
+		mode='SQL', tablename='eod')
+	def add_filename(x,y,z):
+		x['filename'] = y
+		x['avgprice'] = (x['open'] + x['close'])/2
+		return x
+	dl.load_data(columns=rename, postfunc=add_filename)
+	df = pd.read_sql_table('eod', engine)
+	assert df.dtypes['date'] == dtype('<M8[ns]')
+	assert df.shape[1] == 9
+	assert 'filename' in df.columns
+	assert 'avgprice' in df.columns
+
 
 
 
