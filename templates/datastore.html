@@ -1,20 +1,45 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Hello Bulma!</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.1/css/bulma.min.css">
-  <script defer src="https://use.fontawesome.com/releases/v5.1.0/js/all.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A layout example with a side menu that hides on mobile, just like the Pure website.">
+  <title>Data Loader</title>
+  <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+  <link rel="stylesheet" href="//cdn.rawgit.com/necolas/normalize.css/master/normalize.css">
+
+  <link rel="stylesheet" href="//cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css">
 </head>
 
 <body>
-  <form method="POST" action="/ds">
-  	<input type="text" name="something">
-  	<button type="submit">Submit</button>
-  </form>
-  <h1>Hello World</h1>
+  <div class="container">
+    <div class="row">
+      <div class="column">
+        <form method="POST" action="/ds">
+          <fieldset>
+            <legend>Data Loader class</legend>
+            <% for ctrl in controls %>
+              <label for="%%ctrl.name%%">%%ctrl.name%%</label>
+              <% if ctrl.input %>
+                <input type="%%ctrl.type%%" name="%%ctrl.name%%" placeholder="%%ctrl.placeholder%%" id="%%ctrl.name%%">
+                <% endif %>
+                  <% if ctrl.select %>
+                    <select name="%%ctrl.name%%" id="%%ctrl.name%%">
+                      <% for choice in ctrl.choices %>
+                        <option>%%choice%%</option>
+                        <% endfor %>
+                    </select>
+                    <% endif %>
+                      <% endfor %>
+
+          </fieldset>
+          <input type="submit" class="button">
+        </form>
+
+      </div>
+    </div>
+  </div>
 
 </body>
 
