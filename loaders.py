@@ -40,6 +40,55 @@ def load_indices_data(indices_file, constituents_file, changes_file,
         print(k)      
 
 
+def apply_adjustment(df, adj_date, adj_value,
+                    adj_type='mul',date_col='date',
+                    cols=['open','high', 'low', 'close', 'volume']):
+    """
+    Apply adjustment to a given stock
+    df
+        dataframe of the given stock
+    adj_date
+        date from which the adjustment is
+        to be made
+    adj_value
+        value to be adjusted
+    adj_type
+        method of adjustment **mul/sub**
+        mul means multiply all the values
+            such as splits and bonuses
+        sub means subtract the values
+            such as dividends
+ 
+    date_col
+        date column  on which the adjustment
+        is to be applied
+    cols
+        columns to which the adjustment is to
+        be made
+
+    Notes
+    -----
+    1) You can use negative values to add to the
+    stock value by using **adj_type=sub**
+    2) Adjustment is applied prior to all dates
+    in the dataframe
+    3) In case your dataframe has date or
+    symbol as indexes, reset them
+    """
+    df = df.set_index(on).sort_index()
+    values_on_adj_date = df.loc[adj_from, cols].copy()
+    if adj_type == "mul":
+        adjusted_values = (df.loc[:adj_date, cols] * adj_value).round(2)
+    elif adj_type == "sub":
+        adjusted_values = (df.loc[:adj_date, cols] - adj_value).round(2)
+    else:
+        raise TypeError('adj_type should be either mul or sub')
+    df.loc[:adj_date, cols] = adjusted_values
+    df.loc[adj_date] = values_on_adj_date
+    return df.reset_index()
+
+    
+
 class DataLoader(object):
     """
     Data Loader class
@@ -85,7 +134,6 @@ class DataLoader(object):
         with pd.HDFStore(self.engine) as store:
             if update_table in store.keys():
                 updated_list = store.get(update_table).values
-
 
         if kwargs.get('columns'):
             columns = kwargs.pop('columns')
