@@ -42,7 +42,7 @@ def load_indices_data(indices_file, constituents_file, changes_file,
 
 def apply_adjustment(df, adj_date, adj_value,
                     adj_type='mul',date_col='date',
-                    cols=['open','high', 'low', 'close', 'volume']):
+                    cols=['open','high', 'low', 'close']):
     """
     Apply adjustment to a given stock
     df
@@ -75,19 +75,17 @@ def apply_adjustment(df, adj_date, adj_value,
     3) In case your dataframe has date or
     symbol as indexes, reset them
     """
-    df = df.set_index(on).sort_index()
-    values_on_adj_date = df.loc[adj_from, cols].copy()
+    df = df.set_index(date_col).sort_index()
+    values_on_adj_date = df.loc[adj_date, cols].copy()
     if adj_type == "mul":
         adjusted_values = (df.loc[:adj_date, cols] * adj_value).round(2)
     elif adj_type == "sub":
         adjusted_values = (df.loc[:adj_date, cols] - adj_value).round(2)
     else:
-        raise TypeError('adj_type should be either mul or sub')
+        raise ValueError('adj_type should be either mul or sub')
     df.loc[:adj_date, cols] = adjusted_values
-    df.loc[adj_date] = values_on_adj_date
-    return df.reset_index()
-
-    
+    df.loc[adj_date, cols] = values_on_adj_date
+    return df.reset_index()    
 
 class DataLoader(object):
     """

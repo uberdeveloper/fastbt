@@ -5,9 +5,10 @@ import unittest
 import os
 import shutil
 from numpy import dtype
+import pytest
 
 sys.path.append('../')
-from loaders import DataLoader
+from loaders import DataLoader, apply_adjustment
 
 class TestLoader(unittest.TestCase):
 
@@ -89,7 +90,6 @@ rename =  {
 	'<close>': 'close',
 	'<vol>': 'vol'
 	}
-
 
 def test_HDF_rename_columns():
 	dl = DataLoader('eoddata', engine='test.h5',
@@ -175,6 +175,66 @@ def test_SQL_post_func():
 	assert df.shape[1] == 9
 	assert 'filename' in df.columns
 	assert 'avgprice' in df.columns
+
+
+def test_apply_adj_mul():
+	df = pd.read_csv('adj.csv', parse_dates=['date'])
+	adj_df = apply_adjustment(df, adj_date='2018-07-21', 
+			adj_value=1/2)
+	adj_df = adj_df.set_index('date').sort_index()
+	cols = ['open', 'high', 'low', 'close']
+	assert adj_df.loc['2018-07-11', 'open'] == 3151.24
+	assert adj_df.loc['2018-07-21', 'close'] == 3702.15
+	for a,b in zip(adj_df.loc['2018-07-21', cols] ,
+		(3665.27, 3721.2, 3608.47, 3702.15)):
+		assert a == b
+	assert adj_df.loc['2018-08-01', 'high'] == 15500.16
+	assert adj_df.loc['2018-07-11', 'volume'] == 2481016
+
+def test_apply_adj_sub():
+	df = pd.read_csv('adj.csv', parse_dates=['date'])
+	adj_df = apply_adjustment(df, adj_date='2018-08-01', 
+			adj_value=100, adj_type='sub')
+	adj_df = adj_df.set_index('date').sort_index()
+	assert adj_df.loc['2018-07-16', 'close'] == 6626.4
+	assert adj_df.loc['2018-08-01', 'high'] == 15500.16
+	assert adj_df.loc['2018-08-10', 'close'] == 12286.6
+
+def test_apply_adj_sub_negative():
+	df = pd.read_csv('adj.csv', parse_dates=['date'])
+	adj_df = apply_adjustment(df, adj_date='2018-08-01', 
+			adj_value=-100, adj_type='sub')
+	adj_df = adj_df.set_index('date').sort_index()
+	assert adj_df.loc['2018-07-16', 'close'] == 6826.4
+	assert adj_df.loc['2018-08-01', 'high'] == 15500.16
+	assert adj_df.loc['2018-08-10', 'close'] == 12286.6
+
+def test_apply_adj_raise_error():
+	with pytest.raises(ValueError):
+		df = pd.read_csv('adj.csv', parse_dates=['date'])
+		adj_df = apply_adjustment(df, adj_date='2018-08-01', 
+			adj_value=-100, adj_type='div')
+
+def test_apply_adj_date_col():
+	df = pd.read_csv('adj.csv', parse_dates=['date'])
+	df['timestamp'] = df['date']
+	del df['date']
+	adj_df = apply_adjustment(df, adj_date='2018-07-21', 
+			adj_value=1/2, date_col='timestamp')
+	adj_df = adj_df.set_index('timestamp').sort_index()
+	assert adj_df.loc['2018-07-11', 'open'] == 3151.24
+	assert adj_df.loc['2018-07-21', 'close'] == 3702.15
+
+def test_apply_adj_cols():
+	df = pd.read_csv('adj.csv', parse_dates=['date'])
+	adj_df = apply_adjustment(df, adj_date='2018-07-21', 
+			adj_value=1/2, cols=['open', 'high'])
+	adj_df = adj_df.set_index('date').sort_index()
+	cols = ['open', 'high', 'low', 'close']
+	assert adj_df.loc['2018-07-11', 'open'] == 3151.24
+	assert adj_df.loc['2018-07-11', 'close'] == 6381.87
+
+
 
 
 
