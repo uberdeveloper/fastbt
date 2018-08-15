@@ -5,41 +5,6 @@ Load data to database
 import os
 import pandas as pd
 
-#from .utils import *
-
-PATH = '/home/machine/Projects/finance/data/other'
-CONSTITUENTS_FILE = os.path.join(PATH, 'IndexConstituents.xlsx')
-CHANGES_FILE = os.path.join(PATH, 'IndexChanges.xlsx')
-SYMBOL_LOOKUP_FILE = os.path.join(PATH, 'symbol_lookup.csv')
-
-def load_indices_data(indices_file, constituents_file, changes_file,
-                        symbol_lookup_file, on='Company', path='indices',
-                        key=['Inclusion into Index', 'Exclusion from Index']):
-    """
-    Load indices into database
-    indices file
-        A HDF5 file to load data into
-    constituents file
-        An Excel file with different indices as sheet names
-    changes file
-        An Excel file with changes in the required format
-    symbol_lookup_file
-        A csv file containing the company and symbol names
-    """
-    constituents = pd.read_excel(constituents_file, sheet_name=None)
-    changes = pd.read_excel(changes_file, sheet_name=None,
-    index_col=1, parse_dates=True)
-    lookup = pd.read_csv(SYMBOL_LOOKUP_FILE, parse_dates=['First Listing Date'])
-    for k,v in constituents.items():
-        symbols = list(v['Company Name'])
-        chg = changes[k]
-        idx = pd.DataFrame(generate_index('2012-01-01', '2018-06-01', symbols, chg),
-                            columns=['timestamp', 'Company'])
-        df = idx.merge(lookup)
-        df.to_hdf(indices_file, path+'/'+k)
-        print(k)      
-
-
 def apply_adjustment(df, adj_date, adj_value,
                     adj_type='mul',date_col='date',
                     cols=['open','high', 'low', 'close']):
