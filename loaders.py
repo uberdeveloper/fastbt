@@ -209,3 +209,40 @@ class DataLoader(object):
             self._write_to_HDF(**kwargs)
         else:
             self._write_to_SQL(**kwargs)
+
+    def apply_splits(self, directory='adjustments', 
+        filename='splits.csv', symbol='symbol', timestamp='date'):
+        """
+        Apply splits recursively
+        By default, only open, high, low, close and volume columns
+        are modified
+        """
+
+        filename = os.path.join(directory, filename)
+        try:
+            splits = pd.read_csv(filename, parse_dates=[timestamp])
+        except Exception as e:
+            print(e)
+
+        if self.mode == 'SQL':
+            df = pd.read_sql_table(self.tablename, self.engine)
+            for i, row in splits.iterrows():
+                q = 'symbol == "{sym}"'
+                temp = df.query(q.format(sym=row.at[symbol]))
+                params = {
+                    'adj_date': row.at[timestamp],
+                    'adj_value': row.at['from']/row.at['to'],
+                    'adj_type': 'mul',
+                    'date_col': timestamp,
+                    'cols': ['open', 'high', 'low', 'close']
+                }
+                temp = apply_adjustment(temp, **params)
+                params.update({
+                    'adj_value': row.at['to'] / row.at['from'],
+                    'cols': ['volume']
+                    })
+                temp = apply_adjustment(temp, **params)
+                cols = ['open', 'high', 'low', 'close', 'volume']
+                temp.index = df.loc[df[symbol] == row.at[symbol]].index
+                df.loc[temp.index] = temp
+        return df
