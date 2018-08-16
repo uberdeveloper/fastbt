@@ -6,10 +6,12 @@ import os
 import shutil
 from numpy import dtype
 import pytest
+from math import isclose
 
 sys.path.append('../')
 from loaders import DataLoader, apply_adjustment
 
+"""
 class TestLoader(unittest.TestCase):
 
 	def test_create_hdf_file(self):		
@@ -178,7 +180,7 @@ def test_SQL_post_func():
 
 
 def test_apply_adj_mul():
-	df = pd.read_csv('adj.csv', parse_dates=['date'])
+	df = pd.read_csv('BTC.csv', parse_dates=['date'])
 	adj_df = apply_adjustment(df, adj_date='2018-07-21', 
 			adj_value=1/2)
 	adj_df = adj_df.set_index('date').sort_index()
@@ -192,7 +194,7 @@ def test_apply_adj_mul():
 	assert adj_df.loc['2018-07-11', 'volume'] == 2481016
 
 def test_apply_adj_sub():
-	df = pd.read_csv('adj.csv', parse_dates=['date'])
+	df = pd.read_csv('BTC.csv', parse_dates=['date'])
 	adj_df = apply_adjustment(df, adj_date='2018-08-01', 
 			adj_value=100, adj_type='sub')
 	adj_df = adj_df.set_index('date').sort_index()
@@ -201,7 +203,7 @@ def test_apply_adj_sub():
 	assert adj_df.loc['2018-08-10', 'close'] == 12286.6
 
 def test_apply_adj_sub_negative():
-	df = pd.read_csv('adj.csv', parse_dates=['date'])
+	df = pd.read_csv('BTC.csv', parse_dates=['date'])
 	adj_df = apply_adjustment(df, adj_date='2018-08-01', 
 			adj_value=-100, adj_type='sub')
 	adj_df = adj_df.set_index('date').sort_index()
@@ -211,12 +213,12 @@ def test_apply_adj_sub_negative():
 
 def test_apply_adj_raise_error():
 	with pytest.raises(ValueError):
-		df = pd.read_csv('adj.csv', parse_dates=['date'])
+		df = pd.read_csv('BTC.csv', parse_dates=['date'])
 		adj_df = apply_adjustment(df, adj_date='2018-08-01', 
 			adj_value=-100, adj_type='div')
 
 def test_apply_adj_date_col():
-	df = pd.read_csv('adj.csv', parse_dates=['date'])
+	df = pd.read_csv('BTC.csv', parse_dates=['date'])
 	df['timestamp'] = df['date']
 	del df['date']
 	adj_df = apply_adjustment(df, adj_date='2018-07-21', 
@@ -226,16 +228,36 @@ def test_apply_adj_date_col():
 	assert adj_df.loc['2018-07-21', 'close'] == 3702.15
 
 def test_apply_adj_cols():
-	df = pd.read_csv('adj.csv', parse_dates=['date'])
+	df = pd.read_csv('BTC.csv', parse_dates=['date'])
 	adj_df = apply_adjustment(df, adj_date='2018-07-21', 
 			adj_value=1/2, cols=['open', 'high'])
 	adj_df = adj_df.set_index('date').sort_index()
 	cols = ['open', 'high', 'low', 'close']
 	assert adj_df.loc['2018-07-11', 'open'] == 3151.24
 	assert adj_df.loc['2018-07-11', 'close'] == 6381.87
+"""
 
-
-
-
-
-
+def test_apply_split_SQL_dataloader():
+	engine = create_engine('sqlite://')
+	dl = DataLoader(directory='NASDAQ/data', mode='SQL',
+		engine=engine, tablename='eod')
+	dl.load_data()
+	df = dl.apply_splits(directory='NASDAQ/adjustments/')
+	result = pd.read_csv('NASDAQ/nasdaq_results.csv', parse_dates=['date'])
+	splits = pd.read_csv('NASDAQ/adjustments/splits.csv',
+		parse_dates=['date'])
+	for i, row in splits.iterrows():
+		sym = row.at['symbol']
+		cond = 'symbol == "{}"'.format(sym)
+		frame1 = df.query(cond).sort_values(by='date').reset_index(drop=True)
+		frame2 = result.query(cond).sort_values(by='date').reset_index(drop=True)
+		L = len(frame1)
+		cols = frame1.columns
+		for i in range(L):
+			for j in cols:
+				if j in ['open', 'high', 'low', 'close', 'volume']:
+					a = frame1.loc[i,j]
+					b = frame2.loc[i,j]
+					assert isclose(a,b,abs_tol=0.01)
+				else:
+					assert frame1.loc[i,j] == frame2.loc[i,j]
