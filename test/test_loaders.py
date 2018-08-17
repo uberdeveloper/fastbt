@@ -11,7 +11,6 @@ from math import isclose
 sys.path.append('../')
 from loaders import DataLoader, apply_adjustment
 
-"""
 class TestLoader(unittest.TestCase):
 
 	def test_create_hdf_file(self):		
@@ -235,14 +234,14 @@ def test_apply_adj_cols():
 	cols = ['open', 'high', 'low', 'close']
 	assert adj_df.loc['2018-07-11', 'open'] == 3151.24
 	assert adj_df.loc['2018-07-11', 'close'] == 6381.87
-"""
 
 def test_apply_split_SQL_dataloader():
 	engine = create_engine('sqlite://')
 	dl = DataLoader(directory='NASDAQ/data', mode='SQL',
 		engine=engine, tablename='eod')
 	dl.load_data()
-	df = dl.apply_splits(directory='NASDAQ/adjustments/')
+	dl.apply_splits(directory='NASDAQ/adjustments/')
+	df = pd.read_sql_table('eod', engine)
 	result = pd.read_csv('NASDAQ/nasdaq_results.csv', parse_dates=['date'])
 	splits = pd.read_csv('NASDAQ/adjustments/splits.csv',
 		parse_dates=['date'])
@@ -258,6 +257,6 @@ def test_apply_split_SQL_dataloader():
 				if j in ['open', 'high', 'low', 'close', 'volume']:
 					a = frame1.loc[i,j]
 					b = frame2.loc[i,j]
-					assert isclose(a,b,abs_tol=0.01)
+					assert isclose(a,b,abs_tol=0.015)
 				else:
 					assert frame1.loc[i,j] == frame2.loc[i,j]

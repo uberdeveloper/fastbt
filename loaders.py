@@ -245,4 +245,4 @@ class DataLoader(object):
                 cols = ['open', 'high', 'low', 'close', 'volume']
                 temp.index = df.loc[df[symbol] == row.at[symbol]].index
                 df.loc[temp.index] = temp
-        return df
+            df.to_sql(self.tablename, self.engine, if_exists='replace', index=False)
