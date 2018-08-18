@@ -209,6 +209,5 @@ def test_backtest_results(kwargs, expected):
     for k,v in result.items():
         assert pytest.approx(v, rel=0.001, abs=0.001) == expected[k]
 
-
 if __name__ == '__main__':
     unittest.main()

@@ -11,8 +11,8 @@ s_1:
   price: open * 0.999
   order: S
   columns:
-    - P:
-        col_name: ret
-        lag: 1
+    - F:
+        formula: (open+close/2)
+        col_name: avgPrice
   conditions:
     - open < 100
