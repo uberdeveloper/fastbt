@@ -246,3 +246,27 @@ class DataLoader(object):
                 temp.index = df.loc[df[symbol] == row.at[symbol]].index
                 df.loc[temp.index] = temp
             df.to_sql(self.tablename, self.engine, if_exists='replace', index=False)
+        elif self.mode == 'HDF':          
+            df = pd.read_hdf(self.engine, '/data/'+ self.tablename)
+            df.index = range(len(df))
+            for i, row in splits.iterrows():
+                q = 'symbol == "{sym}"'
+                temp = df.query(q.format(sym=row.at[symbol]))
+                params = {
+                    'adj_date': row.at[timestamp],
+                    'adj_value': row.at['from']/row.at['to'],
+                    'adj_type': 'mul',
+                    'date_col': timestamp,
+                    'cols': ['open', 'high', 'low', 'close']
+                }
+                temp = apply_adjustment(temp, **params)
+                params.update({
+                    'adj_value': row.at['to'] / row.at['from'],
+                    'cols': ['volume']
+                    })
+                temp = apply_adjustment(temp, **params)
+                cols = ['open', 'high', 'low', 'close', 'volume']
+                temp.index = df.loc[df[symbol] == row.at[symbol]].index  
+                df.loc[temp.index] = temp
+            df.to_hdf(self.engine, key='/data/'+self.tablename, format='table',
+                        data_columns=True)
