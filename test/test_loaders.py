@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 import unittest
 import os
 import shutil
+import tempfile
 from numpy import dtype
 import pytest
 from math import isclose
@@ -289,29 +290,30 @@ def test_apply_split_SQL_dataloader():
 
 
 def test_apply_split_HDF_dataloader():
-	engine = 'test_NASDAQ.h5'
-	dl = DataLoader(directory='NASDAQ/data', mode='HDF',
-		engine=engine, tablename='eod')
-	dl.load_data()
-	dl.apply_splits(directory='NASDAQ/adjustments/')
-	df = pd.read_hdf(engine, 'data/eod')
-	result = pd.read_csv('NASDAQ/nasdaq_results.csv', parse_dates=['date'])
-	splits = pd.read_csv('NASDAQ/adjustments/splits.csv',
-		parse_dates=['date'])
-	for i, row in splits.iterrows():
-		sym = row.at['symbol']
-		cond = 'symbol == "{}"'.format(sym)
-		frame1 = df.query(cond).sort_values(by='date').reset_index(drop=True)
-		frame2 = result.query(cond).sort_values(by='date').reset_index(drop=True)
-		L = len(frame1)
-		cols = frame1.columns
-		for i in range(L):
-			for j in cols:
-				if j in ['open', 'high', 'low', 'close', 'volume']:
-					a = frame1.loc[i,j]
-					b = frame2.loc[i,j]
-					print(a,b,sym)
-					assert isclose(a,b,abs_tol=0.015)
-				else:
-					assert frame1.loc[i,j] == frame2.loc[i,j]
-	os.remove(engine)
+	with tempfile.NamedTemporaryFile as fp:
+		engine = fp.name
+		print(engine)
+		dl = DataLoader(directory='NASDAQ/data', mode='HDF',
+			engine=engine, tablename='eod')
+		dl.load_data()
+		dl.apply_splits(directory='NASDAQ/adjustments/')
+		df = pd.read_hdf(engine, 'data/eod')
+		result = pd.read_csv('NASDAQ/nasdaq_results.csv', parse_dates=['date'])
+		splits = pd.read_csv('NASDAQ/adjustments/splits.csv',
+			parse_dates=['date'])
+		for i, row in splits.iterrows():
+			sym = row.at['symbol']
+			cond = 'symbol == "{}"'.format(sym)
+			frame1 = df.query(cond).sort_values(by='date').reset_index(drop=True)
+			frame2 = result.query(cond).sort_values(by='date').reset_index(drop=True)
+			L = len(frame1)
+			cols = frame1.columns
+			for i in range(L):
+				for j in cols:
+					if j in ['open', 'high', 'low', 'close', 'volume']:
+						a = frame1.loc[i,j]
+						b = frame2.loc[i,j]
+						print(a,b,sym)
+						assert isclose(a,b,abs_tol=0.015)
+					else:
+						assert frame1.loc[i,j] == frame2.loc[i,j]
