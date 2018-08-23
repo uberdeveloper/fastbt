@@ -14,15 +14,16 @@ from loaders import DataLoader, apply_adjustment
 
 class TestLoader(unittest.TestCase):
 
-	def test_create_hdf_file(self):		
-		dl = DataLoader('eoddata', engine='test.h5',
-			mode='HDF', tablename='eod')
-		dl.load_data()
-		self.assertEqual(len(pd.read_hdf('test.h5', 'data/eod')), 10030)
-		self.assertEqual(len(pd.read_hdf('test.h5', 'updated/eod')), 5)				
+	def test_create_hdf_file(self):
+		with tempfile.NamedTemporaryFile() as fp:		
+			dl = DataLoader('eoddata', engine=fp.name,
+				mode='HDF', tablename='eod')
+			dl.load_data()
+			self.assertEqual(len(pd.read_hdf(fp.name, 'data/eod')), 10030)
+			self.assertEqual(len(pd.read_hdf(fp.name, 'updated/eod')), 5)				
 
 	def test_create_database(self):
-		engine = create_engine('sqlite:///test.sqlite')
+		engine = create_engine('sqlite://')
 		dl = DataLoader('eoddata', engine=engine, 
 			mode='SQL', tablename='eod')
 		dl.load_data()
@@ -30,32 +31,34 @@ class TestLoader(unittest.TestCase):
 		self.assertEqual(len(pd.read_sql_table('updated_eod', engine)), 5)
 
 	def test_run_loader_multiple_times(self):
-		dl = DataLoader('eoddata', engine='test.h5',
-		mode='HDF', tablename='eod')
-		for i in range(5):
-			dl.load_data()
-		engine = create_engine('sqlite://')
-		dl = DataLoader('eoddata', engine=engine, 
-			mode='SQL', tablename='eod')
-		for i in range(5):
-			dl.load_data()
-		shape_hdf = len(pd.read_hdf('test.h5', 'data/eod'))
-		shape_sql = len(pd.read_sql_table('eod', engine))
-		self.assertEqual(shape_hdf, shape_sql)
-		self.assertEqual(shape_hdf, 12053)
+		with tempfile.NamedTemporaryFile() as fp:
+			dl = DataLoader('eoddata', engine=fp.name,
+			mode='HDF', tablename='eod')
+			for i in range(5):
+				dl.load_data()
+			engine = create_engine('sqlite://')
+			dl = DataLoader('eoddata', engine=engine, 
+				mode='SQL', tablename='eod')
+			for i in range(5):
+				dl.load_data()
+			shape_hdf = len(pd.read_hdf(fp.name, 'data/eod'))
+			shape_sql = len(pd.read_sql_table('eod', engine))
+			self.assertEqual(shape_hdf, shape_sql)
+			self.assertEqual(shape_hdf, 12053)
 
 	def test_existing_hdf_file(self):
-		dl = DataLoader('eoddata', engine='test.h5',
-			mode='HDF', tablename='eod')
-		shutil.copy2('eoddata/INDEX_20180731.txt', 
-					'eoddata/INDEX_20000000.txt')
-		dl.load_data()
-		self.assertEqual(len(pd.read_hdf('test.h5', 'data/eod')), 12053)
-		self.assertEqual(len(pd.read_hdf('test.h5', 'updated/eod')), 6)		
+		with tempfile.NamedTemporaryFile() as fp:
+			dl = DataLoader('eoddata', engine=fp.name,
+				mode='HDF', tablename='eod')
+			shutil.copy2('eoddata/INDEX_20180731.txt', 
+						'eoddata/INDEX_20000000.txt')
+			dl.load_data()
+			self.assertEqual(len(pd.read_hdf(fp.name, 'data/eod')), 12053)
+			self.assertEqual(len(pd.read_hdf(fp.name, 'updated/eod')), 6)		
 
 
 	def test_existing_database(self):
-		engine = create_engine('sqlite:///test.sqlite')
+		engine = create_engine('sqlite://')
 		dl = DataLoader('eoddata', engine=engine, 
 			mode='SQL', tablename='eod')
 		shutil.copy2('eoddata/INDEX_20180731.txt', 
@@ -66,10 +69,11 @@ class TestLoader(unittest.TestCase):
 
 
 	def test_wrong_mode(self):
-		dl = DataLoader('eoddata', engine='test.h5',
-			mode='SQL', tablename='eod')
-		with self.assertRaises(Exception):
-			dl.load_data()
+		with tempfile.NamedTemporaryFile() as fp:
+			dl = DataLoader('eoddata', engine=fp.name,
+				mode='SQL', tablename='eod')
+			with self.assertRaises(Exception):
+				dl.load_data()
 
 		with self.assertRaises(TypeError):
 			DataLoader('eoddata', engine='some_random_mode',
@@ -78,8 +82,6 @@ class TestLoader(unittest.TestCase):
 
 	@classmethod
 	def tearDownClass(self):
-		os.remove('test.h5')
-		os.remove('test.sqlite')
 		os.remove('eoddata/INDEX_20000000.txt')
 
 # rename columns
@@ -94,16 +96,16 @@ rename =  {
 	}
 
 def test_HDF_rename_columns():
-	dl = DataLoader('eoddata', engine='test.h5',
-		mode='HDF', tablename='eod')
-	dl.load_data(columns=rename)
-	df = pd.read_hdf('test.h5', 'data/eod')
-	assert len(df) == 10030
-	assert len(pd.read_hdf('test.h5', 'updated/eod')) == 5
-	cols = ['symbol', 'date', 'open', 'high', 'low', 'close', 'vol']
-	for x,y in zip(df.columns, cols):
-		assert x == y
-	os.remove('test.h5')
+	with tempfile.NamedTemporaryFile() as fp:
+		dl = DataLoader('eoddata', engine=fp.name,
+			mode='HDF', tablename='eod')
+		dl.load_data(columns=rename)
+		df = pd.read_hdf(fp.name, 'data/eod')
+		assert len(df) == 10030
+		assert len(pd.read_hdf(fp.name, 'updated/eod')) == 5
+		cols = ['symbol', 'date', 'open', 'high', 'low', 'close', 'vol']
+		for x,y in zip(df.columns, cols):
+			assert x == y
 
 def test_SQL_rename_columns():
 	engine = create_engine('sqlite://')
@@ -117,12 +119,12 @@ def test_SQL_rename_columns():
 		assert x == y
 
 def test_HDF_parse_dates():
-		dl = DataLoader('eoddata', engine='test.h5',
+	with tempfile.NamedTemporaryFile() as fp: 
+		dl = DataLoader('eoddata', engine=fp.name,
 			mode='HDF', tablename='eod')
 		dl.load_data(columns=rename, parse_dates=['<date>'])
-		df = pd.read_hdf('test.h5', 'data/eod')
+		df = pd.read_hdf(fp.name, 'data/eod')
 		assert df.dtypes['date'] == dtype('<M8[ns]')
-		os.remove('test.h5')
 
 def test_SQL_parse_dates():
 	engine = create_engine('sqlite://')
@@ -133,12 +135,12 @@ def test_SQL_parse_dates():
 	assert df.dtypes['date'] == dtype('<M8[ns]')
 
 def test_HDF_parse_dates_auto():
-	dl = DataLoader('eoddata', engine='test.h5',
-		mode='HDF', tablename='eod')
-	dl.load_data(columns=rename)
-	df = pd.read_hdf('test.h5', 'data/eod')
-	assert df.dtypes['date'] == dtype('<M8[ns]')
-	os.remove('test.h5')
+	with tempfile.NamedTemporaryFile() as fp:
+		dl = DataLoader('eoddata', engine=fp.name,
+			mode='HDF', tablename='eod')
+		dl.load_data(columns=rename)
+		df = pd.read_hdf(fp.name, 'data/eod')
+		assert df.dtypes['date'] == dtype('<M8[ns]')
 
 def test_SQL_parse_dates_auto():
 	engine = create_engine('sqlite://')
@@ -149,19 +151,19 @@ def test_SQL_parse_dates_auto():
 	assert df.dtypes['date'] == dtype('<M8[ns]')
 
 def test_HDF_post_func():
-	dl = DataLoader('eoddata', engine='test.h5',
-		mode='HDF', tablename='eod')
-	def add_filename(x,y,z):
-		x['filename'] = y
-		x['avgprice'] = (x['open'] + x['close'])/2
-		return x
-	dl.load_data(columns=rename, postfunc=add_filename)
-	df = pd.read_hdf('test.h5', 'data/eod')
-	assert df.dtypes['date'] == dtype('<M8[ns]')
-	assert df.shape[1] == 9
-	assert 'filename' in df.columns
-	assert 'avgprice' in df.columns
-	os.remove('test.h5')
+	with tempfile.NamedTemporaryFile() as fp:
+		dl = DataLoader('eoddata', engine=fp.name,
+			mode='HDF', tablename='eod')
+		def add_filename(x,y,z):
+			x['filename'] = y
+			x['avgprice'] = (x['open'] + x['close'])/2
+			return x
+		dl.load_data(columns=rename, postfunc=add_filename)
+		df = pd.read_hdf(fp.name, 'data/eod')
+		assert df.dtypes['date'] == dtype('<M8[ns]')
+		assert df.shape[1] == 9
+		assert 'filename' in df.columns
+		assert 'avgprice' in df.columns
 
 def test_SQL_post_func():
 	engine = create_engine('sqlite://')
@@ -177,7 +179,6 @@ def test_SQL_post_func():
 	assert df.shape[1] == 9
 	assert 'filename' in df.columns
 	assert 'avgprice' in df.columns
-
 
 def test_apply_adj_mul():
 	df = pd.read_csv('BTC.csv', parse_dates=['date'])
@@ -290,9 +291,8 @@ def test_apply_split_SQL_dataloader():
 
 
 def test_apply_split_HDF_dataloader():
-	with tempfile.NamedTemporaryFile as fp:
+	with tempfile.NamedTemporaryFile() as fp:
 		engine = fp.name
-		print(engine)
 		dl = DataLoader(directory='NASDAQ/data', mode='HDF',
 			engine=engine, tablename='eod')
 		dl.load_data()
