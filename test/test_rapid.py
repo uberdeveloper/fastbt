@@ -149,12 +149,12 @@ def test_backtest_data():
     kwargs['data'] = data
     result_two = backtest(**kwargs)
     assert metrics(result_one, 100000) == metrics(result_two, 100000)
-
-def test_empty_dataframe_result():
-    """
-    Program to terminate in case there is no result at any stage
-    """
-    pass
+    assert result_one.shape == result_two.shape
+    from random import randint
+    for i in range(10):
+        r1 = randint(0, len(result_one)-1)
+        r2 = randint(0, len(result_two.columns)-1)
+        assert result_one.iloc[r1, r2] == result_two.iloc[r1, r2]
 
 def test_stop_loss_zero():
     pass
@@ -208,6 +208,45 @@ def test_backtest_results(kwargs, expected):
     result = metrics(bt(**kwargs), kwargs['capital'])
     for k,v in result.items():
         assert pytest.approx(v, rel=0.001, abs=0.001) == expected[k]
+
+def test_empty_dataframe_result():
+    params = {
+        'start': '2020-01-01',
+        'end': '2020-01-05',
+        'sort_by': 'open'
+    }
+    with pytest.raises(ValueError):
+        bt(**params)
+    params.update({'start': '2018-01-01', 
+        'columns': [{'F': {'formula': '(open+close)/2', 'col_name': 'avgprice'}}],
+        'conditions': ['open > 100']})
+    bt(**params)
+
+def test_no_columns():
+    params = {
+        'start': '2018-01-01',
+        'end': '2018-01-07',
+        'sort_by': 'open',
+        'conditions': ['open > 100']
+    }
+    bt(**params)
+
+def test_no_conditions():
+    params = {
+        'start': '2018-01-01',
+        'end': '2018-01-07',
+        'sort_by': 'open',
+        'columns': [{'F': {'formula': '(open+close)/2', 'col_name': 'avgprice'}}]
+    }
+    bt(**params)
+
+def test_no_columns_no_conditions():
+    params = {
+        'start': '2018-01-01',
+        'end': '2018-01-07',
+        'sort_by': 'open',
+        }
+    bt(**params)
 
 if __name__ == '__main__':
     unittest.main()
