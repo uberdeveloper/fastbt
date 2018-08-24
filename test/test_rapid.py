@@ -4,11 +4,23 @@ import sys
 from sqlalchemy import create_engine
 import pytest
 from functools import partial
+from random import randint
 import yaml
 
 sys.path.append('../')
 from rapid import *
 R = lambda x: round(x, 2)
+
+def compare(frame1, frame2):
+    """
+    Compare a random value from 2 dataframes
+    return
+        True if values are equal else False
+    """
+    r1 = randint(0, len(frame1)-1)
+    r2 = randint(0, len(frame1.columns) - 1)
+    return frame1.iloc[r1, r2] == frame2.iloc[r1, r2]
+
 
 class TestRapidFetchData(unittest.TestCase):
 
@@ -152,9 +164,7 @@ def test_backtest_data():
     assert result_one.shape == result_two.shape
     from random import randint
     for i in range(10):
-        r1 = randint(0, len(result_one)-1)
-        r2 = randint(0, len(result_two.columns)-1)
-        assert result_one.iloc[r1, r2] == result_two.iloc[r1, r2]
+        assert compare(result_one, result_two)
 
 def test_stop_loss_zero():
     pass
