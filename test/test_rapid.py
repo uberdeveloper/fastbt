@@ -227,36 +227,40 @@ def test_empty_dataframe_result():
     }
     with pytest.raises(ValueError):
         bt(**params)
-    params.update({'start': '2018-01-01', 
-        'columns': [{'F': {'formula': '(open+close)/2', 'col_name': 'avgprice'}}],
-        'conditions': ['open > 100']})
-    bt(**params)
 
 def test_no_columns():
     params = {
         'start': '2018-01-01',
         'end': '2018-01-07',
         'sort_by': 'open',
-        'conditions': ['open > 100']
+        'conditions': ['open > 0'],
+        'limit': 10
     }
-    bt(**params)
+    assert len(bt(**params)) == 36
 
 def test_no_conditions():
     params = {
         'start': '2018-01-01',
         'end': '2018-01-07',
         'sort_by': 'open',
-        'columns': [{'F': {'formula': '(open+close)/2', 'col_name': 'avgprice'}}]
+        'columns': [{'F': {'formula': '(open+close)/2', 'col_name': 'avgprice'}}],
+        'limit': 10
     }
-    bt(**params)
+    assert len(bt(**params)) == 36
 
 def test_no_columns_no_conditions():
     params = {
         'start': '2018-01-01',
         'end': '2018-01-07',
         'sort_by': 'open',
+        'limit': 10
         }
-    bt(**params)
+    df1 = pd.read_csv('sample.csv', parse_dates=['timestamp'])
+    df1 = df1.sort_values(by=['timestamp', 'symbol'])
+    df2 = bt(**params).sort_values(by=['timestamp', 'symbol'])
+    for i in range(20):
+        assert compare(df1, df2)
+
 
 if __name__ == '__main__':
     unittest.main()
