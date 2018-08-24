@@ -54,8 +54,11 @@ def fetch_data(universe, start, end, connection, tablename,
     return data
 
 def prepare_data(data, columns):
-    ds = DataSource(data, sort=False)    
-    return ds.batch_process(columns)
+    if columns:
+        ds = DataSource(data, sort=False) 
+        return ds.batch_process(columns)
+    else:
+        return data
 
 def apply_prices(data, conditions, price, stop_loss, order):
     """
@@ -73,7 +76,6 @@ def apply_prices(data, conditions, price, stop_loss, order):
         whether the order is Buy or Sell
         accepted values B or S
     """
-
     if order.upper() == 'B':
         multiplier = 1 - (stop_loss * 0.01)
     elif order.upper() == 'S':
@@ -81,11 +83,14 @@ def apply_prices(data, conditions, price, stop_loss, order):
     else:
         raise ValueError('Order should be either B or S')
 
-    # All conditions are forced to lower case AND ed    
-    big_condition = '&'.join(['(' + c.lower() + ')' for c in conditions])
-    # TO DO: Deal with Memory Error in case of lots of conditions
-    # f shorthand for filtered
-    f = data.query(big_condition).copy()
+    # All conditions are forced to lower case AND ed
+    if conditions:
+        big_condition = '&'.join(['(' + c.lower() + ')' for c in conditions])
+        # TO DO: Deal with Memory Error in case of lots of conditions
+        # f shorthand for filtered
+        f = data.query(big_condition).copy()
+    else:
+        f = data.copy()
     f['price'] = f.eval(price).apply(tick)
     f['stop_loss'] = (f['price'] * multiplier).apply(tick)
 
@@ -188,7 +193,7 @@ def backtest(start='2018-04-01', end='2018-06-30',
     else:
         raise ValueError('No data fetched from database')
 
-    if isNotEmpty(final):
+    if isNotEmpty(final):        
         result = run_strategy(final, capital, leverage, limit, 
             sort_by, sort_mode, commission, slippage)
     else:
