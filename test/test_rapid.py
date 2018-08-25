@@ -228,6 +228,11 @@ def test_empty_dataframe_result():
     with pytest.raises(ValueError):
         bt(**params)
 
+    params.update({'start': '2017-01-01', 'conditions':['open > 20000']})
+    with pytest.raises(ValueError):
+        bt(**params)
+
+
 def test_no_columns():
     params = {
         'start': '2018-01-01',
@@ -260,6 +265,25 @@ def test_no_columns_no_conditions():
     df2 = bt(**params).sort_values(by=['timestamp', 'symbol'])
     for i in range(20):
         assert compare(df1, df2)
+
+def test_same_result():
+    # Same result for backtest and individual functions
+    params = {
+    'start': '2018-01-01',
+    'end': '2018-01-10',
+    'price': 'open * 0.999',
+    'columns':[{'F': {'formula': '(open+close)/2', 'col_name': 'avgprice'}}],
+    'conditions': ['open > 50'],
+    'sort_by': 'price'
+    }
+    result_one = bt(**params) 
+    df = fetch_data('all', '2018-01-01','2018-01-10', con, tbl)
+    df = prepare_data(df, params['columns'])
+    df = apply_prices(df, params['conditions'], params['price'], 0, 'B')
+    result_two = run_strategy(df, 100000, 1, 5, 'price', True)
+    for i in range(50):
+        assert compare(result_one, result_two)
+
 
 
 if __name__ == '__main__':
