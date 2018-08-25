@@ -266,8 +266,14 @@ def test_no_columns_no_conditions():
     for i in range(20):
         assert compare(df1, df2)
 
-def test_same_result():
-    # Same result for backtest and individual functions
+@pytest.mark.parametrize("stop_loss", [1,2,3])
+@pytest.mark.parametrize("order", ['B', 'S'])
+@pytest.mark.parametrize("limit", [3,5])
+def test_same_results(stop_loss, order, limit):
+    """
+    test whether results are same for both backtest
+    function and when functions are run individually
+    """
     params = {
     'start': '2018-01-01',
     'end': '2018-01-10',
@@ -276,15 +282,15 @@ def test_same_result():
     'conditions': ['open > 50'],
     'sort_by': 'price'
     }
-    result_one = bt(**params) 
-    df = fetch_data('all', '2018-01-01','2018-01-10', con, tbl)
+    params.update({'stop_loss': stop_loss, 'order': order, 'limit': limit})
+    result_one = bt(**params)
+    df = fetch_data('all', '2018-01-01','2018-01-10', con, tbl) 
     df = prepare_data(df, params['columns'])
-    df = apply_prices(df, params['conditions'], params['price'], 0, 'B')
-    result_two = run_strategy(df, 100000, 1, 5, 'price', True)
+    df = apply_prices(df, params['conditions'], params['price'],
+        stop_loss=stop_loss, order=order)
+    result_two = run_strategy(df, 100000, 1, limit=limit, sort_by='price', sort_mode=True)
     for i in range(50):
         assert compare(result_one, result_two)
-
-
 
 if __name__ == '__main__':
     unittest.main()
