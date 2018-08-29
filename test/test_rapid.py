@@ -140,12 +140,33 @@ class TestRapidRunStrategy(unittest.TestCase):
         conditions = ['open > prevclose']
         self.data = apply_prices(data, conditions, 'open', 3, 'B')
 
-    def test_run_strategy_simple(self):
-        result = run_strategy(self.data, 100000, 1, 5, 'price', True)
+    def test_run_strategy_default(self):
+        pass
+
+    def test_run_strategy_custom(self):
+        pass  
+
+class TestRapidGetOutput(unittest.TestCase):
+
+    def setUp(self):
+        from sqlalchemy import create_engine
+        con = create_engine('sqlite:///data.sqlite3')
+        tbl = 'eod'
+        universe = ['one', 'two', 'three', 'four', 'five', 'six']
+        start, end = '2018-01-01 00:00:00.000000', '2018-01-06 00:00:00.000000'
+        data = fetch_data(universe, start, end, con, tbl)
+        conditions = ['open > prevclose']
+        data = apply_prices(data, conditions, 'open', 3, 'B')
+        self.data = run_strategy(data, 'price', True, 5)
+
+    def test_get_output_default(self):
+        result = get_output(self.data, 100000, 1, 0,0)
         self.assertEqual(R(result.profit.sum()), -715.09)
         self.assertEqual(result.qty.sum(), 26506)
         by_day = result.groupby('timestamp').profit.sum()
         self.assertEqual(R(by_day.loc['2018-01-04']), -3153.15)
+
+
 
 def test_backtest_data():
     import yaml
@@ -266,14 +287,13 @@ def test_no_columns_no_conditions():
     for i in range(20):
         assert compare(df1, df2)
 
+
 @pytest.mark.parametrize("stop_loss", [1,2,3])
 @pytest.mark.parametrize("order", ['B', 'S'])
 @pytest.mark.parametrize("limit", [3,5])
 def test_same_results(stop_loss, order, limit):
-    """
-    test whether results are same for both backtest
-    function and when functions are run individually
-    """
+    # test whether results are same for both backtest
+    # function and when functions are run individually
     params = {
     'start': '2018-01-01',
     'end': '2018-01-10',
@@ -288,7 +308,8 @@ def test_same_results(stop_loss, order, limit):
     df = prepare_data(df, params['columns'])
     df = apply_prices(df, params['conditions'], params['price'],
         stop_loss=stop_loss, order=order)
-    result_two = run_strategy(df, 100000, 1, limit=limit, sort_by='price', sort_mode=True)
+    df = run_strategy(df, params['sort_by'], True, limit=limit)
+    result_two = get_output(df, 100000, 1)
     for i in range(50):
         assert compare(result_one, result_two)
 
