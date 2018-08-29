@@ -110,18 +110,27 @@ def apply_prices(data, conditions, price, stop_loss, order):
     f.loc[f.sell == 0, 'sell'] = f.loc[f.sell == 0, 'close']
     return f
 
-def run_strategy(data, capital, leverage, limit, 
-    sort_by, sort_mode, commission=0, slippage=0):
+def run_strategy(data, sort_by, sort_mode, limit, strategy=None):
+    """
+    Strategy to apply for each time bar    
+    By default, NA's are dropped
+    """
+    grouped = data.dropna().groupby('timestamp')
+    collect = []
+    for name, group in grouped:
+        if strategy:
+            temp = group.apply(strategy)
+        else:
+            temp = group.sort_values(by=sort_by, ascending=sort_mode).iloc[:limit]
+        collect.append(temp)
+    return pd.concat(collect)
+
+def get_output(data, capital, leverage, commission=0, slippage=0):
     """
     By default, NA's are dropped
     """
     total_capital = capital * leverage
-    grouped = data.dropna().groupby('timestamp')
-    collect = []
-    for name, group in grouped:
-        temp = group.sort_values(by=sort_by, ascending=sort_mode).iloc[:limit]
-        collect.append(temp)    
-    df = pd.concat(collect)
+    df = data
     df['cnt'] = df.groupby('timestamp')['symbol'].transform(
         lambda x: len(x))
     df['qty'] = (total_capital/df['cnt']/df['price']).round()
@@ -168,7 +177,8 @@ def backtest(start='2018-04-01', end='2018-06-30',
             universe='all', limit=5, columns=None, conditions=None,
             sort_by=None, sort_mode=True,
             connection=None, tablename=None,
-            where_clause=None, data=None):
+            where_clause=None, data=None,
+            strategy=None, output=None):
     """
     run the backtest
     start
@@ -193,13 +203,15 @@ def backtest(start='2018-04-01', end='2018-06-30',
     else:
         raise ValueError('No data fetched from database')
 
-    if isNotEmpty(final):        
-        result = run_strategy(final, capital, leverage, limit, 
-            sort_by, sort_mode, commission, slippage)
+    if isNotEmpty(final):   
+        result = run_strategy(final, sort_by, sort_mode, limit, strategy)
     else:
         raise ValueError('No data after filtering all conditions')
 
-    return result
+    if output:
+        return output(result)
+    else:
+        return get_output(result, capital, leverage, commission, slippage)
 
 def parse_input(input_data):
     pass
