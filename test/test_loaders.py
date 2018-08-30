@@ -8,9 +8,21 @@ import tempfile
 from numpy import dtype
 import pytest
 from math import isclose
+from random import randint
 
 sys.path.append('../')
-from loaders import DataLoader, apply_adjustment
+from loaders import DataLoader, apply_adjustment, collate_data
+
+def compare(frame1, frame2):
+    """
+    Compare a random value from 2 dataframes
+    return
+        True if values are equal else False
+    """
+    r1 = randint(0, len(frame1)-1)
+    r2 = randint(0, len(frame1.columns) - 1)
+    return frame1.iloc[r1, r2] == frame2.iloc[r1, r2]
+
 
 class TestLoader(unittest.TestCase):
 
@@ -317,3 +329,16 @@ def test_apply_split_HDF_dataloader():
 						assert isclose(a,b,abs_tol=0.015)
 					else:
 						assert frame1.loc[i,j] == frame2.loc[i,j]
+
+def test_collate_data_function():
+	df = collate_data('NASDAQ/data', parse_dates=['Date'])
+	df = df.rename(lambda x: x.lower(), axis='columns')
+	df = df.sort_values(by=['date', 'symbol'])
+	engine = create_engine('sqlite://')
+	dl = DataLoader(directory='NASDAQ/data', mode='SQL',
+		engine=engine, tablename='eod')
+	dl.load_data()
+	df2 = pd.read_sql_table('eod', engine).sort_values(by=['date', 'symbol'])
+	assert len(df) == len(df2)
+	for i in range(100):
+		assert compare(df, df2)

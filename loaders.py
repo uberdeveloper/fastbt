@@ -270,3 +270,24 @@ class DataLoader(object):
                 df.loc[temp.index] = temp
             df.to_hdf(self.engine, key='/data/'+self.tablename, format='table',
                         data_columns=True)
+
+
+def collate_data(directory, **kwargs):
+    """
+    Given a directory of csv files with similar structure,
+    create a dataframe by concantenating all files
+    directory
+        directory with the files. All files should
+        be of the same structure and there should
+        be no sub-directory inside it
+    kwargs
+        kwargs for the pandas read_csv function
+    """
+    collect = []
+    for root, directory, files in os.walk(directory):
+        for file in files:
+            filename = os.path.join(root, file)
+            temp = pd.read_csv(filename, **kwargs)
+            collect.append(temp)
+    result = pd.concat(collect).reset_index(drop=True)
+    return result
