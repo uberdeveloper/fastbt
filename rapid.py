@@ -26,14 +26,18 @@ def isPrice(price, high, low):
     """
     return (price >= low) and (price <= high)
 
-def fetch_data(universe, start, end, connection, tablename,
-                where_clause = None):
+def fetch_data(universe='all', start=None, end=None, connection=None, tablename=None, where_clause = None):
     """
     Fetch data from SQL database
     where_clause
     additional where clauses as a list
     TO DO: Should adjust for date and time
     """
+    from datetime import datetime, timedelta
+    if end is None:
+        end = datetime.today().strftime('%Y-%m-%d')
+    if start is None:
+        start = (datetime.today() - timedelta(days=30)).strftime('%Y-%m-%d')
     q = []
     select = "SELECT * from {tablename} where ".format(tablename=tablename)
     if universe != 'all':
@@ -53,14 +57,14 @@ def fetch_data(universe, start, end, connection, tablename,
         del data['index']
     return data
 
-def prepare_data(data, columns):
+def prepare_data(data, columns=None):
     if columns:
         ds = DataSource(data, sort=False) 
         return ds.batch_process(columns)
     else:
         return data
 
-def apply_prices(data, conditions, price, stop_loss, order):
+def apply_prices(data, conditions=None, price='open', stop_loss=0, order='B'):
     """
     Filter conditions and apply prices
     data
@@ -110,7 +114,7 @@ def apply_prices(data, conditions, price, stop_loss, order):
     f.loc[f.sell == 0, 'sell'] = f.loc[f.sell == 0, 'close']
     return f
 
-def run_strategy(data, sort_by, sort_mode, limit, strategy=None):
+def run_strategy(data, sort_by='price', sort_mode=True, limit=5, strategy=None):
     """
     Strategy to apply for each time bar    
     By default, NA's are dropped
@@ -125,7 +129,7 @@ def run_strategy(data, sort_by, sort_mode, limit, strategy=None):
         collect.append(temp)
     return pd.concat(collect)
 
-def get_output(data, capital, leverage, commission=0, slippage=0):
+def get_output(data, capital=100000, leverage=1, commission=0, slippage=0):
     """
     By default, NA's are dropped
     """
@@ -171,7 +175,7 @@ def metrics(data, capital, benchmark=None):
         'sharpe': sharpe
     }       
 
-def backtest(start='2018-04-01', end='2018-06-30',
+def backtest(start=None, end=None,
             capital=100000, leverage=1, commission=0,
             slippage=0, price='open', stop_loss=0, order='B',
             universe='all', limit=5, columns=None, conditions=None,
@@ -187,6 +191,8 @@ def backtest(start='2018-04-01', end='2018-06-30',
         end date for the backtest
     capital
         capital to be invested
+    strategy
+        strategy should return a dataframe for each group
     """    
 
     if data is None:

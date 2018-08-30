@@ -141,10 +141,19 @@ class TestRapidRunStrategy(unittest.TestCase):
         self.data = apply_prices(data, conditions, 'open', 3, 'B')
 
     def test_run_strategy_default(self):
-        pass
+        idx = pd.IndexSlice
+        df = run_strategy(self.data, 'price', True, 5)
+        df = df.set_index(['timestamp', 'symbol']).sort_index()
+        print('IDX', df.loc[idx['2018-01-03', 'four'], 'stop_loss'])
+        self.assertEqual(R(df.at[idx['2018-01-03', 'four'], 'stop_loss']), 162.95)
+        self.assertEqual(R(df.at[idx['2018-01-05', 'five'], 'price']), 26.5)
+
 
     def test_run_strategy_custom(self):
-        pass  
+        def func(x):
+            return x.iloc[[0]]
+        df = run_strategy(self.data, 'price', True, 5, func)
+        self.assertEqual(len(df), 6)
 
 class TestRapidGetOutput(unittest.TestCase):
 
@@ -165,8 +174,6 @@ class TestRapidGetOutput(unittest.TestCase):
         self.assertEqual(result.qty.sum(), 26506)
         by_day = result.groupby('timestamp').profit.sum()
         self.assertEqual(R(by_day.loc['2018-01-04']), -3153.15)
-
-
 
 def test_backtest_data():
     import yaml
@@ -284,6 +291,21 @@ def test_no_columns_no_conditions():
     df1 = pd.read_csv('sample.csv', parse_dates=['timestamp'])
     df1 = df1.sort_values(by=['timestamp', 'symbol'])
     df2 = bt(**params).sort_values(by=['timestamp', 'symbol'])
+    for i in range(20):
+        assert compare(df1, df2)
+
+def test_strategt_output():
+    params = {
+        'start': '2018-01-01',
+        'end': '2018-01-07',
+        'sort_by': 'price',
+        'limit': 10
+    }
+    df1 = pd.read_csv('sample.csv', parse_dates=['timestamp'])
+    df1 = df1.sort_values(by=['timestamp', 'symbol'])
+    strategy = lambda x: x
+    output = lambda x:x
+    df2 = bt(**params, strategy=strategy, output=output).sort_values(by=['timestamp', 'symbol'])
     for i in range(20):
         assert compare(df1, df2)
 
