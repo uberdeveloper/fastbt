@@ -59,7 +59,7 @@ def fetch_data(universe='all', start=None, end=None, connection=None, tablename=
 
 def prepare_data(data, columns=None):
     if columns:
-        ds = DataSource(data, sort=False) 
+        ds = DataSource(data) 
         return ds.batch_process(columns)
     else:
         return data
