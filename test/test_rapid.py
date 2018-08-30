@@ -260,6 +260,25 @@ def test_empty_dataframe_result():
     with pytest.raises(ValueError):
         bt(**params)
 
+def test_no_datasource():
+    params = {
+        'start': '2018-01-01',
+        'end': '2020-01-05'
+    }
+    with pytest.raises(ValueError):
+        backtest(**params)
+  
+    params.update({'tablename': tbl})
+    with pytest.raises(ValueError):
+        backtest(**params)   
+    del params['tablename']
+
+    params.update({'connection': con})
+    with pytest.raises(ValueError):
+        backtest(**params)
+
+    params.update({'tablename': tbl})
+    backtest(**params)
 
 def test_no_columns():
     params = {
@@ -294,7 +313,7 @@ def test_no_columns_no_conditions():
     for i in range(20):
         assert compare(df1, df2)
 
-def test_strategt_output():
+def test_strategy_output():
     params = {
         'start': '2018-01-01',
         'end': '2018-01-07',
@@ -308,7 +327,6 @@ def test_strategt_output():
     df2 = bt(**params, strategy=strategy, output=output).sort_values(by=['timestamp', 'symbol'])
     for i in range(20):
         assert compare(df1, df2)
-
 
 @pytest.mark.parametrize("stop_loss", [1,2,3])
 @pytest.mark.parametrize("order", ['B', 'S'])

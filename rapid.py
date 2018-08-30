@@ -179,7 +179,7 @@ def backtest(start=None, end=None,
             capital=100000, leverage=1, commission=0,
             slippage=0, price='open', stop_loss=0, order='B',
             universe='all', limit=5, columns=None, conditions=None,
-            sort_by=None, sort_mode=True,
+            sort_by='price', sort_mode=True,
             connection=None, tablename=None,
             where_clause=None, data=None,
             strategy=None, output=None):
@@ -194,6 +194,8 @@ def backtest(start=None, end=None,
     strategy
         strategy should return a dataframe for each group
     """    
+    if (data is None) and ((tablename is None) or (connection is None)):
+        raise ValueError('No proper data source.\nEither specify a database connection and tablename or provide a dataframe')
 
     if data is None:
         data = fetch_data(universe=universe, start=start, end=end,
