@@ -47,6 +47,7 @@ class DataSource(object):
             'SAR': (talib.SAR, ['high', 'low']),
             'SAREXT': (talib.SAREXT, ['high', 'low']),
             'SMA': (talib.SMA, ['close']),
+            'STDDEV': (talib.STDDEV, ['close']),
             'TEMA': (talib.TEMA, ['close']),
             'TRIMA': (talib.TRIMA, ['close']),
             'WMA': (talib.WMA, ['close']),
@@ -112,6 +113,42 @@ class DataSource(object):
             self._data[col_name.lower()] = col
         return self.data
 
+    def add_rolling(self, window, groupby='symbol', on='close', 
+                    function='mean', col_name='auto',lag=None, **kwargs):
+        """
+        Add rolling window statistics
+        This is just a wrapper for the pandas rolling functions
+        window
+            rolling period window
+        groupby
+            column to group data by
+        on
+            column on which the rolling window is to be applied
+        function
+            function to be applied for the rolling window as
+            a string. All pandas rolling window functions are
+            accepted
+        col_name
+            column_name
+        lag
+            shift the data
+        kwargs
+            kwargs for the pandas window function
+        This is just a wrapper for
+        >>> df.groupby(groupby)[on].transform(lambda x: x.rolling(**kwargs).agg(function))
+        """
+        grouped = self.data.groupby(groupby)
+        if col_name == 'auto':
+            col_name = 'rol_' + on + '_'+ function
+        col = grouped[on].transform(lambda x: x.rolling(window, **kwargs).agg(function))
+        if lag:
+            self._data[col_name + self.hash] = col
+            self.add_lag(on=col_name+self.hash, period=lag, col_name=col_name)
+            del self._data[col_name + self.hash]
+        else:
+            self._data[col_name.lower()] = col
+        return self.data
+        
     def add_formula(self, formula, col_name):
         """
         Add a formula to the dataframe
@@ -138,7 +175,7 @@ class DataSource(object):
         period
             the timeperiod argument for talib library
         col_name
-            column name for this 
+            column name for this indicator
         kwargs for the indicator
         """
         indicator = indicator.upper()

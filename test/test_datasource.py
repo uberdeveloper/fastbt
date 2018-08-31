@@ -122,6 +122,37 @@ class TestDataSource(unittest.TestCase):
         self.assertEqual(R(d.at[idx['2018-01-06', 'one'], 'new_col_3']), 10190.6)
         self.assertEqual(R(d.at[idx['2018-01-05', 'two'], 'new_col_3']), 200389.97)
 
+    def test_rolling_simple(self):
+        from pandas import isna
+        q = 'symbol == "one"'
+        df = pd.read_csv('sample.csv', parse_dates=['timestamp']).query(q)
+        df['r2'] = df['close'].rolling(2).mean()
+        self.ds.add_rolling(2, col_name='r2')
+        df2 = self.ds.data.query(q)
+        print('RESULT' , df['r2'], df2['r2'])
+        for a,b in zip(df['r2'], df2['r2']):
+            if not(isna(a)):
+                assert a==b     
+
+    def test_rolling_values(self):
+        idx = pd.IndexSlice
+        self.ds.add_rolling(4, on='volume', function='max')
+        d = self.ds.data.set_index(['timestamp', 'symbol'])
+        R = lambda x: round(x,2)
+        self.assertEqual(d.at[idx['2018-01-05', 'five'], 'rol_volume_max'], 971704)
+        self.assertEqual(d.at[idx['2018-01-05', 'six'], 'rol_volume_max'], 195539)
+        self.assertEqual(d.at[idx['2018-01-04', 'three'], 'rol_volume_max'], 433733)
+        # Adding lag and testing
+        self.ds.add_rolling(4, on='volume', function='max', lag=1)
+        d = self.ds.data.set_index(['timestamp', 'symbol'])
+        self.assertEqual(d.at[idx['2018-01-06', 'five'], 'rol_volume_max'], 971704)
+        self.assertEqual(d.at[idx['2018-01-06', 'six'], 'rol_volume_max'], 195539)
+        self.assertEqual(d.at[idx['2018-01-05', 'three'], 'rol_volume_max'], 433733)
+        # Testing for 2 lags and column name
+        self.ds.add_rolling(4, on='volume', function='max', lag=2, col_name='check')
+        d = self.ds.data.set_index(['timestamp', 'symbol'])
+        self.assertEqual(d.at[idx['2018-01-06', 'three'], 'check'], 433733) 
+
     def test_batch(self):
         length = len(self.ds.data)
         batch = [
