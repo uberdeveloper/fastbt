@@ -1,7 +1,6 @@
 import pandas as pd
 import itertools
 
-
 def multi_args(function, constants, variables, isProduct=None):
     """
     Run a function on different parameters and
@@ -30,15 +29,22 @@ def multi_args(function, constants, variables, isProduct=None):
     the results
     """
     from functools import partial
-    collect = {}
+    import concurrent.futures
+
     func = partial(function, **constants)
     args = [x for x in zip(*variables.values())]
     keys = variables.keys()
-    for arg in args:
-        kwds = {a:b for a,b in zip(keys, arg)}
-        result = func(**kwds)
-        collect[arg] = result
-    s = pd.Series(collect)
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        tasks = []
+        for arg in args:
+            kwds = {a:b for a,b in zip(keys, arg)}
+            tasks.append(executor.submit(func, **kwds))
+    result = [task.result() for task in tasks] 
+    s = pd.Series(result)
     s.name = 'values'
-    s.index.names = keys
+    s.index = pd.MultiIndex.from_tuples(args, names=keys)
     return s
+    
+if __name__ == "__main__":
+    pass
+
