@@ -70,6 +70,12 @@ def test_tick():
 	assert tick(0.00003562, 0.000001) == 0.000036
 	assert tick(0.000035617, 0.00000002) == 0.00003562
 
+def test_tick_series():
+	s = pd.Series([100.43, 200.32, 300.32])
+	result = [100.45, 200.3, 300.3]
+	for x,y in zip(tick(s), result):
+		assert x==y
+
 def test_stop_loss():
 	assert stop_loss(100, 3) == 97
 	assert stop_loss(100, 3, order='S') == 103
@@ -81,5 +87,13 @@ def test_stop_loss_error():
 	with pytest.raises(ValueError):
 		assert stop_loss(100, 3, 'BS')
 
+def test_stop_loss_series():
+	p = pd.Series([100.75, 150.63, 180.32])
+	result = [95.71, 143.1, 171.3]
+	for x,y in zip(stop_loss(p, 5, tick_size=0.01), result):
+		assert pytest.approx(x, rel=0.001, abs=0.001) == y
 
-	
+	# Test for sell
+	result = [105.79, 158.16, 189.34]
+	for x,y in zip(stop_loss(p, 5, order='S', tick_size=0.01), result):
+		assert pytest.approx(x, rel=0.001, abs=0.001) == y
