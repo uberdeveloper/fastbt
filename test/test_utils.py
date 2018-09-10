@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import pytest
 import sys
 sys.path.append('../')
@@ -97,3 +98,12 @@ def test_stop_loss_series():
 	result = [105.79, 158.16, 189.34]
 	for x,y in zip(stop_loss(p, 5, order='S', tick_size=0.01), result):
 		assert pytest.approx(x, rel=0.001, abs=0.001) == y
+
+def test_create_orders_simple():
+	df = pd.DataFrame(np.arange(20).reshape(5,4), columns=list('ABCD'))
+	orders = create_orders(df, {'A': 'one', 'B': 'two', 'C': 'three', 'D': 'four'},
+		exchange='NSE', num=range(5))
+	df['exchange'] = 'NSE'
+	df['num'] = [0,1,2,3,4]
+	assert list(orders.columns) == ['one', 'two', 'three', 'four', 'exchange', 'num']
+	assert list(df.exchange) == ['NSE'] * 5

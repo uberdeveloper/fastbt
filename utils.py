@@ -90,6 +90,23 @@ def tick(price, tick_size=0.05):
     Rounds a given price to the requested tick
     """
     return round(price / tick_size)*tick_size
+
+def create_orders(data, rename, **kwargs):
+    """
+    create an orders dataframe from an existing dataframe
+    by renaming columns and providing additional columns
+    data
+        dataframe
+    rename
+        columns to be renamed as dictionary
+    kwargs
+        key value pairs with key being column names
+        and values being dataframe values
+    """
+    data = data.rename(rename, axis='columns')
+    for k,v in kwargs.items():
+        data[k] = v
+    return data
     
 if __name__ == "__main__":
     pass
