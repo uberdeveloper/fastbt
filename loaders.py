@@ -272,7 +272,7 @@ class DataLoader(object):
                         data_columns=True)
 
 
-def collate_data(directory, **kwargs):
+def collate_data(directory, function=None, **kwargs):
     """
     Given a directory of csv files with similar structure,
     create a dataframe by concantenating all files
@@ -280,6 +280,12 @@ def collate_data(directory, **kwargs):
         directory with the files. All files should
         be of the same structure and there should
         be no sub-directory inside it
+    function
+        function to be run on each file
+        By default, pandas read_csv function is
+        run on each file. If you specify your own
+        function, it should have only filename
+        as its argument.
     kwargs
         kwargs for the pandas read_csv function
     """
@@ -287,7 +293,10 @@ def collate_data(directory, **kwargs):
     for root, directory, files in os.walk(directory):
         for file in files:
             filename = os.path.join(root, file)
-            temp = pd.read_csv(filename, **kwargs)
+            if function is None:
+                temp = pd.read_csv(filename, **kwargs)
+            else:
+                temp = function(filename)
             collect.append(temp)
     result = pd.concat(collect).reset_index(drop=True)
     return result
