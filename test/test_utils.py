@@ -1,9 +1,11 @@
 import pandas as pd
 import numpy as np
 import pytest
+import unittest
 import sys
 sys.path.append('../')
 from utils import *
+
 
 def equation(a,b,c,x,y):
 	return a*x**2 + b*y + c
@@ -107,3 +109,36 @@ def test_create_orders_simple():
 	df['num'] = [0,1,2,3,4]
 	assert list(orders.columns) == ['one', 'two', 'three', 'four', 'exchange', 'num']
 	assert list(df.exchange) == ['NSE'] * 5
+
+class TestRecursiveMerge(unittest.TestCase):
+
+	def setUp(self):
+		df1 = pd.DataFrame(np.random.randn(6,3), columns=list('ABC'))
+		df2 = pd.DataFrame(np.random.randn(10,3), columns=list('DEF'))
+		df3 = pd.DataFrame(np.random.randn(7,4), columns=list('GHIJ'))
+		df4 = pd.DataFrame(np.random.randn(10,7), columns=list('AMNDXYZ'))
+		df1['idx'] = range(100,106)
+		df2['idx'] = range(100, 110)
+		df3['idx'] = range(100, 107)
+		df4['idx'] = range(100, 110)
+		self.dfs = [df1, df2, df3, df4]
+
+	def test_recursive_merge_simple(self):
+		df = recursive_merge(self.dfs)
+		assert len(df) == 6
+		assert df.shape == (6, 21)
+		assert df.loc[3, 'X'] == self.dfs[3].loc[3, 'X']
+		assert df.iloc[2, 11] == self.dfs[2].iloc[2, 3]
+
+	def test_recursive_on(self):
+		df = recursive_merge(self.dfs, on=['idx'])
+		assert df.shape == (6, 18)
+		assert df.loc[3, 'X'] == self.dfs[3].loc[3, 'X']
+		assert df.iloc[2, 11] == self.dfs[3].iloc[2, 0]
+
+	def test_recursive_on(self):
+		dct = {'1': 'D', '2': 'G', '3': 'X'}
+		df = recursive_merge(self.dfs, on=['idx'], columns=dct)
+		assert df.shape == (6, 7)
+		assert list(sorted(df.columns)) == ['A', 'B', 'C', 'D', 'G', 'X', 'idx']
+		assert df.loc[3, 'X'] == self.dfs[3].loc[3, 'X']

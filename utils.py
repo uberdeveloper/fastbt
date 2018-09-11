@@ -107,6 +107,49 @@ def create_orders(data, rename, **kwargs):
     for k,v in kwargs.items():
         data[k] = v
     return data
+
+def recursive_merge(dfs, on=None, how='inner',columns= {}):
+    """
+    Recursively merge all dataframes in the given list
+    
+    Given a list of dataframes, merge them based on index or columns.
+    By default, dataframes are merged on index. Specify the **on**
+    argument to merge by columns. The "on" columns should be available
+    in all the dataframes
+
+    Parameters
+    -----------
+    dfs
+        list of dataframes
+    on
+        columns on which the dataframes are to be merged.
+        By default, merge is done on index
+    how
+        how to apply the merge
+        {'left', 'right', 'outer', 'inner'}, default 'inner'.
+        Same as pandas merge
+    columns
+        To return only specific columns from specific dataframes,
+        pass them as a dictionary with key being the index of the 
+        dataframe in the list and value being the list of columns
+        to merge. **your keys should be string**
+        See examples for more details
+        >>> recursive_merge(dfs, columns{'1': ['one', 'two']})
+        Fetch only the columns one and two from the second dataframe
+    """
+    data = dfs[0]
+    for i, d in enumerate(dfs[1:], 1):
+        if columns.get(str(i)):
+            cols = list(columns.get(str(i)))         
+            cols.extend(on)            
+        else:
+            cols = d.columns
+
+        if on is None:
+            data = data.merge(d[cols], how=how, left_index=True, right_index=True)
+        else:
+            data = data.merge(d[cols], how=how, on=on)
+    return data   
     
 if __name__ == "__main__":
     pass
