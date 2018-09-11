@@ -330,7 +330,7 @@ def test_apply_split_HDF_dataloader():
 					else:
 						assert frame1.loc[i,j] == frame2.loc[i,j]
 
-def test_collate_data_function():
+def test_collate_data():
 	df = collate_data('NASDAQ/data', parse_dates=['Date'])
 	df = df.rename(lambda x: x.lower(), axis='columns')
 	df = df.sort_values(by=['date', 'symbol'])
@@ -342,3 +342,12 @@ def test_collate_data_function():
 	assert len(df) == len(df2)
 	for i in range(100):
 		assert compare(df, df2)
+
+def test_collate_data_function():
+	def f(x):
+		return pd.read_csv(x).iloc[:10, :3]
+	df = collate_data('NASDAQ/data', function=f)
+	assert len(df) == 80
+	assert df.shape == (80, 3)
+
+
