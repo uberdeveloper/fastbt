@@ -4,7 +4,6 @@ import os
 
 sys.path.append("../")
 
-
 class CustomFlask(Flask):
     jinja_options = Flask.jinja_options.copy()
     jinja_options.update(

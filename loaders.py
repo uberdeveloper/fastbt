@@ -285,7 +285,7 @@ def collate_data(directory, function=None, **kwargs):
         By default, pandas read_csv function is
         run on each file. If you specify your own
         function, it should have only filename
-        as its argument.
+        as its argument and must return a dataframe
     kwargs
         kwargs for the pandas read_csv function
     """
