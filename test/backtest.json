@@ -1,0 +1,1 @@
+{"start": "2018-01-01", "end": "2018-01-07", "capital": 100000, "leverage": 1, "commission": 0, "slippage": 0, "price": "open", "stop_loss": 3, "order": "B", "universe": "all", "limit": 5, "columns": [{"F": {"formula": "(open+close)/2", "col_name": "avgPrice"}}], "conditions": ["open > prevclose"], "sort_by": "price", "sort_mode": true}
