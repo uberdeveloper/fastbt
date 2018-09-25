@@ -280,6 +280,19 @@ def backtest_from_excel(filename, data=None, connection=None, tablename=None):
     params.update({'data': data, 'connection': connection, 'tablename': tablename})
     return backtest(**params)
 
+def backtest_from_json(filename, data=None, connection=None, tablename=None):
+    """
+    Run a backtest from a JSON file
+    JSON file should be in the expected format
+    filename
+        JSON filename
+    """
+    import json
+    with open(filename, 'r') as f:
+        params = json.load(f)
+    params.update({'data': data, 'connection': connection, 'tablename': tablename})
+    return backtest(**params)
+
 def main():
     print('Hi')
 
