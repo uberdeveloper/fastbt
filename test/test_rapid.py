@@ -353,5 +353,25 @@ def test_same_results(stop_loss, order, limit):
     for i in range(50):
         assert compare(result_one, result_two)
 
+def test_backtest_from_excel():
+    my_result = {
+        'profit': -715.09,
+        'commission': 0.0,
+        'slippage': 0.0,
+        'net_profit': -715.09,
+        'high': 1200.76,
+        'low': -2599.34,
+        'drawdown': -0.026,
+        'returns': -0.007,
+        'sharpe': -0.065
+    }
+    con = create_engine('sqlite:///data.sqlite3')
+    tbl = 'eod'
+    result = backtest_from_excel('backtest.xls', connection=con, tablename=tbl)
+    result = metrics(result, 100000)
+    for k,v in my_result.items():
+        assert round(result[k], 3) == v
+
+
 if __name__ == '__main__':
     unittest.main()

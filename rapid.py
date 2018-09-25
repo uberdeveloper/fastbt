@@ -221,8 +221,64 @@ def backtest(start=None, end=None,
     else:
         return get_output(result, capital, leverage, commission, slippage)
 
-def parse_input(input_data):
-    pass
+def backtest_from_excel(filename, data=None, connection=None, tablename=None):
+    """
+    Run a backtest from an excel file.
+    The excel file should be prepared in the given template.
+    filename
+        excel filename along with full path
+    data
+        dataframe for backtest
+    connection
+        a SQL Alchemy connection string
+    tablename
+        SQL tablename
+    """
+
+    xls = pd.ExcelFile(filename)
+    def parse_input_columns():
+        # Parse and convert excel input for columns
+        f_map = {
+            'lag': 'L',
+            'percent_change': 'P',
+            'rolling': 'R',
+            'formula': 'F',
+            'indicator': 'I'
+        }
+
+        p_map = {
+            'formula': 'formula',
+            'indicator': 'indicator',
+            'rolling': 'window'
+        }
+
+        records = xls.parse('columns').to_dict(orient='records')
+        # Remove NaN's
+        R = [{k:v for k,v in item.items() if pd.notnull(v)} for item in records]
+        new_list = []
+        for r in R:
+            dct = {}
+            code = f_map[r['col_type']]
+            if p_map.get(r['col_type']):
+                r[p_map[r['col_type']]] = r['argument'] 
+                del r['argument']
+            del r['col_type']
+            dct[code] = r
+            new_list.append(dct)
+        return new_list
+
+    params = {}
+    parameters = xls.parse('parameters', header=None).set_index(0).to_dict()[1]
+    params.update(parameters)
+
+    columns = parse_input_columns()
+    params.update({'columns': columns})
+
+    conditions = list(xls.parse('conditions', header=None)[0])
+    params.update({'conditions': conditions})
+
+    params.update({'data': data, 'connection': connection, 'tablename': tablename})
+    return backtest(**params)
 
 def main():
     print('Hi')
