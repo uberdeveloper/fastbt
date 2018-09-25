@@ -391,6 +391,25 @@ def test_backtest_from_json():
     for k,v in my_result.items():
         assert round(result[k], 3) == v
 
+def test_backtest_from_yaml():
+    my_result = {
+        'profit': -715.09,
+        'commission': 0.0,
+        'slippage': 0.0,
+        'net_profit': -715.09,
+        'high': 1200.76,
+        'low': -2599.34,
+        'drawdown': -0.026,
+        'returns': -0.007,
+        'sharpe': -0.065
+    }
+    con = create_engine('sqlite:///data.sqlite3')
+    tbl = 'eod'
+    result = backtest_from_yaml('backtest.yaml', connection=con, tablename=tbl)
+    result = metrics(result, 100000)
+    for k,v in my_result.items():
+        assert round(result[k], 3) == v
+
 
 if __name__ == '__main__':
     unittest.main()

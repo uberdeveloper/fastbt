@@ -293,6 +293,19 @@ def backtest_from_json(filename, data=None, connection=None, tablename=None):
     params.update({'data': data, 'connection': connection, 'tablename': tablename})
     return backtest(**params)
 
+def backtest_from_yaml(filename, data=None, connection=None, tablename=None):
+    """
+    Run a backtest from a YAML file
+    YAML file should be in the expected format
+    filename
+        YAML filename
+    """
+    import yaml
+    with open(filename, 'r') as f:
+        params = yaml.load(f)
+    params.update({'data': data, 'connection': connection, 'tablename': tablename})
+    return backtest(**params)
+
 def main():
     print('Hi')
 
