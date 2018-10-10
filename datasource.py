@@ -227,7 +227,8 @@ class DataSource(object):
         'L': self.add_lag,
         'P': self.add_pct_change,
         'F': self.add_formula,
-        'I': self.add_indicator
+        'I': self.add_indicator,
+        'R': self.add_rolling
         }
 
         for item in batch:

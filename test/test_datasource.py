@@ -139,15 +139,15 @@ class TestDataSource(unittest.TestCase):
         self.ds.add_rolling(4, on='volume', function='max')
         d = self.ds.data.set_index(['timestamp', 'symbol'])
         R = lambda x: round(x,2)
-        self.assertEqual(d.at[idx['2018-01-05', 'five'], 'rol_volume_max'], 971704)
-        self.assertEqual(d.at[idx['2018-01-05', 'six'], 'rol_volume_max'], 195539)
-        self.assertEqual(d.at[idx['2018-01-04', 'three'], 'rol_volume_max'], 433733)
+        self.assertEqual(d.at[idx['2018-01-05', 'five'], 'rol_max_volume_4'], 971704)
+        self.assertEqual(d.at[idx['2018-01-05', 'six'], 'rol_max_volume_4'], 195539)
+        self.assertEqual(d.at[idx['2018-01-04', 'three'], 'rol_max_volume_4'], 433733)
         # Adding lag and testing
         self.ds.add_rolling(4, on='volume', function='max', lag=1)
         d = self.ds.data.set_index(['timestamp', 'symbol'])
-        self.assertEqual(d.at[idx['2018-01-06', 'five'], 'rol_volume_max'], 971704)
-        self.assertEqual(d.at[idx['2018-01-06', 'six'], 'rol_volume_max'], 195539)
-        self.assertEqual(d.at[idx['2018-01-05', 'three'], 'rol_volume_max'], 433733)
+        self.assertEqual(d.at[idx['2018-01-06', 'five'], 'rol_max_volume_4'], 971704)
+        self.assertEqual(d.at[idx['2018-01-06', 'six'], 'rol_max_volume_4'], 195539)
+        self.assertEqual(d.at[idx['2018-01-05', 'three'], 'rol_max_volume_4'], 433733)
         # Testing for 2 lags and column name
         self.ds.add_rolling(4, on='volume', function='max', lag=2, col_name='check')
         d = self.ds.data.set_index(['timestamp', 'symbol'])
@@ -160,11 +160,12 @@ class TestDataSource(unittest.TestCase):
             {'L': {'on': 'volume', 'period': 1}},
             {'F': {'formula': '(open+close)/2', 'col_name': 'AvgPrice'}},
             {'I': {'indicator': 'SMA', 'period': 3, 'lag': 1, 'col_name': 'SMA3'}},
-            {'F': {'formula': 'avgprice + sma3', 'col_name': 'final'}}
+            {'F': {'formula': 'avgprice + sma3', 'col_name': 'final'}},
+            {'R': {'window': 3, 'function': 'mean'}}
         ]
         d = self.ds.batch_process(batch).set_index(['timestamp', 'symbol'])
-        self.assertEqual(len(d.columns), 11)
-        self.assertEqual(len(self.ds.data.columns), 13)
+        self.assertEqual(len(d.columns), 12)
+        self.assertEqual(len(self.ds.data.columns), 14)
         self.assertEqual(len(self.ds.data), length)
 
     def test_raise_error_if_not_dataframe(self):
