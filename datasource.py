@@ -139,7 +139,7 @@ class DataSource(object):
         """
         grouped = self.data.groupby(groupby)
         if col_name == 'auto':
-            col_name = 'rol_' + on + '_'+ function
+            col_name = 'rol_{f}_{on}_{w}'.format(f=function, on=on, w=window)
         col = grouped[on].transform(lambda x: x.rolling(window, **kwargs).agg(function))
         if lag:
             self._data[col_name + self.hash] = col
@@ -227,7 +227,7 @@ class DataSource(object):
         'L': self.add_lag,
         'P': self.add_pct_change,
         'F': self.add_formula,
-        'I': self.add_indicator,
+        'I': self.add_indicator
         }
 
         for item in batch:
