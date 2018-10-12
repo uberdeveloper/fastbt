@@ -10,7 +10,6 @@ Requirements
    timestamp is in the index, convert them into columns  
 4) All columns are renamed to lower case
 """
-import talib
 
 class DataSource(object):
     def __init__(self, data, symbol=None, timestamp=None, sort=True):
@@ -28,6 +27,7 @@ class DataSource(object):
         """
         import hashlib
         self.hash = hashlib.sha1().hexdigest()
+        self._isTALIB = True
         data = data.rename({symbol: 'symbol', timestamp: 'timestamp'},
             axis='columns')
         data = data.rename(str.lower, axis='columns')
@@ -35,42 +35,48 @@ class DataSource(object):
             self._data = data.sort_values(by='timestamp').reset_index(drop=True)
         else:
             self._data = data.reset_index(drop=True)
-        self._func_map = {
-            'BBANDS': (talib.BBANDS, ['close']),
-            'DEMA': (talib.DEMA, ['close']),
-            'EMA': (talib.EMA, ['close']),
-            'KAMA': (talib.KAMA, ['close']),
-            'MA': (talib.MA, ['close']),
-            'MAMA': (talib.MAMA, ['close']),
-            'MIDPOINT': (talib.MIDPOINT, ['close']),
-            'MIDPRICE': (talib.MIDPRICE, ['high', 'low']),
-            'SAR': (talib.SAR, ['high', 'low']),
-            'SAREXT': (talib.SAREXT, ['high', 'low']),
-            'SMA': (talib.SMA, ['close']),
-            'STDDEV': (talib.STDDEV, ['close']),
-            'TEMA': (talib.TEMA, ['close']),
-            'TRIMA': (talib.TRIMA, ['close']),
-            'WMA': (talib.WMA, ['close']),
-            'AD': (talib.AD, ['high', 'low', 'close', 'volume']),
-            'OBV': (talib.OBV, ['close', 'volume']),
-            'ATR': (talib.ATR, ['high', 'low', 'close']),
-            'NATR': (talib.NATR, ['high', 'low', 'close']),
-            'TRANGE': (talib.TRANGE, ['high', 'low', 'close']),
-            'ADX': (talib.ADX, ['high', 'low', 'close']),
-            'AROON': (talib.AROON, ['high', 'low']),
-            'BOP': (talib.BOP, ['open', 'high', 'low', 'close']),
-            'CCI': (talib.CCI, ['high', 'low', 'close']),
-            'DX': (talib.DX, ['high', 'low', 'close']),
-            'MACD': (talib.MACD, ['close']),
-            'MOM': (talib.MOM, ['close']),
-            'ROC': (talib.ROC, ['close']),
-            'RSI': (talib.RSI, ['close']),
-            'STOCH': (talib.STOCH, ['high', 'low', 'close']),
-            'STOCHF': (talib.STOCHF, ['high', 'low', 'close']),
-            'STOCHRSI': (talib.STOCHRSI, ['close']),
-            'ULTOSC': (talib.ULTOSC, ['high', 'low', 'close']),
-            'WILLR': (talib.WILLR, ['high', 'low', 'close'])
-        }
+
+        try:
+            import talib
+            self._func_map = {
+                'BBANDS': (talib.BBANDS, ['close']),
+                'DEMA': (talib.DEMA, ['close']),
+                'EMA': (talib.EMA, ['close']),
+                'KAMA': (talib.KAMA, ['close']),
+                'MA': (talib.MA, ['close']),
+                'MAMA': (talib.MAMA, ['close']),
+                'MIDPOINT': (talib.MIDPOINT, ['close']),
+                'MIDPRICE': (talib.MIDPRICE, ['high', 'low']),
+                'SAR': (talib.SAR, ['high', 'low']),
+                'SAREXT': (talib.SAREXT, ['high', 'low']),
+                'SMA': (talib.SMA, ['close']),
+                'STDDEV': (talib.STDDEV, ['close']),
+                'TEMA': (talib.TEMA, ['close']),
+                'TRIMA': (talib.TRIMA, ['close']),
+                'WMA': (talib.WMA, ['close']),
+                'AD': (talib.AD, ['high', 'low', 'close', 'volume']),
+                'OBV': (talib.OBV, ['close', 'volume']),
+                'ATR': (talib.ATR, ['high', 'low', 'close']),
+                'NATR': (talib.NATR, ['high', 'low', 'close']),
+                'TRANGE': (talib.TRANGE, ['high', 'low', 'close']),
+                'ADX': (talib.ADX, ['high', 'low', 'close']),
+                'AROON': (talib.AROON, ['high', 'low']),
+                'BOP': (talib.BOP, ['open', 'high', 'low', 'close']),
+                'CCI': (talib.CCI, ['high', 'low', 'close']),
+                'DX': (talib.DX, ['high', 'low', 'close']),
+                'MACD': (talib.MACD, ['close']),
+                'MOM': (talib.MOM, ['close']),
+                'ROC': (talib.ROC, ['close']),
+                'RSI': (talib.RSI, ['close']),
+                'STOCH': (talib.STOCH, ['high', 'low', 'close']),
+                'STOCHF': (talib.STOCHF, ['high', 'low', 'close']),
+                'STOCHRSI': (talib.STOCHRSI, ['close']),
+                'ULTOSC': (talib.ULTOSC, ['high', 'low', 'close']),
+                'WILLR': (talib.WILLR, ['high', 'low', 'close'])
+            }
+        except ModuleNotFoundError:
+            self._isTALIB = False
+            print('TALIB not installed')
 
     @property
     def data(self):
@@ -178,6 +184,8 @@ class DataSource(object):
             column name for this indicator
         kwargs for the indicator
         """
+        if not(self._isTALIB):
+            return 'TALIB not installed'
         indicator = indicator.upper()
         if period is not None:
             kwargs.update({'timeperiod': period})
