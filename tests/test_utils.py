@@ -62,6 +62,28 @@ def test_multiargs_max_limit():
 	for x,y in zip (seq.index, par.index):
 		assert x == y
 
+@pytest.mark.parametrize("maxLimit", [2000, 3000, 5000, 10000])
+def test_multiargs_max_limit_adjust(maxLimit):
+	seq = []
+	for x in range(0,100):
+		for y in range(100, 150):
+			seq.append(equation(1,2,3,x,y))
+	index = pd.MultiIndex.from_product([range(0, 100), range(100, 150)])
+	seq = pd.Series(seq)
+	seq.index = index
+	seq = seq.sort_index()
+	constants =  {'a':1, 'b':2, 'c':3}
+	variables = {'x': range(0, 100), 'y': range(100,150)}
+	par = multi_args(equation, constants=constants, 
+		variables=variables, isProduct=True, maxLimit=maxLimit).sort_index()
+	assert len(par) == min(maxLimit, 5000)
+	assert len(seq) == 5000
+	# Check both values and indexes
+	for x,y in zip(seq, par):
+		assert x == y
+	for x,y in zip (seq.index, par.index):
+		assert x == y
+
 def test_tick():
 	assert tick(112.71) == 112.7
 	assert tick(112.73) == 112.75

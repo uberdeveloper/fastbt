@@ -1,7 +1,7 @@
 import pandas as pd
 import itertools as it
 
-def multi_args(function, constants, variables, isProduct=False):
+def multi_args(function, constants, variables, isProduct=False, maxLimit=None):
     """
     Run a function on different parameters and
     aggregate results
@@ -20,10 +20,15 @@ def multi_args(function, constants, variables, isProduct=False):
     isProduct
         list of variables for which all combinations
         are to be tried out.
+    maxLimit
+        Maximum number of simulations to be run
+        before terminating. Useful in case of long
+        running simulations.
+        default 1000
 
     By default, this function zips through each of the
     variables but if you need to have the Cartesian
-    product, specify those variables in isProduct
+    product, specify those variables in isProduct.
 
     returns a Series with different variables and
     the results
@@ -31,7 +36,11 @@ def multi_args(function, constants, variables, isProduct=False):
     from functools import partial
     import concurrent.futures
 
-    MAX_LIMIT = 1000
+    if maxLimit:
+        MAX_LIMIT = maxLimit
+    else:
+        MAX_LIMIT = 1000
+        
     func = partial(function, **constants)
     arg_list = []
     if isProduct:
@@ -46,8 +55,8 @@ def multi_args(function, constants, variables, isProduct=False):
             tasks.append(executor.submit(func, **kwds))
             arg_list.append(arg)
             i += 1
-            if i >= 1000:
-                print('MAX LIMIT reached')
+            if i >= MAX_LIMIT:
+                print('MAX LIMIT reached', MAX_LIMIT)
                 break
     result = [task.result() for task in tasks] 
     s = pd.Series(result)
