@@ -17,9 +17,7 @@ class CustomFlask(Flask):
         )
     )
 
-
 app = CustomFlask(__name__)
-
 
 @app.route("/")
 def hello_world():
