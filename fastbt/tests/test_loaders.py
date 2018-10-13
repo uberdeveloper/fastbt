@@ -1,5 +1,4 @@
 import pandas as pd
-import sys
 from sqlalchemy import create_engine
 import unittest
 import os
@@ -10,8 +9,7 @@ import pytest
 from math import isclose
 from random import randint
 
-sys.path.append('../')
-from loaders import DataLoader, apply_adjustment, collate_data
+from fastbt.loaders import DataLoader, apply_adjustment, collate_data
 
 def compare(frame1, frame2):
     """

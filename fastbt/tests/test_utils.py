@@ -3,8 +3,7 @@ import numpy as np
 import pytest
 import unittest
 import sys
-sys.path.append('../')
-from utils import *
+from fastbt.utils import *
 
 
 def equation(a,b,c,x,y):

@@ -6,9 +6,11 @@ import pytest
 from functools import partial
 from random import randint
 import yaml
+import os
 
-sys.path.append('../')
-from rapid import *
+print(os.curdir)
+
+from fastbt.rapid import *
 R = lambda x: round(x, 2)
 
 def compare(frame1, frame2):
@@ -202,6 +204,8 @@ def _build_input_output():
     This function builds the input and output
     from results for passing to pytest
     """
+    print(os.curdir)
+    print('Hello World!')
     data = pd.read_csv('results.csv').to_dict(orient='records')
     with open('BT.yaml') as f:
         params = yaml.load(f)

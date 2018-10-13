@@ -1,8 +1,6 @@
 import unittest
 import pandas as pd
-import sys
-sys.path.append('../')
-from datasource import DataSource
+from fastbt.datasource import DataSource
 
 class TestDataSource(unittest.TestCase):
 
