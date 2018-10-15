@@ -1,0 +1,54 @@
+# This file exists so you can easily regenerate your project.
+#
+# `cookiepatcher` is a convenient shim around `cookiecutter`
+# for regenerating projects (it will generate a .cookiecutterrc
+# automatically for any template). To use it:
+#
+#    pip install cookiepatcher
+#    cookiepatcher gh:ionelmc/cookiecutter-pylibrary project-path
+#
+# See:
+#    https://pypi.python.org/pypi/cookiepatcher
+#
+# Alternatively, you can run:
+#
+#    cookiecutter --overwrite-if-exists --config-file=project-path/.cookiecutterrc gh:ionelmc/cookiecutter-pylibrary
+
+default_context:
+
+    _template:                 'gh:ionelmc/cookiecutter-pylibrary'
+    appveyor:                  'no'
+    c_extension_function:      'longest'
+    c_extension_module:        '_fastbt'
+    c_extension_optional:      'no'
+    c_extension_support:       'no'
+    codacy:                    'no'
+    codeclimate:               'no'
+    codecov:                   'yes'
+    command_line_interface:    'no'
+    command_line_interface_bin_name: 'fastbt'
+    coveralls:                 'yes'
+    distribution_name:         'born'
+    email:                     'uberdeveloper001@gmail.com'
+    full_name:                 'UM'
+    github_username:           'UM'
+    landscape:                 'no'
+    license:                   'MIT license'
+    linter:                    'flake8'
+    package_name:              'fastbt'
+    project_name:              'fastbt'
+    project_short_description: 'A simple framework for dirty backtesting'
+    release_date:              'today'
+    repo_name:                 'fastbt'
+    requiresio:                'no'
+    scrutinizer:               'no'
+    sphinx_docs:               'no'
+    sphinx_doctest:            'no'
+    sphinx_theme:              'sphinx-py3doc-enhanced-theme'
+    test_matrix_configurator:  'no'
+    test_matrix_separate_coverage: 'no'
+    test_runner:               'pytest'
+    travis:                    'yes'
+    version:                   '0.1.0'
+    website:                   'https://blog.finhacks.in'
+    year:                      'now'
