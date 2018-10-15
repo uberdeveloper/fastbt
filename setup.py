@@ -30,7 +30,7 @@ setup(
     description='A simple framework for fast and dirty backtesting',
     long_description='%s\n%s' % (
         re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.md')),
-        re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('HISTORY.rst'))
+        re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
     ),
     long_description_content_type='text/markdown',
     author='UM',
