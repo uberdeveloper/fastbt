@@ -12,7 +12,7 @@ Assumptions
 """
 
 import pandas as pd
-from datasource import DataSource
+from fastbt.datasource import DataSource
 
 def tick(price, tick_size=0.05):
     """
