@@ -3,8 +3,9 @@ import numpy as np
 import pytest
 import unittest
 import sys
-from fastbt.utils import *
+import context
 
+from fastbt.utils import *
 
 def equation(a,b,c,x,y):
 	return a*x**2 + b*y + c

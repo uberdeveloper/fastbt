@@ -8,6 +8,7 @@ from numpy import dtype
 import pytest
 from math import isclose
 from random import randint
+import context
 
 from fastbt.loaders import DataLoader, apply_adjustment, collate_data
 
@@ -26,7 +27,7 @@ class TestLoader(unittest.TestCase):
 
 	def test_create_hdf_file(self):
 		with tempfile.NamedTemporaryFile() as fp:		
-			dl = DataLoader('eoddata', engine=fp.name,
+			dl = DataLoader('tests/data/eoddata', engine=fp.name,
 				mode='HDF', tablename='eod')
 			dl.load_data()
 			self.assertEqual(len(pd.read_hdf(fp.name, 'data/eod')), 10030)
@@ -34,7 +35,7 @@ class TestLoader(unittest.TestCase):
 
 	def test_create_database(self):
 		engine = create_engine('sqlite://')
-		dl = DataLoader('eoddata', engine=engine, 
+		dl = DataLoader('tests/data/eoddata', engine=engine, 
 			mode='SQL', tablename='eod')
 		dl.load_data()
 		self.assertEqual(len(pd.read_sql_table('eod', engine)), 10030)
@@ -42,12 +43,12 @@ class TestLoader(unittest.TestCase):
 
 	def test_run_loader_multiple_times(self):
 		with tempfile.NamedTemporaryFile() as fp:
-			dl = DataLoader('eoddata', engine=fp.name,
+			dl = DataLoader('tests/data/eoddata', engine=fp.name,
 			mode='HDF', tablename='eod')
 			for i in range(5):
 				dl.load_data()
 			engine = create_engine('sqlite://')
-			dl = DataLoader('eoddata', engine=engine, 
+			dl = DataLoader('tests/data/eoddata', engine=engine, 
 				mode='SQL', tablename='eod')
 			for i in range(5):
 				dl.load_data()
@@ -58,10 +59,10 @@ class TestLoader(unittest.TestCase):
 
 	def test_existing_hdf_file(self):
 		with tempfile.NamedTemporaryFile() as fp:
-			dl = DataLoader('eoddata', engine=fp.name,
+			dl = DataLoader('tests/data/eoddata', engine=fp.name,
 				mode='HDF', tablename='eod')
-			shutil.copy2('eoddata/INDEX_20180731.txt', 
-						'eoddata/INDEX_20000000.txt')
+			shutil.copy2('tests/data/eoddata/INDEX_20180731.txt', 
+						'tests/data/eoddata/INDEX_20000000.txt')
 			dl.load_data()
 			self.assertEqual(len(pd.read_hdf(fp.name, 'data/eod')), 12053)
 			self.assertEqual(len(pd.read_hdf(fp.name, 'updated/eod')), 6)		
@@ -69,10 +70,10 @@ class TestLoader(unittest.TestCase):
 
 	def test_existing_database(self):
 		engine = create_engine('sqlite://')
-		dl = DataLoader('eoddata', engine=engine, 
+		dl = DataLoader('tests/data/eoddata', engine=engine, 
 			mode='SQL', tablename='eod')
-		shutil.copy2('eoddata/INDEX_20180731.txt', 
-					'eoddata/INDEX_20000000.txt')
+		shutil.copy2('tests/data/eoddata/INDEX_20180731.txt', 
+					 'tests/data/eoddata/INDEX_20000000.txt')
 		dl.load_data()
 		self.assertEqual(len(pd.read_sql_table('eod', engine)), 12053)
 		self.assertEqual(len(pd.read_sql_table('updated_eod', engine)), 6)
@@ -80,19 +81,19 @@ class TestLoader(unittest.TestCase):
 
 	def test_wrong_mode(self):
 		with tempfile.NamedTemporaryFile() as fp:
-			dl = DataLoader('eoddata', engine=fp.name,
+			dl = DataLoader('tests/data/eoddata', engine=fp.name,
 				mode='SQL', tablename='eod')
 			with self.assertRaises(Exception):
 				dl.load_data()
 
 		with self.assertRaises(TypeError):
-			DataLoader('eoddata', engine='some_random_mode',
+			DataLoader('tests/data/eoddata', engine='some_random_mode',
 				mode='CSV', tablename='eod')
 
 
 	@classmethod
 	def tearDownClass(self):
-		os.remove('eoddata/INDEX_20000000.txt')
+		os.remove('tests/data/eoddata/INDEX_20000000.txt')
 
 # rename columns
 rename =  {
@@ -107,7 +108,7 @@ rename =  {
 
 def test_HDF_rename_columns():
 	with tempfile.NamedTemporaryFile() as fp:
-		dl = DataLoader('eoddata', engine=fp.name,
+		dl = DataLoader('tests/data/eoddata', engine=fp.name,
 			mode='HDF', tablename='eod')
 		dl.load_data(columns=rename)
 		df = pd.read_hdf(fp.name, 'data/eod')
@@ -119,7 +120,7 @@ def test_HDF_rename_columns():
 
 def test_SQL_rename_columns():
 	engine = create_engine('sqlite://')
-	dl = DataLoader('eoddata', engine=engine, 
+	dl = DataLoader('tests/data/eoddata', engine=engine, 
 		mode='SQL', tablename='eod')
 	dl.load_data(columns=rename)
 	df = pd.read_sql_table('eod', engine)
@@ -130,7 +131,7 @@ def test_SQL_rename_columns():
 
 def test_HDF_parse_dates():
 	with tempfile.NamedTemporaryFile() as fp: 
-		dl = DataLoader('eoddata', engine=fp.name,
+		dl = DataLoader('tests/data/eoddata', engine=fp.name,
 			mode='HDF', tablename='eod')
 		dl.load_data(columns=rename, parse_dates=['<date>'])
 		df = pd.read_hdf(fp.name, 'data/eod')
@@ -138,7 +139,7 @@ def test_HDF_parse_dates():
 
 def test_SQL_parse_dates():
 	engine = create_engine('sqlite://')
-	dl = DataLoader('eoddata', engine=engine, 
+	dl = DataLoader('tests/data/eoddata', engine=engine, 
 		mode='SQL', tablename='eod')
 	dl.load_data(columns=rename, parse_dates=['<date>'])
 	df = pd.read_sql_table('eod', engine)
@@ -146,7 +147,7 @@ def test_SQL_parse_dates():
 
 def test_HDF_parse_dates_auto():
 	with tempfile.NamedTemporaryFile() as fp:
-		dl = DataLoader('eoddata', engine=fp.name,
+		dl = DataLoader('tests/data/eoddata', engine=fp.name,
 			mode='HDF', tablename='eod')
 		dl.load_data(columns=rename)
 		df = pd.read_hdf(fp.name, 'data/eod')
@@ -154,7 +155,7 @@ def test_HDF_parse_dates_auto():
 
 def test_SQL_parse_dates_auto():
 	engine = create_engine('sqlite://')
-	dl = DataLoader('eoddata', engine=engine, 
+	dl = DataLoader('tests/data/eoddata', engine=engine, 
 		mode='SQL', tablename='eod')
 	dl.load_data(columns=rename)
 	df = pd.read_sql_table('eod', engine)
@@ -162,7 +163,7 @@ def test_SQL_parse_dates_auto():
 
 def test_HDF_post_func():
 	with tempfile.NamedTemporaryFile() as fp:
-		dl = DataLoader('eoddata', engine=fp.name,
+		dl = DataLoader('tests/data/eoddata', engine=fp.name,
 			mode='HDF', tablename='eod')
 		def add_filename(x,y,z):
 			x['filename'] = y
@@ -177,7 +178,7 @@ def test_HDF_post_func():
 
 def test_SQL_post_func():
 	engine = create_engine('sqlite://')
-	dl = DataLoader('eoddata', engine=engine, 
+	dl = DataLoader('tests/data/eoddata', engine=engine, 
 		mode='SQL', tablename='eod')
 	def add_filename(x,y,z):
 		x['filename'] = y
@@ -191,7 +192,7 @@ def test_SQL_post_func():
 	assert 'avgprice' in df.columns
 
 def test_apply_adj_mul():
-	df = pd.read_csv('BTC.csv', parse_dates=['date'])
+	df = pd.read_csv('tests/data/BTC.csv', parse_dates=['date'])
 	adj_df = apply_adjustment(df, adj_date='2018-07-21', 
 			adj_value=1/2)
 	adj_df = adj_df.set_index('date').sort_index()
@@ -205,7 +206,7 @@ def test_apply_adj_mul():
 	assert adj_df.loc['2018-07-11', 'volume'] == 2481016
 
 def test_apply_adj_sub():
-	df = pd.read_csv('BTC.csv', parse_dates=['date'])
+	df = pd.read_csv('tests/data/BTC.csv', parse_dates=['date'])
 	adj_df = apply_adjustment(df, adj_date='2018-08-01', 
 			adj_value=100, adj_type='sub')
 	adj_df = adj_df.set_index('date').sort_index()
@@ -214,7 +215,7 @@ def test_apply_adj_sub():
 	assert adj_df.loc['2018-08-10', 'close'] == 12286.6
 
 def test_apply_adj_sub_negative():
-	df = pd.read_csv('BTC.csv', parse_dates=['date'])
+	df = pd.read_csv('tests/data/BTC.csv', parse_dates=['date'])
 	adj_df = apply_adjustment(df, adj_date='2018-08-01', 
 			adj_value=-100, adj_type='sub')
 	adj_df = adj_df.set_index('date').sort_index()
@@ -224,12 +225,12 @@ def test_apply_adj_sub_negative():
 
 def test_apply_adj_raise_error():
 	with pytest.raises(ValueError):
-		df = pd.read_csv('BTC.csv', parse_dates=['date'])
+		df = pd.read_csv('tests/data/BTC.csv', parse_dates=['date'])
 		adj_df = apply_adjustment(df, adj_date='2018-08-01', 
 			adj_value=-100, adj_type='div')
 
 def test_apply_adj_date_col():
-	df = pd.read_csv('BTC.csv', parse_dates=['date'])
+	df = pd.read_csv('tests/data/BTC.csv', parse_dates=['date'])
 	df['timestamp'] = df['date']
 	del df['date']
 	adj_df = apply_adjustment(df, adj_date='2018-07-21', 
@@ -239,7 +240,7 @@ def test_apply_adj_date_col():
 	assert adj_df.loc['2018-07-21', 'close'] == 3702.15
 
 def test_apply_adj_cols():
-	df = pd.read_csv('BTC.csv', parse_dates=['date'])
+	df = pd.read_csv('tests/data/BTC.csv', parse_dates=['date'])
 	adj_df = apply_adjustment(df, adj_date='2018-07-21', 
 			adj_value=1/2, cols=['open', 'high'])
 	adj_df = adj_df.set_index('date').sort_index()
@@ -249,13 +250,13 @@ def test_apply_adj_cols():
 
 def test_apply_split_SQL_dataloader():
 	engine = create_engine('sqlite://')
-	dl = DataLoader(directory='NASDAQ/data', mode='SQL',
+	dl = DataLoader(directory='tests/data/NASDAQ/data', mode='SQL',
 		engine=engine, tablename='eod')
 	dl.load_data()
-	dl.apply_splits(directory='NASDAQ/adjustments/')
+	dl.apply_splits(directory='tests/data/NASDAQ/adjustments/')
 	df = pd.read_sql_table('eod', engine)
 	result = pd.read_csv('NASDAQ/nasdaq_results.csv', parse_dates=['date'])
-	splits = pd.read_csv('NASDAQ/adjustments/splits.csv',
+	splits = pd.read_csv('tests/data/NASDAQ/adjustments/splits.csv',
 		parse_dates=['date'])
 	for i, row in splits.iterrows():
 		sym = row.at['symbol']
@@ -275,13 +276,13 @@ def test_apply_split_SQL_dataloader():
 
 def test_apply_split_SQL_dataloader():
 	engine = create_engine('sqlite://')
-	dl = DataLoader(directory='NASDAQ/data', mode='SQL',
+	dl = DataLoader(directory='tests/data/NASDAQ/data', mode='SQL',
 		engine=engine, tablename='eod')
 	dl.load_data()
-	dl.apply_splits(directory='NASDAQ/adjustments/')
+	dl.apply_splits(directory='tests/data/NASDAQ/adjustments/')
 	df = pd.read_sql_table('eod', engine)
-	result = pd.read_csv('NASDAQ/nasdaq_results.csv', parse_dates=['date'])
-	splits = pd.read_csv('NASDAQ/adjustments/splits.csv',
+	result = pd.read_csv('tests/data/NASDAQ/nasdaq_results.csv', parse_dates=['date'])
+	splits = pd.read_csv('tests/data/NASDAQ/adjustments/splits.csv',
 		parse_dates=['date'])
 	for i, row in splits.iterrows():
 		sym = row.at['symbol']
@@ -303,13 +304,13 @@ def test_apply_split_SQL_dataloader():
 def test_apply_split_HDF_dataloader():
 	with tempfile.NamedTemporaryFile() as fp:
 		engine = fp.name
-		dl = DataLoader(directory='NASDAQ/data', mode='HDF',
+		dl = DataLoader(directory='tests/data/NASDAQ/data', mode='HDF',
 			engine=engine, tablename='eod')
 		dl.load_data()
-		dl.apply_splits(directory='NASDAQ/adjustments/')
+		dl.apply_splits(directory='tests/data/NASDAQ/adjustments/')
 		df = pd.read_hdf(engine, 'data/eod')
-		result = pd.read_csv('NASDAQ/nasdaq_results.csv', parse_dates=['date'])
-		splits = pd.read_csv('NASDAQ/adjustments/splits.csv',
+		result = pd.read_csv('tests/data/NASDAQ/nasdaq_results.csv', parse_dates=['date'])
+		splits = pd.read_csv('tests/data/NASDAQ/adjustments/splits.csv',
 			parse_dates=['date'])
 		for i, row in splits.iterrows():
 			sym = row.at['symbol']
@@ -329,11 +330,11 @@ def test_apply_split_HDF_dataloader():
 						assert frame1.loc[i,j] == frame2.loc[i,j]
 
 def test_collate_data():
-	df = collate_data('NASDAQ/data', parse_dates=['Date'])
+	df = collate_data('tests/data/NASDAQ/data', parse_dates=['Date'])
 	df = df.rename(lambda x: x.lower(), axis='columns')
 	df = df.sort_values(by=['date', 'symbol'])
 	engine = create_engine('sqlite://')
-	dl = DataLoader(directory='NASDAQ/data', mode='SQL',
+	dl = DataLoader(directory='tests/data/NASDAQ/data', mode='SQL',
 		engine=engine, tablename='eod')
 	dl.load_data()
 	df2 = pd.read_sql_table('eod', engine).sort_values(by=['date', 'symbol'])
@@ -344,8 +345,6 @@ def test_collate_data():
 def test_collate_data_function():
 	def f(x):
 		return pd.read_csv(x).iloc[:10, :3]
-	df = collate_data('NASDAQ/data', function=f)
+	df = collate_data('tests/data/NASDAQ/data', function=f)
 	assert len(df) == 80
 	assert df.shape == (80, 3)
-
-

@@ -1,11 +1,13 @@
 import unittest
 import pandas as pd
+import context
+
 from fastbt.datasource import DataSource
 
 class TestDataSource(unittest.TestCase):
 
     def setUp(self):        
-        df = pd.read_csv('sample.csv', parse_dates=['timestamp'])
+        df = pd.read_csv('tests/data/sample.csv', parse_dates=['timestamp'])
         self.ds = DataSource(data=df)
 
     def test_data(self):
@@ -14,14 +16,14 @@ class TestDataSource(unittest.TestCase):
         self.assertEqual(self.ds.data.iloc[24,7], 10.54)
 
     def test_data_without_sort(self):
-        df = pd.read_csv('sample.csv', parse_dates=['timestamp'])
+        df = pd.read_csv('tests/data/sample.csv', parse_dates=['timestamp'])
         self.ds = DataSource(data=df, sort=False)
         self.assertEqual(self.ds.data.iloc[9,4], 999)
         self.assertEqual(self.ds.data.iloc[24,6], 41688)
         self.assertEqual(self.ds.data.at[4, 'close'], 10.6)
 
     def test_initialize_case(self):
-        df = pd.read_csv('sample.csv', parse_dates=['timestamp'])
+        df = pd.read_csv('tests/data/sample.csv', parse_dates=['timestamp'])
         df.columns = [x.upper() for x in df.columns]
         self.assertEqual(df.columns[0], 'TIMESTAMP')
         self.ds = DataSource(data=df)
@@ -29,7 +31,7 @@ class TestDataSource(unittest.TestCase):
 
 
     def test_initialize_column_rename(self):
-        df = pd.read_csv('sample.csv', parse_dates=['timestamp'])
+        df = pd.read_csv('tests/data/sample.csv', parse_dates=['timestamp'])
         df.columns = ['TS', 'TRADINGSYMBOL', 'OPEN', 'HIGH', 'LOW',
                     'CLOSE', 'VOLUME', 'PREVCLOSE']
         self.ds = DataSource(data=df, timestamp='TS', symbol='TRADINGSYMBOL')
@@ -123,7 +125,7 @@ class TestDataSource(unittest.TestCase):
     def test_rolling_simple(self):
         from pandas import isna
         q = 'symbol == "one"'
-        df = pd.read_csv('sample.csv', parse_dates=['timestamp']).query(q)
+        df = pd.read_csv('tests/data/sample.csv', parse_dates=['timestamp']).query(q)
         df['r2'] = df['close'].rolling(2).mean()
         self.ds.add_rolling(2, col_name='r2')
         df2 = self.ds.data.query(q)
@@ -168,6 +170,3 @@ class TestDataSource(unittest.TestCase):
 
     def test_raise_error_if_not_dataframe(self):
         pass
-
-if __name__ == '__main__':
-    unittest.main()

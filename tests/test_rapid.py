@@ -7,8 +7,7 @@ from functools import partial
 from random import randint
 import yaml
 import os
-
-print(os.curdir)
+import context
 
 from fastbt.rapid import *
 R = lambda x: round(x, 2)
@@ -27,7 +26,7 @@ def compare(frame1, frame2):
 class TestRapidFetchData(unittest.TestCase):
 
     def setUp(self):
-        self.con = create_engine('sqlite:///data.sqlite3')
+        self.con = create_engine('sqlite:///tests/data/data.sqlite3')
         self.tbl = 'eod'
 
     def test_fetch_data(self):
@@ -65,7 +64,7 @@ class TestRapidPrepareData(unittest.TestCase):
     #TO DO: return in case of Empty dataframe
     def setUp(self):
         from sqlalchemy import create_engine
-        con = create_engine('sqlite:///data.sqlite3')
+        con = create_engine('sqlite:///tests/data/data.sqlite3')
         tbl = 'eod'
         universe = ['one', 'two', 'three', 'four', 'five', 'six']
         start, end = '2018-01-01 00:00:00.000000', '2018-01-06 00:00:00.000000'
@@ -94,7 +93,7 @@ class TestRapidApplyPrices(unittest.TestCase):
 
     def setUp(self):
         from sqlalchemy import create_engine
-        con = create_engine('sqlite:///data.sqlite3')
+        con = create_engine('sqlite:///tests/data/data.sqlite3')
         tbl = 'eod'
         universe = ['one', 'two', 'three', 'four', 'five', 'six']
         start, end = '2018-01-01 00:00:00.000000', '2018-01-06 00:00:00.000000'
@@ -134,7 +133,7 @@ class TestRapidRunStrategy(unittest.TestCase):
 
     def setUp(self):
         from sqlalchemy import create_engine
-        con = create_engine('sqlite:///data.sqlite3')
+        con = create_engine('sqlite:///tests/data/data.sqlite3')
         tbl = 'eod'
         universe = ['one', 'two', 'three', 'four', 'five', 'six']
         start, end = '2018-01-01 00:00:00.000000', '2018-01-06 00:00:00.000000'
@@ -161,7 +160,7 @@ class TestRapidGetOutput(unittest.TestCase):
 
     def setUp(self):
         from sqlalchemy import create_engine
-        con = create_engine('sqlite:///data.sqlite3')
+        con = create_engine('sqlite:///tests/data/data.sqlite3')
         tbl = 'eod'
         universe = ['one', 'two', 'three', 'four', 'five', 'six']
         start, end = '2018-01-01 00:00:00.000000', '2018-01-06 00:00:00.000000'
@@ -179,13 +178,13 @@ class TestRapidGetOutput(unittest.TestCase):
 
 def test_backtest_data():
     import yaml
-    with open('backtest.yaml') as f:
+    with open('tests/data/backtest.yaml') as f:
         kwargs = yaml.load(f)
-    kwargs['connection'] = create_engine('sqlite:///data.sqlite3')
+    kwargs['connection'] = create_engine('sqlite:///tests/data/data.sqlite3')
     kwargs['tablename'] = 'eod'
     result_one = backtest(**kwargs)
 
-    data = pd.read_csv('sample.csv', parse_dates=['timestamp'])
+    data = pd.read_csv('tests/data/sample.csv', parse_dates=['timestamp'])
     del kwargs['connection']
     del kwargs['tablename']
     kwargs['data'] = data
@@ -204,10 +203,8 @@ def _build_input_output():
     This function builds the input and output
     from results for passing to pytest
     """
-    print(os.curdir)
-    print('Hello World!')
-    data = pd.read_csv('results.csv').to_dict(orient='records')
-    with open('BT.yaml') as f:
+    data = pd.read_csv('tests/data/results.csv').to_dict(orient='records')
+    with open('tests/data/BT.yaml') as f:
         params = yaml.load(f)
 
     input_map = {
@@ -242,7 +239,7 @@ def _build_input_output():
         final.append((kwargs, result))
     return final
 
-con = create_engine('sqlite:///data.sqlite3')
+con = create_engine('sqlite:///tests/data/data.sqlite3')
 tbl = 'eod'
 bt = partial(backtest, connection=con, tablename=tbl)
 @pytest.mark.parametrize("kwargs, expected", _build_input_output())
@@ -311,7 +308,7 @@ def test_no_columns_no_conditions():
         'sort_by': 'open',
         'limit': 10
         }
-    df1 = pd.read_csv('sample.csv', parse_dates=['timestamp'])
+    df1 = pd.read_csv('tests/data/sample.csv', parse_dates=['timestamp'])
     df1 = df1.sort_values(by=['timestamp', 'symbol'])
     df2 = bt(**params).sort_values(by=['timestamp', 'symbol'])
     for i in range(20):
@@ -324,7 +321,7 @@ def test_strategy_output():
         'sort_by': 'price',
         'limit': 10
     }
-    df1 = pd.read_csv('sample.csv', parse_dates=['timestamp'])
+    df1 = pd.read_csv('tests/data/sample.csv', parse_dates=['timestamp'])
     df1 = df1.sort_values(by=['timestamp', 'symbol'])
     strategy = lambda x: x
     output = lambda x:x
@@ -369,9 +366,9 @@ def test_backtest_from_excel():
         'returns': -0.007,
         'sharpe': -0.065
     }
-    con = create_engine('sqlite:///data.sqlite3')
+    con = create_engine('sqlite:///tests/data/data.sqlite3')
     tbl = 'eod'
-    result = backtest_from_excel('backtest.xls', connection=con, tablename=tbl)
+    result = backtest_from_excel('tests/data/backtest.xls', connection=con, tablename=tbl)
     result = metrics(result, 100000)
     for k,v in my_result.items():
         assert round(result[k], 3) == v
@@ -388,9 +385,9 @@ def test_backtest_from_json():
         'returns': -0.007,
         'sharpe': -0.065
     }
-    con = create_engine('sqlite:///data.sqlite3')
+    con = create_engine('sqlite:///tests/data/data.sqlite3')
     tbl = 'eod'
-    result = backtest_from_json('backtest.json', connection=con, tablename=tbl)
+    result = backtest_from_json('tests/data/backtest.json', connection=con, tablename=tbl)
     result = metrics(result, 100000)
     for k,v in my_result.items():
         assert round(result[k], 3) == v
@@ -407,13 +404,9 @@ def test_backtest_from_yaml():
         'returns': -0.007,
         'sharpe': -0.065
     }
-    con = create_engine('sqlite:///data.sqlite3')
+    con = create_engine('sqlite:///tests/data/data.sqlite3')
     tbl = 'eod'
-    result = backtest_from_yaml('backtest.yaml', connection=con, tablename=tbl)
+    result = backtest_from_yaml('tests/data/backtest.yaml', connection=con, tablename=tbl)
     result = metrics(result, 100000)
     for k,v in my_result.items():
         assert round(result[k], 3) == v
-
-
-if __name__ == '__main__':
-    unittest.main()
