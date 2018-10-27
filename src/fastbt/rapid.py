@@ -144,7 +144,7 @@ def get_output(data, capital=100000, leverage=1, commission=0, slippage=0):
     df['net_profit'] = df.eval('profit - commission - slippage')
     return df
 
-def metrics(data, capital, benchmark=None):
+def metrics(data, capital=100000, benchmark=None):
     """
     Don't use this
     This is just to check results
@@ -170,9 +170,7 @@ def metrics(data, capital, benchmark=None):
         'net_profit': net_profit,
         'high': high,
         'low': low,
-        'drawdown': drawdown,
         'returns': returns,
-        'sharpe': sharpe
     }       
 
 def backtest(start=None, end=None,
