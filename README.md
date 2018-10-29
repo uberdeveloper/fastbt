@@ -89,7 +89,7 @@ We used sort_mode=False to sort them in descending order.
 
     If you want to test this strategy on a weekly basis, just pass a dataframe with weekly frequency.
 
-See the backtest example notebook or the Introduction for a more in depth introduction. Also see the assumptions page for what fastbt is and what it is not.
+See the Introduction notebook in the examples directory for an in depth introduction.
 
 ## Embedding
 

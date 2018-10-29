@@ -17,9 +17,9 @@ The orders are considered executed at the given price if the minimum of the buy 
 
 The order matching is done in the following way
 
-- If both the BUY and SELL price are within the low-high range then the given BUY and SELL prices are taken
-- If either BUY or SELL price is within the low-high range, then the other price is taken as the CLOSE price
-- If both of them are not within the low-high range, then the order is considered as not executed
+-   If both the BUY and SELL price are within the low-high range then the given BUY and SELL prices are taken
+-   If either BUY or SELL price is within the low-high range, then the other price is taken as the CLOSE price
+-   If both of them are not within the low-high range, then the order is considered as not executed
 
 # Illustration
 
@@ -35,8 +35,8 @@ Let's illustrate the example with a security. Let's say we placed an order to bu
 
 Here, the buy and sell price are within the low-high range.
 
-- Low High range = 994 to 1030
-- Sell Buy range = 1000 to 1025
+-   Low High range = 994 to 1030
+-   Sell Buy range = 1000 to 1025
 
 So, both the orders would be executed at the given price
 
@@ -52,8 +52,8 @@ So, both the orders would be executed at the given price
 | ---- | ---- | ---- | ----- | ---- | ---- |
 | 1022 | 1045 | 1016 | 1032  | 1025 | 1000 |
 
-- Low High range = 1016 to 1045
-- Sell buy range = 1000 to 1025
+-   Low High range = 1016 to 1045
+-   Sell buy range = 1000 to 1025
 
 Here the BUY order would be executed at the given price.
 Since the price of the SELL order is less than the lower price, the SELL price would be the close pirce 1032
@@ -68,8 +68,8 @@ Since the price of the SELL order is less than the lower price, the SELL price w
 | ---- | ---- | --- | ----- | ---- | ---- |
 | 1022 | 1022 | 950 | 1012  | 1025 | 1000 |
 
-- Low High range = 950 to 1022
-- Sell buy range = 1000 to 1025
+-   Low High range = 950 to 1022
+-   Sell buy range = 1000 to 1025
 
 Same as the above with BUY being executed at close price
 
@@ -85,8 +85,8 @@ Same as the above with BUY being executed at close price
 | ---- | ---- | ---- | ----- | ---- | ---- |
 | 1022 | 1023 | 1012 | 1022  | 1025 | 1000 |
 
-- Low High range = 1012 to 1023
-- Sell buy range = 1000 to 1025
+-   Low High range = 1012 to 1023
+-   Sell buy range = 1000 to 1025
 
 No orders would be executed since both the buy and sell price are not within the low high range
 
@@ -106,17 +106,17 @@ So, if a place a BUY order at 1012 and a corresponding SELL order at 1020, there
 
 ### Pros
 
-- Easy to understand and simple to test
-- No need for real time data. You can just use historical end of day data which is open source
-- Predictable order executions in backtest
-- Better comparison of backtest versus real performance
-- Vectorized functions and parallel implementation
+-   Easy to understand and simple to test
+-   No need for real time data. You can just use historical end of day data which is open source
+-   Predictable order executions in backtest
+-   Better replication of backtest versus real performance
+-   Vectorized functions and parallel implementation
 
 ### Cons
 
-- Too much opinionated
-- Capital requirements not checked at each time frame
-- No way to model relationsip among securities explicitly
-- And a lot of goodies a full fledged backtesting framework provides
+-   Too much opinionated
+-   Capital requirements not checked at each time frame
+-   No way to model relationsip among securities explicitly
+-   And a lot of goodies a full fledged backtesting framework provides
 
-Some of the above cons can be overcome by extending the framework such as relaxing the assumptions or modeling it in a different manner
+Some of the above cons can be overcome by extending the framework such as relaxing the assumptions or modeling them in a different manner
