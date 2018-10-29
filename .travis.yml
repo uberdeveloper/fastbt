@@ -9,13 +9,11 @@ env:
     - TOXENV=check
 matrix:
   include:
-    - python: '2.7'
-      env:
-        - TOXENV=py27,report,coveralls,codecov
     - python: '3.5'
       env:
         - TOXENV=py35,report,coveralls,codecov
     - python: '3.6'
+      sudo: required
       env:
         - TOXENV=py36,report,coveralls,codecov
     - python: '3.7'
@@ -29,6 +27,7 @@ before_install:
   - lsb_release -a
 install:
   - pip install tox
+  - sudo apt-get install gcc build-essential
   - virtualenv --version
   - easy_install --version
   - pip --version
