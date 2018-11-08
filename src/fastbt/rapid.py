@@ -261,8 +261,15 @@ def backtest_from_excel(filename, data=None, connection=None, tablename=None):
                 r[p_map[r['col_type']]] = r['argument'] 
                 del r['argument']
             del r['col_type']
+            # Convert to integers
+            if r.get('lag'):
+                r['lag'] = int(r['lag'])
+            if r.get('period'):
+                r['period'] = int(r['period'])
             dct[code] = r
             new_list.append(dct)
+
+
         return new_list
 
     params = {}
