@@ -57,7 +57,19 @@ def fetch_data(universe='all', start=None, end=None, connection=None, tablename=
         del data['index']
     return data
 
-def prepare_data(data, columns=None):
+def prepare_data(data, columns=None, dropna=True):
+    """
+    Add the necessary columns
+    data
+        source dataframe
+    columns
+        columns in the required format to be
+        added as a datasource
+    dropna
+        whether to drop NaN's before adding columns
+    """
+    if dropna:
+        data = data.dropna()
     if columns:
         ds = DataSource(data) 
         return ds.batch_process(columns)
@@ -79,7 +91,9 @@ def apply_prices(data, conditions=None, price='open', stop_loss=0, order='B'):
     order
         whether the order is Buy or Sell
         accepted values B or S
+    By default, NA's are dropped    
     """
+    data = data.dropna()
     if order.upper() == 'B':
         multiplier = 1 - (stop_loss * 0.01)
     elif order.upper() == 'S':
@@ -268,8 +282,6 @@ def backtest_from_excel(filename, data=None, connection=None, tablename=None):
                 r['period'] = int(r['period'])
             dct[code] = r
             new_list.append(dct)
-
-
         return new_list
 
     params = {}
