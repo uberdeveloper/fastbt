@@ -262,18 +262,12 @@ def backtest(start=None, end=None,
     else:
         return get_output(result, capital, leverage, commission, slippage)
 
-def backtest_from_excel(filename, data=None, connection=None, tablename=None):
+def _parse_input_from_excel(filename):
     """
-    Run a backtest from an excel file.
+    Parse input from excel and convert it into a dictionary.
     The excel file should be prepared in the given template.
     filename
         excel filename along with full path
-    data
-        dataframe for backtest
-    connection
-        a SQL Alchemy connection string
-    tablename
-        SQL tablename
     """
 
     xls = pd.ExcelFile(filename)
@@ -322,7 +316,23 @@ def backtest_from_excel(filename, data=None, connection=None, tablename=None):
 
     conditions = list(xls.parse('conditions', header=None)[0])
     params.update({'conditions': conditions})
+    return params
 
+def backtest_from_excel(filename, data=None, connection=None, tablename=None):
+    """
+    Run a backtest from an excel file.
+    The excel file should be prepared in the given template.
+    filename
+        excel filename along with full path
+    data
+        dataframe for backtest
+    connection
+        a SQL Alchemy connection string
+    tablename
+        SQL tablename
+    """
+
+    params = _parse_input_from_excel(filename)
     params.update({'data': data, 'connection': connection, 'tablename': tablename})
     return backtest(**params)
 
