@@ -170,6 +170,22 @@ def drawdown(values):
     diff = running_sum - running_max
     return np.min(diff)
 
+def sharpe(returns, risk_free=0):
+    """
+    Calculate the Sharpe ratio based on daily returns
+    returns
+        daily returns
+    risk_free
+        risk_free rate
+    returns both the daily ratio and the annualized ratio
+    """
+    daily_sharpe = returns.mean()/returns.std()
+    # Annualized based on 252 trading days
+    mu = ((1+returns).prod()) - 1
+    sigma = np.sqrt(252) * daily_sharpe
+    sharpe = (mu - risk_free)/sigma
+    return {'raw': daily_sharpe, 'sharpe': sharpe}
+
 def metrics(data, capital=100000, benchmark=None):
     """
     Don't use this
@@ -187,8 +203,7 @@ def metrics(data, capital=100000, benchmark=None):
     low = grouped.net_profit.sum().cumsum().min()
     dd = drawdown(grouped.net_profit.sum().values)
     returns = net_profit/capital
-    ret = grouped.agg({'profit': sum})
-    sharpe = (ret.mean()/ret.std())[0]
+    ret = grouped.agg({'net_profit': sum})
     return {
         'profit': profit,
         'commission': commission,

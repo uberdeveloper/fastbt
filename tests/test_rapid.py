@@ -422,3 +422,16 @@ def test_drawdown():
     lst[18] = -2
     assert drawdown(np.array(lst)) == -8
 
+def test_sharpe():
+    np.random.seed(100)
+    vals = np.random.normal(loc=0.1, scale=1, size=252)*0.01
+    sharpe_ratio = sharpe(vals)
+    assert sharpe_ratio['sharpe'].round(3) == 0.149
+
+    sharpe_ratio = sharpe(vals, risk_free=0.05)
+    assert sharpe_ratio['sharpe'].round(3) == 0.075
+    assert sharpe_ratio['raw'].round(3) == 0.042
+
+
+
+
