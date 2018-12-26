@@ -186,13 +186,11 @@ def sharpe(returns, risk_free=0):
     sharpe = (mu - risk_free)/sigma
     return {'raw': daily_sharpe, 'sharpe': sharpe}
 
-def metrics(data, capital=100000, benchmark=None):
+def metrics(data, capital=100000, benchmark=0.0):
     """
     Don't use this
     This is just to check results
     """
-    if benchmark is None:
-        benchmark = 0.08
     grouped = data.groupby('timestamp')
     cols = ['profit', 'commission', 'slippage', 'net_profit']
     profit = data.profit.sum()
@@ -201,10 +199,10 @@ def metrics(data, capital=100000, benchmark=None):
     net_profit = data.net_profit.sum()
     high = grouped.net_profit.sum().cumsum().max()
     low = grouped.net_profit.sum().cumsum().min()
-    dd = drawdown(grouped.net_profit.sum().values)
+    dd = drawdown(grouped.net_profit.sum().values)/capital
     returns = net_profit/capital
-    ret = grouped.agg({'net_profit': sum})
-    return {
+    daily_returns = grouped.net_profit.sum()/capital
+    dct =  {
         'profit': profit,
         'commission': commission,
         'slippage': slippage,
@@ -212,7 +210,11 @@ def metrics(data, capital=100000, benchmark=None):
         'high': high,
         'low': low,
         'returns': returns,
-    }       
+        'drawdown': dd
+    }
+    sharpe_ratio = sharpe(daily_returns, risk_free=benchmark)
+    dct.update(sharpe_ratio)
+    return dct
 
 def backtest(start=None, end=None,
             capital=100000, leverage=1, commission=0,
