@@ -86,7 +86,7 @@ class TestRapidPrepareData(unittest.TestCase):
         self.assertEqual(data.shape[1], 10)
         data = prepare_data(data, conditions)
         self.assertEqual(data.shape[1], 12)
-        self.assertEqual(data.query('sig1==1').shape[0], 20)
+        self.assertEqual(data.query('sig1==1').shape[0], 9)
         self.assertEqual(data.query('sig2==1').shape[0], 5) 
 
 class TestRapidApplyPrices(unittest.TestCase):
