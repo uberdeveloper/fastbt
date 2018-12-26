@@ -410,3 +410,15 @@ def test_backtest_from_yaml():
     result = metrics(result, 100000)
     for k,v in my_result.items():
         assert round(result[k], 3) == v
+
+def test_drawdown():
+    lst = [1] * 20
+    lst[3] = -4
+    assert drawdown(np.array(lst)) == -4
+    lst[12] = -5
+    assert drawdown(np.array(lst)) == -5
+    lst[13] = -3
+    assert drawdown(np.array(lst)) == -8
+    lst[18] = -2
+    assert drawdown(np.array(lst)) == -8
+

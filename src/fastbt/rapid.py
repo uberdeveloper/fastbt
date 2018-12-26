@@ -12,6 +12,7 @@ Assumptions
 """
 
 import pandas as pd
+import numpy as np
 from fastbt.datasource import DataSource
 
 def tick(price, tick_size=0.05):
@@ -158,6 +159,17 @@ def get_output(data, capital=100000, leverage=1, commission=0, slippage=0):
     df['net_profit'] = df.eval('profit - commission - slippage')
     return df
 
+def drawdown(values):
+    """
+    Calculate the drawdown for the given values
+    values
+        a numpy array
+    """
+    running_sum = np.cumsum(values)
+    running_max = np.maximum.accumulate(running_sum)
+    diff = running_sum - running_max
+    return np.min(diff)
+
 def metrics(data, capital=100000, benchmark=None):
     """
     Don't use this
@@ -173,7 +185,7 @@ def metrics(data, capital=100000, benchmark=None):
     net_profit = data.net_profit.sum()
     high = grouped.net_profit.sum().cumsum().max()
     low = grouped.net_profit.sum().cumsum().min()
-    drawdown = low/capital
+    dd = drawdown(grouped.net_profit.sum().values)
     returns = net_profit/capital
     ret = grouped.agg({'profit': sum})
     sharpe = (ret.mean()/ret.std())[0]
