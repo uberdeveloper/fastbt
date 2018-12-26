@@ -14,6 +14,7 @@ Most of the modules are stand alone and you could use them as a single file. See
 
 # Features
 
+-   Create your strategies in Microsoft Excel
 -   Backtest as functions so you can parallelize
 -   Try different simulations
 -   Run from your own datasource or a database connection.
