@@ -82,6 +82,22 @@ class DataSource(object):
     def data(self):
         return self._data
 
+    def _zscore(self, x, window):
+        """
+        Calculate the rolling zscore for the given window
+        x
+            series
+        window
+            rolling window
+        Courtesy: https://stackoverflow.com/questions/47164950/compute-rolling-z-score-in-pandas-dataframe
+        """
+        r = x.rolling(window=window)
+        m = r.mean()
+        s = r.std()
+        z = (x-m)/s
+        return z
+
+
     def add_lag(self, on='close', period=1, col_name='auto'):
         """
         add lagged data based on symbol
@@ -144,9 +160,14 @@ class DataSource(object):
         >>> df.groupby(groupby)[on].transform(lambda x: x.rolling(**kwargs).agg(function))
         """
         grouped = self.data.groupby(groupby)
+        print(function)
         if col_name == 'auto':
             col_name = 'rol_{f}_{on}_{w}'.format(f=function, on=on, w=window)
-        col = grouped[on].transform(lambda x: x.rolling(window, **kwargs).agg(function))
+        if function == 'zscore':
+            print('Zscore encountered')
+            col = grouped[on].transform(lambda x: self._zscore(x, window))
+        else:
+            col = grouped[on].transform(lambda x: x.rolling(window, **kwargs).agg(function))
         if lag:
             self._data[col_name + self.hash] = col
             self.add_lag(on=col_name+self.hash, period=lag, col_name=col_name)

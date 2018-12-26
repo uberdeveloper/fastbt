@@ -1,5 +1,6 @@
 import unittest
 import pandas as pd
+import numpy as np
 import context
 
 from fastbt.datasource import DataSource
@@ -28,7 +29,6 @@ class TestDataSource(unittest.TestCase):
         self.assertEqual(df.columns[0], 'TIMESTAMP')
         self.ds = DataSource(data=df)
         self.assertEqual(self.ds.data.columns[0], 'timestamp')
-
 
     def test_initialize_column_rename(self):
         df = pd.read_csv('tests/data/sample.csv', parse_dates=['timestamp'])
@@ -170,3 +170,19 @@ class TestDataSource(unittest.TestCase):
 
     def test_raise_error_if_not_dataframe(self):
         pass
+
+
+def test_rolling_zscore():
+    np.random.seed(100)
+    df = pd.DataFrame(np.random.randn(100,4), 
+                  columns=['open', 'high', 'low', 'close'])
+    df['symbol'] = list('ABCD') * 25
+    dates = list(pd.date_range(end='2018-04-25', periods=25)) * 4
+    df['timestamp'] = dates
+    from fastbt.datasource import DataSource
+    ds = DataSource(df)
+    ds.add_rolling(on='close', window=5, function='zscore')
+    assert ds.data.query('symbol=="A"').iloc[8]['rol_zscore_close_5'].round(2) == 0.12
+    assert ds.data.query('symbol=="B"').iloc[-7]['rol_zscore_close_5'].round(2) == 0.17
+    assert ds.data.query('symbol=="C"').iloc[-6]['rol_zscore_close_5'].round(2) == -0.48
+ 
