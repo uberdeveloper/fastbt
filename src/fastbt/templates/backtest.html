@@ -1,27 +1,85 @@
 <!doctype html>
 <html>
-    <head>
-        <title>Hello World</title>
-    </head>
 
-    <body>
-        <p>Hello {{name}}</p>
-        <form action='/backtest' method='POST'>
-            <input type="date" name="start">
-            <input type="date" name="end">
-            <input type="number" name='capital' value=100000>
-            <select name="universe">
-                {% for u in universe %}
-                    <option value="{{u}}">{{u}}</option>
-                {% endfor %}
-            </select>
-            <select name="strategy">
-                {% for s in strategies %}
-                    <option value="{{s}}">{{s}}</option>
-                {% endfor %}
-            </select>
-            <input type="decimal" name="stop_loss" placeholder="stop_loss">
-            <input type="submit" value="Submit">
-        </form>
-    </body>
+<head>
+    <title>Hello World</title>
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+    <link rel="stylesheet" href="//cdn.rawgit.com/necolas/normalize.css/master/normalize.css">
+    <link rel="stylesheet" href="//cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css">
+    <script src="../static/vue.js"></script>
+</head>
+
+<body>
+    <h2>Backtest parameters</h2>
+    <div class="container" id="app">
+        <div class="row">
+            <div class="column column-50">
+                <form action='/backtest' method='POST'>
+                    <fieldset>
+                        <legend>Settings</legend>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Add columns</legend>
+                        <blockquote>
+                            You can add use the list of columns added in the
+                            side bar or type your own
+                        </blockquote>
+                        <select v-model="col_type" @change="setStatus(col_type)">
+                            <% for col in col_types %>
+                            <option>%%col%%</option>
+                            <% endfor %>
+                        </select>
+                        <select>
+                            <option v-for='col in columns_list'>{{col}}</option>
+                        </select>
+                        <select v-if="isIndicator">
+                            <option v-for='ind in indicator_list'>{{ind}}</option>
+                        </select>
+                        <input type="text" v-if="isFormula" v-model="formula" placeholder="Enter your formula">
+                        <input type="text" v-model="col_name" placeholder="auto">
+                        <button class="button" type="button" @click="addColumn(col_type)">
+                            Add to columns
+                        </button>
+
+
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Add conditions</legend>
+
+
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Sort</legend>
+
+                    </fieldset>
+                    <fieldset>
+                        <legend>The hidden output</legend>
+                        <textarea v-model="JSON.stringify(columns)" name="columns">
+
+                        </textarea>
+                        <input type="text" name="test" value="Test value for flask">
+                    </fieldset>
+                    <input type="submit" class="button" value="Submit">
+
+
+                </form>
+            </div>
+            <div class="column column-50">
+                <div v-for="col in columns_list">
+                    <button class="button button-outline">{{col}}</button>
+
+                </div>
+                <div>
+                    <button type="button" v-for="(item,index) in operators" class="button button-clear">{{item}}</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <script src="../static/script.js"></script>
+</body>
+
 </html>
