@@ -28,19 +28,6 @@ def hello_world():
     return render_template("backtest.html", **context)
 
 
-@app.route("/")
-def bt():
-    # Run a backtest
-    return 'Hello World'
-
-
-@app.route("/test", methods=["GET", "POST"])
-def test():
-    # Test function
-    if request.method == "POST":
-        return str(request.form)
-
-
 @app.route("/backtest", methods=["POST"])
 def run_backtest():
     if request.method == "POST":
@@ -52,7 +39,8 @@ def run_backtest():
     columns = json.loads(request.form.get('columns'))
     print(columns)
     result = backtest(data=df, order='S', stop_loss=3, columns=columns)
-    return str(result.net_profit.sum())
+    txt = str(result.columns)
+    return str(result.net_profit.sum()) + '\n' + txt
 
 
 @app.route("/ds", methods=["GET", "POST"])

@@ -30,14 +30,16 @@
                             <option>%%col%%</option>
                             <% endfor %>
                         </select>
-                        <select>
+                        <select v-model="col_on" v-if="!isFormula">
                             <option v-for='col in columns_list'>{{col}}</option>
                         </select>
                         <select v-if="isIndicator">
                             <option v-for='ind in indicator_list'>{{ind}}</option>
                         </select>
+                        <input type="number" v-if="!isFormula" v-model.number="period" placeholder="lag_value">
+                        <input type="number" v-if="(!isFormula) && (!isLag)" v-model.number="lag" placeholder="lag for others">
                         <input type="text" v-if="isFormula" v-model="formula" placeholder="Enter your formula">
-                        <input type="text" v-model="col_name" placeholder="auto">
+                        <input type="text" v-model="col_name" placeholder="column_name: auto">
                         <button class="button" type="button" @click="addColumn(col_type)">
                             Add to columns
                         </button>
@@ -73,7 +75,7 @@
 
                 </div>
                 <div>
-                    <button type="button" v-for="(item,index) in operators" class="button button-clear">{{item}}</a>
+                    <button type="button" v-for="(item,index) in operators" class="button button-clear"><em>{{item}}</em></a>
                 </div>
             </div>
 
