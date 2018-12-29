@@ -36,6 +36,10 @@
                         <select v-if="isIndicator">
                             <option v-for='ind in indicator_list'>{{ind}}</option>
                         </select>
+                        <select v-if="isRolling" v-model="func">
+                            <option v-for='f in function_list'>{{f}}</option>
+                        </select>
+
                         <input type="number" v-if="!isFormula" v-model.number="period" placeholder="lag_value">
                         <input type="number" v-if="(!isFormula) && (!isLag)" v-model.number="lag" placeholder="lag for others">
                         <input type="text" v-if="isFormula" v-model="formula" placeholder="Enter your formula">

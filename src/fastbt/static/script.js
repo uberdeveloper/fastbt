@@ -8,6 +8,16 @@ var app = new Vue({
     el: "#app",
     data: {
         columns_list: ["open", "high", "low", "close", "volume"],
+        function_list: [
+            "count",
+            "sum",
+            "mean",
+            "max",
+            "min",
+            "var",
+            "std",
+            "zscore"
+        ],
         operators: ["+", "-"],
         indicator_list: ["SMA", "EMA"],
         col_type: "lag",
@@ -19,6 +29,7 @@ var app = new Vue({
         period: 1,
         formula: null,
         lag: null,
+        func: "mean",
         // Status
         isLag: true,
         isPercentChange: false,
@@ -106,6 +117,28 @@ var app = new Vue({
             }
             return P;
         },
+        evalRolling() {
+            // evaluate Rolling Window function
+            if (this.col_name == null) {
+                this.col_name = "auto";
+            }
+            if (this.period == null || this.lag == 0 || this.period == 0) {
+                return false;
+            }
+            let R = {
+                R: {
+                    on: this.col_on,
+                    window: this.period,
+                    col_name: this.col_name,
+                    function: this.func
+                }
+            };
+            // TO DO: Bug to fix for negative lag values
+            if (this.lag == true) {
+                R.R.lag = this.lag;
+            }
+            return R;
+        },
         evalFormula() {
             // evaluate formula
             if (this.col_name == null) {
@@ -123,24 +156,19 @@ var app = new Vue({
         },
         addColumn(text) {
             let col_type = this.mapper[text];
+            let val = null;
             if (col_type == "L") {
-                let val = this.evalLag();
-                if (val) {
-                    console.log(val);
-                    this.columns.push(val);
-                }
+                val = this.evalLag();
             } else if (col_type == "P") {
-                let val = this.evalPercentChange();
-                if (val) {
-                    console.log(val);
-                    this.columns.push(val);
-                }
+                val = this.evalPercentChange();
             } else if (col_type == "F") {
-                let val = this.evalFormula();
-                if (val) {
-                    console.log(val);
-                    this.columns.push(val);
-                }
+                val = this.evalFormula();
+            } else if (col_type == "R") {
+                val = this.evalRolling();
+            }
+            if (val) {
+                console.log(val);
+                this.columns.push(val);
             }
             this.clear();
         }
