@@ -19,16 +19,19 @@ var app = new Vue({
             "zscore"
         ],
         operators: ["+", "-"],
-        indicator_list: ["SMA", "EMA"],
+        indicator_list: ["SMA", "EMA", 'WMA', 'DEMA', 'TEMA', 'TRIMA',
+            'MOM', 'ADX', 'ATR', 'CCI', 'WILLR', 'RSI', 'CCI',
+        ],
         col_type: "lag",
         col_name: null,
         col_on: "close",
         columns: [],
         conditions: [],
-        // column defintions
+        // column definitions
         period: 1,
         formula: null,
         lag: null,
+        indicator: null,
         func: "mean",
         // Status
         isLag: true,
@@ -78,6 +81,8 @@ var app = new Vue({
             // clear preset values from inputs
             this.formula = null;
             this.col_name = null;
+            this.indicator = null;
+            this.period = null;
         },
         evalLag() {
             // evaluate Lag parameter
@@ -113,7 +118,6 @@ var app = new Vue({
             // TO DO: Bug to fix for negative lag values
             if (this.lag == true) {
                 P.P.lag = this.lag;
-                console.log("P IS ", P);
             }
             return P;
         },
@@ -154,6 +158,30 @@ var app = new Vue({
                 }
             };
         },
+        evalIndicator() {
+            // evaluate Indicator
+            if (this.col_name == null) {
+                this.col_name = 'auto'
+            }
+            if (this.period == null || this.lag == 0 || this.period == 0) {
+                return false;
+            }
+            if (this.indicator == null) {
+                return false;
+            }
+            let I = {
+                I: {
+                    indicator: this.indicator,
+                    period: this.period,
+                    col_name: this.col_name
+                }
+            };
+            // TO DO: Bug to fix for negative lag values
+            if (this.lag == true) {
+                I.I.lag = this.lag;
+            }
+            return I;
+        },
         addColumn(text) {
             let col_type = this.mapper[text];
             let val = null;
@@ -165,6 +193,8 @@ var app = new Vue({
                 val = this.evalFormula();
             } else if (col_type == "R") {
                 val = this.evalRolling();
+            } else if (col_type == "I") {
+                val = this.evalIndicator()
             }
             if (val) {
                 console.log(val);

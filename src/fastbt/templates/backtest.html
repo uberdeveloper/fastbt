@@ -30,10 +30,10 @@
                             <option>%%col%%</option>
                             <% endfor %>
                         </select>
-                        <select v-model="col_on" v-if="!isFormula">
+                        <select v-model="col_on" v-if="(!isFormula) && (!isIndicator)">
                             <option v-for='col in columns_list'>{{col}}</option>
                         </select>
-                        <select v-if="isIndicator">
+                        <select v-model="indicator" v-if="isIndicator">
                             <option v-for='ind in indicator_list'>{{ind}}</option>
                         </select>
                         <select v-if="isRolling" v-model="func">
