@@ -53,6 +53,12 @@
 
                     <fieldset>
                         <legend>Add conditions</legend>
+                        <input type="text" v-model="condition" placeholder="Add condition using the columns" disabled>
+                        <button type="button" class="button" @click="addCondition">Add condition</button>
+                        <button type="button" class="button button-outline" @click="condition=''">Clear</button>
+                        <textarea v-model="JSON.stringify(conditions)" name="conditions">
+
+                        </textarea>
 
 
                     </fieldset>
@@ -75,11 +81,10 @@
             </div>
             <div class="column column-50">
                 <div v-for="col in columns_list">
-                    <button class="button button-outline">{{col}}</button>
-
+                    <button class="button button-outline" @click="extendCondition(col)">{{col}}</button>
                 </div>
                 <div>
-                    <button type="button" v-for="(item,index) in operators" class="button button-clear"><em>{{item}}</em></a>
+                    <button type="button" v-for="(item,index) in operators" class="button button-clear" @click="extendCondition(item)"><em>{{item}}</em></a>
                 </div>
             </div>
 

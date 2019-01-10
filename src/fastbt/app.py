@@ -37,8 +37,10 @@ def run_backtest():
                      parse_dates=['timestamp'])
     import json
     columns = json.loads(request.form.get('columns'))
+    conditions = json.loads(request.form.get('conditions'))
     print(columns)
-    result = backtest(data=df, order='S', stop_loss=3, columns=columns)
+    result = backtest(data=df, order='S', stop_loss=3,
+                      columns=columns, conditions=conditions)
     txt = str(result.columns)
     return str(result.net_profit.sum()) + '\n' + txt
 

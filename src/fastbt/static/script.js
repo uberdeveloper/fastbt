@@ -18,7 +18,9 @@ var app = new Vue({
             "std",
             "zscore"
         ],
-        operators: ["+", "-"],
+        operators: ["+", "-", "*", "/", "(", ")", ">", "<", "==",
+            ">=", "<=", "<>"
+        ],
         indicator_list: ["SMA", "EMA", 'WMA', 'DEMA', 'TEMA', 'TRIMA',
             'MOM', 'ADX', 'ATR', 'CCI', 'WILLR', 'RSI', 'CCI',
         ],
@@ -33,6 +35,7 @@ var app = new Vue({
         lag: null,
         indicator: null,
         func: "mean",
+        condition: '',
         // Status
         isLag: true,
         isPercentChange: false,
@@ -88,6 +91,8 @@ var app = new Vue({
             // evaluate Lag parameter
             if (this.col_name == null) {
                 this.col_name = "auto";
+            } else {
+                this.columns_list.push(this.col_name)
             }
             if (this.period == null) {
                 return false;
@@ -104,6 +109,8 @@ var app = new Vue({
             // evaluate percentage change
             if (this.col_name == null) {
                 this.col_name = "auto";
+            } else {
+                this.columns_list.push(this.col_name)
             }
             if (this.period == null || this.lag == 0 || this.period == 0) {
                 return false;
@@ -125,6 +132,8 @@ var app = new Vue({
             // evaluate Rolling Window function
             if (this.col_name == null) {
                 this.col_name = "auto";
+            } else {
+                this.columns_list.push(this.col_name)
             }
             if (this.period == null || this.lag == 0 || this.period == 0) {
                 return false;
@@ -147,6 +156,8 @@ var app = new Vue({
             // evaluate formula
             if (this.col_name == null) {
                 return false;
+            } else {
+                this.columns_list.push(this.col_name)
             }
             if (this.formula == null) {
                 return false;
@@ -162,6 +173,8 @@ var app = new Vue({
             // evaluate Indicator
             if (this.col_name == null) {
                 this.col_name = 'auto'
+            } else {
+                this.columns_list.push(this.col_name)
             }
             if (this.period == null || this.lag == 0 || this.period == 0) {
                 return false;
@@ -201,6 +214,13 @@ var app = new Vue({
                 this.columns.push(val);
             }
             this.clear();
+        },
+        extendCondition(text) {
+            this.condition = this.condition + text
+        },
+        addCondition() {
+            this.conditions.push(this.condition)
+            this.condition = ''
         }
     }
 });
