@@ -159,6 +159,38 @@ def recursive_merge(dfs, on=None, how='inner',columns= {}):
         else:
             data = data.merge(d[cols], how=how, on=on)
     return data   
+
+def get_nearest_option(spot, n=1, opt='C', step=100):
+    """
+    Given a spot price, calculate the nearest options
+    spot
+        spot price of the instrument
+    n
+        number of nearest option prices
+    opt
+        call or put option. 'C' for call and 'P' for put
+    step
+        step size of the option price
+    returns a list of options
+    >>> get_nearest_option(23457, 2)
+    >>> [23400, 23500]
+    >>> get_nearest_option(23457, 2, 'P')
+    >>> [23400, 23300]    
+    All calculations are based on in the money option. So,
+    get_nearest_option(24499) would return 24400
+    """
+    in_money = int(spot/step) * step
+    option_prices = []
+    for i in range(n):
+        if opt == 'C':
+            strike = in_money + step*i
+            option_prices.append(strike)
+        elif opt == 'P':
+            strike = in_money - step*i
+            option_prices.append(strike)
+        else:
+            print('Option type not recognized; Check the opt argument')
+    return option_prices
     
 if __name__ == "__main__":
     pass

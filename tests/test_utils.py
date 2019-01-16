@@ -164,3 +164,11 @@ class TestRecursiveMerge(unittest.TestCase):
 		assert df.shape == (6, 7)
 		assert list(sorted(df.columns)) == ['A', 'B', 'C', 'D', 'G', 'X', 'idx']
 		assert df.loc[3, 'X'] == self.dfs[3].loc[3, 'X']
+
+def test_get_nearest_option():
+	assert get_nearest_option(23120) == [23100]
+	assert get_nearest_option(23120, opt='P') == [23100]
+	assert get_nearest_option(28427, n=3) == [28400, 28500, 28600]
+	assert get_nearest_option(28400, n=3) == [28400, 28500, 28600]
+	assert get_nearest_option(28495, n=5, opt='P') == [28400, 28300, 28200, 28100, 28000]
+	assert get_nearest_option(3000, n=3, step=30) == [3000, 3030, 3060]
