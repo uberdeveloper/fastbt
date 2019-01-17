@@ -26,7 +26,7 @@ class TradeBook:
 	def positions(self):
 		return self._positions
 
-	def add_trade(self, timestamp, symbol, price, qty, order):
+	def add_trade(self, timestamp, symbol, price, qty, order, **kwargs):
 		"""
 		Add a trade to the tradebook
 		timestamp
@@ -39,6 +39,8 @@ class TradeBook:
 			quantity of the security
 		order
 			B for B and S for SELL
+		kwargs
+			any other arguments as a dictionary
 		"""
 		o = {'B': 1, 'S': -1}
 
@@ -50,6 +52,7 @@ class TradeBook:
 			'qty': q,
 			'order': order
 		}
+		dct.update(kwargs)
 		self._trades.append(dct)
 		self._positions.update({symbol:q})
 

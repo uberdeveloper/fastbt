@@ -26,6 +26,26 @@ def test_trades():
             tb.add_trade('2018-01-01', 'MX', 100, r, 'S')
         assert len(tb.trades) == counter
 
+def test_trades_keyword_arguments():
+    tb = TradeBook()
+    dct = {
+        'timestamp': '2019-01-01',
+        'symbol': 'AAAA',
+        'price': 100,
+        'qty': 10,
+        'order': 'B'
+    }
+    tb.add_trade(**dct)
+    tb.add_trade(**dct, id=7)
+    tb.add_trade(**dct, tag='x')
+    tb.add_trade(**dct, tag='y')
+    assert tb.trades[0]['price'] == 100
+    assert tb.trades[1]['id'] == 7
+    assert sum([1 for d in tb.trades if d.get('tag')]) == 2
+
+
+
+
 def test_positions():
     tb = TradeBook()
     for i in range(10):
