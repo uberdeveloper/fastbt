@@ -348,3 +348,16 @@ def test_collate_data_function():
 	df = collate_data('tests/data/NASDAQ/data', function=f)
 	assert len(df) == 80
 	assert df.shape == (80, 3)
+
+def test_collate_data_concat_false_one():
+	def f(x):
+		return pd.read_csv(x).iloc[:10, :3]
+	df = collate_data('tests/data/NASDAQ/data', function=f, concat=False)
+	assert len(df) == 8
+
+def test_collate_data_concat_false_two():
+	df = collate_data('tests/data/NASDAQ/data', 
+		function=lambda x: x.split('/')[-1], concat=False)
+	assert len(df) == 8
+	assert 'NASDAQ_20180731.zip' in df
+
