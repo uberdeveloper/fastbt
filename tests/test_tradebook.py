@@ -10,6 +10,14 @@ def test_name():
     tb = TradeBook('myTradeBook')
     assert tb.name == 'myTradeBook'
 
+def test_repr():
+    tb = TradeBook('MyTradeBook')
+    for i in range(10):
+        tb.add_trade('2018-01-01', 'AAA', 100, 100, 'B')
+    assert tb.__repr__() == 'MyTradeBook with 10 entries and 1 positions'
+    tb.add_trade('2018-01-01', 'AAA', 110, 1000, 'S')
+    assert tb.__repr__() == 'MyTradeBook with 11 entries and 0 positions'
+
 def test_trades():
     tb = TradeBook()
     for i in range(100):

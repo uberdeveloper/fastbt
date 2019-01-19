@@ -10,7 +10,7 @@ class TradeBook:
 		string = '{name} with {count} entries and {pos} positions'
 		pos = sum([1 for x in self._positions.values() if x!= 0])
 		string = string.format(
-			name=self._name, count=len(self._trades), pos=pos)
+			name=self._name, count=len(self.all_trades), pos=pos)
 		return string
 
 	@property
@@ -29,7 +29,6 @@ class TradeBook:
 		lst = []
 		if self._trades:
 			for k,v in self._trades.items():
-				print(v)
 				lst.extend(v)
 		return lst
 
