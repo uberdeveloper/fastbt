@@ -1,9 +1,9 @@
-from collections import Counter
+from collections import Counter, defaultdict
 
 class TradeBook:
 	def __init__(self, name='tradebook'):
 		self._name = name
-		self._trades = {}
+		self._trades = defaultdict(list)
 		self._positions = Counter()
 
 	def __repr__(self):
@@ -64,8 +64,11 @@ class TradeBook:
 			'order': order
 		}
 		dct.update(kwargs)
+		self._trades[symbol].append(dct)
+		"""
 		if self._trades.get(symbol):
 			self._trades[symbol].append(dct)
 		else:
 			self._trades[symbol] = [dct]
+		"""
 		self._positions.update({symbol:q})
