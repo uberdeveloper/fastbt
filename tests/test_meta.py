@@ -66,5 +66,23 @@ class TestMetaPipeline(unittest.TestCase):
 		p.run()
 		assert p.number == 12800
 
+	def test_add_to_pipeline_no_function(self):
+		p = self.p
+		p.add_to_pipeline('unknown_func_1')
+		p.add_to_pipeline('unknown_func_2')
+		assert len(p.pipeline) == 4
+		p.run()
+		assert p.number == 10
+
+	def test_add_to_pipeline_no_function_execution(self):
+		p = self.p
+		p.add_to_pipeline('add_10')
+		for i in range(4):
+			p._pipeline.append('func_'+str(i))
+		p.add_to_pipeline('add_10')
+		assert len(p.pipeline) == 10
+		p.run()
+		assert p.number == 30
+
 	
 

@@ -13,10 +13,10 @@ class TradingSystem:
 		self._cycle = 0
 		self._data = []
 		self._pipeline = [
-			getattr(self, 'fetch'),
-			getattr(self, 'process'),
-			getattr(self, 'signal'),
-			getattr(self, 'order')
+			'fetch',
+			'process',
+			'signal',
+			'order'
 		]
 		if tradebook is None:
 			self.tb = TradeBook(name="TradingSystem")
@@ -42,8 +42,7 @@ class TradingSystem:
 
 	@property
 	def pipeline(self):
-		return self._pipeline
-	
+		return self._pipeline	
 
 	def fetch(self):
 		"""
@@ -88,7 +87,8 @@ class TradingSystem:
 		"""
 		if not(position):
 			position = len(self._pipeline)
-		self._pipeline.insert(position, getattr(self, method))
+		if getattr(self, method, None):
+			self._pipeline.insert(position, method)
 
 	def run(self):
 		"""
@@ -97,5 +97,6 @@ class TradingSystem:
 		Must update the cycle after run
 		"""
 		for method in self._pipeline:
-			method()
+			# Returns None if method not found
+			getattr(self, method, lambda : None)()
 		self._cycle += 1
