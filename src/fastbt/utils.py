@@ -1,6 +1,7 @@
 import pandas as pd
 import itertools as it
 
+
 def multi_args(function, constants, variables, isProduct=False, maxLimit=None):
     """
     Run a function on different parameters and
@@ -40,7 +41,7 @@ def multi_args(function, constants, variables, isProduct=False, maxLimit=None):
         MAX_LIMIT = maxLimit
     else:
         MAX_LIMIT = 1000
-        
+
     func = partial(function, **constants)
     arg_list = []
     if isProduct:
@@ -51,18 +52,19 @@ def multi_args(function, constants, variables, isProduct=False, maxLimit=None):
     with concurrent.futures.ProcessPoolExecutor() as executor:
         tasks = []
         for i, arg in enumerate(args):
-            kwds = {a:b for a,b in zip(keys, arg)}
+            kwds = {a: b for a, b in zip(keys, arg)}
             tasks.append(executor.submit(func, **kwds))
             arg_list.append(arg)
             i += 1
             if i >= MAX_LIMIT:
                 print('MAX LIMIT reached', MAX_LIMIT)
                 break
-    result = [task.result() for task in tasks] 
+    result = [task.result() for task in tasks]
     s = pd.Series(result)
     s.name = 'values'
     s.index = pd.MultiIndex.from_tuples(arg_list, names=keys)
     return s
+
 
 def stop_loss(price, stop_loss, order='B', tick_size=0.05):
     """
@@ -100,6 +102,7 @@ def tick(price, tick_size=0.05):
     """
     return round(price / tick_size)*tick_size
 
+
 def create_orders(data, rename, **kwargs):
     """
     create an orders dataframe from an existing dataframe
@@ -113,14 +116,15 @@ def create_orders(data, rename, **kwargs):
         and values being dataframe values
     """
     data = data.rename(rename, axis='columns')
-    for k,v in kwargs.items():
+    for k, v in kwargs.items():
         data[k] = v
     return data
 
-def recursive_merge(dfs, on=None, how='inner',columns= {}):
+
+def recursive_merge(dfs, on=None, how='inner', columns={}):
     """
     Recursively merge all dataframes in the given list
-    
+
     Given a list of dataframes, merge them based on index or columns.
     By default, dataframes are merged on index. Specify the **on**
     argument to merge by columns. The "on" columns should be available
@@ -149,8 +153,8 @@ def recursive_merge(dfs, on=None, how='inner',columns= {}):
     data = dfs[0]
     for i, d in enumerate(dfs[1:], 1):
         if columns.get(str(i)):
-            cols = list(columns.get(str(i)))         
-            cols.extend(on)            
+            cols = list(columns.get(str(i)))
+            cols.extend(on)
         else:
             cols = d.columns
 
@@ -158,7 +162,8 @@ def recursive_merge(dfs, on=None, how='inner',columns= {}):
             data = data.merge(d[cols], how=how, left_index=True, right_index=True)
         else:
             data = data.merge(d[cols], how=how, on=on)
-    return data   
+    return data
+
 
 def get_nearest_option(spot, n=1, opt='C', step=100):
     """
@@ -191,7 +196,50 @@ def get_nearest_option(spot, n=1, opt='C', step=100):
         else:
             print('Option type not recognized; Check the opt argument')
     return option_prices
-    
+
+
+def calendar(start, end, holidays=None, alldays=False,
+             **kwargs):
+    """
+    Generate a calendar removing the list of
+    given holidays.
+    Provide date arguments as strings in the
+    format **YYYY-MM-DD**
+    start
+        start date of the period
+    end
+        end date of the period
+    holidays
+        list of holidays as strings
+    alldays
+        True/False
+        True to generate dates for all days
+        including weekends. default: False       
+    kwargs
+        kwargs to the pandas date range function
+
+    Note
+    -----
+    1) This function is slow, especially when generating
+    timestamps. So, use them only once at the start
+    of your program for better performance
+    2) This function generates calendar only for 
+    business days. To use all the available days,
+    se the alldays argument to True
+
+    """
+    if alldays:
+        dfunc = pd.date_range
+    else:
+        dfunc = pd.bdate_range
+
+    dates = list(dfunc(start=start, end=end))
+    if (holidays):
+        holidays = [pd.to_datetime(dt) for dt in holidays]
+        for hol in holidays:
+            dates.remove(hol)
+    return dates
+
+
 if __name__ == "__main__":
     pass
-
