@@ -192,4 +192,50 @@ def test_calendar_holidays():
     ]]
     for a,b in zip(calendar(s,e,h,True), days):
         assert a == b 
+
+def test_calendar_bdate_timestamp():
+    s,e,st,et = '2019-01-01',  '2019-01-01', '04:00', '18:00'
+    for a,b in zip(calendar(s,e,start_time=st, end_time=et),
+        pd.date_range('2019-01-01 04:00', '2019-01-01 18:00', freq='H')):
+        assert a == b
+
+def test_calendar_timestamp_length():
+    s,e,st = '2019-01-01', '2019-01-01', '04:00'
+    assert len(calendar(s,e,start_time=st, freq='1min')) == 1200
+    assert len(calendar(s,e,start_time=st, freq='H')) == 20
+
+    et = '16:00'
+    assert len(calendar(s,e,end_time=et, freq='1min')) == 961
+    assert len(calendar(s,e,end_time=et, freq='H')) == 17
+
+    assert len(calendar(s,e,start_time=st, end_time=et, freq='1min')) == 721
+    assert len(calendar(s,e,start_time=st, end_time=et, freq='H')) == 13
+
+def test_calendar_timestamp_position():
+    s,e,st,et = '2019-01-01', '2019-01-04', '10:00', '18:00'
+    ts = calendar(s,e,start_time=st, end_time=et, freq='1min')
+    assert str(ts[721]) == '2019-01-02 14:00:00'
+    assert str(ts[1000]) == '2019-01-03 10:38:00'
+
+def test_calendar_multiple_days():
+    s,e,st,et = '2019-01-01', '2019-01-10', '10:00:00', '21:59:59'
+    kwargs = {'start': s, 'end': e, 'start_time': st, 'end_time': et}
+    holidays = ['2019-01-04', '2019-01-05', '2019-01-06']
+    assert len(calendar(**kwargs)) == 8
+    assert len(calendar(alldays=True, **kwargs)) == 10
+    assert len(calendar(holidays=holidays, alldays=True, **kwargs)) == 7
+    assert len(calendar(holidays=holidays, alldays=True, **kwargs, freq='H')) == 7*12
+    assert len(calendar(holidays=holidays, alldays=True, **kwargs, freq='10min')) == 7*12*6
+    assert len(calendar(holidays=holidays, alldays=True, **kwargs, freq='s')) == 7*12*3600
+
+
+
+
+
+
+
+
+
+
+
         

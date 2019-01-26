@@ -1,5 +1,6 @@
 import pandas as pd
 import itertools as it
+import functools as ft
 
 
 def multi_args(function, constants, variables, isProduct=False, maxLimit=None):
@@ -199,7 +200,7 @@ def get_nearest_option(spot, n=1, opt='C', step=100):
 
 
 def calendar(start, end, holidays=None, alldays=False,
-             **kwargs):
+             start_time=None, end_time=None, freq='D', **kwargs):
     """
     Generate a calendar removing the list of
     given holidays.
@@ -214,7 +215,13 @@ def calendar(start, end, holidays=None, alldays=False,
     alldays
         True/False
         True to generate dates for all days
-        including weekends. default: False       
+        including weekends. default: False  
+    start_time
+        start time for each day as string
+    end_time
+        end time for each day as string     
+    freq
+        frequency of the calendar
     kwargs
         kwargs to the pandas date range function
 
@@ -229,16 +236,32 @@ def calendar(start, end, holidays=None, alldays=False,
 
     """
     if alldays:
-        dfunc = pd.date_range
+        dfunc = ft.partial(pd.date_range, freq='D', **kwargs)
     else:
-        dfunc = pd.bdate_range
+        dfunc = ft.partial(pd.bdate_range, freq='B', **kwargs)
 
     dates = list(dfunc(start=start, end=end))
     if (holidays):
         holidays = [pd.to_datetime(dt) for dt in holidays]
         for hol in holidays:
             dates.remove(hol)
-    return dates
+
+    # Initialize times
+    if (start_time or end_time):
+        if not(start_time):
+            start_time = "00:00:00"
+        if not(end_time):
+            end_time = "23:59:59"
+        timestamps = []
+        fmt = "{:%Y%m%d} {}"
+        for d in dates:
+            start_ts = fmt.format(d, start_time)
+            end_ts = fmt.format(d, end_time)
+            ts = pd.date_range(start=start_ts, end=end_ts, freq=freq, **kwargs)
+            timestamps.extend(ts)
+        return timestamps
+    else:
+        return dates
 
 
 if __name__ == "__main__":
