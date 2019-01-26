@@ -15,7 +15,8 @@ class TradingSystem:
 		self._pipeline = [
 			'fetch',
 			'process',
-			'signal',
+			'entry',
+			'exit',
 			'order'
 		]
 		if tradebook is None:
@@ -59,9 +60,15 @@ class TradingSystem:
 		"""
 		pass
 
-	def signal(self):
+	def entry(self):
 		"""
-		Entry and exit conditions checking must go here
+		Entry conditions checking must go here
+		"""
+		pass
+
+	def exit(self):
+		"""
+		Exit conditions checking must go here
 		"""
 		pass
 
