@@ -185,4 +185,34 @@ def test_rolling_zscore():
     assert ds.data.query('symbol=="A"').iloc[8]['rol_zscore_close_5'].round(2) == 0.12
     assert ds.data.query('symbol=="B"').iloc[-7]['rol_zscore_close_5'].round(2) == 0.17
     assert ds.data.query('symbol=="C"').iloc[-6]['rol_zscore_close_5'].round(2) == -0.48
- 
+
+class TestDataSourceReindex(unittest.TestCase):
+
+    def setUp(self): 
+        df = pd.DataFrame(np.arange(24).reshape(6, 4),
+            columns=['open', 'high', 'low', 'close'])
+        df['symbol'] = list('ABCABA')
+        df['timestamp'] = [1, 1, 1, 2, 3, 3]
+        self.df = df
+
+    def test_reindex(self):
+        ds = DataSource(self.df)
+        ds.reindex([1,2,3])
+        assert len(ds.data) == 9
+        # Check values
+        assert ds.data.set_index(['symbol', 'timestamp']).at[('A', 1), 'open'] == 0
+        assert ds.data.set_index(['symbol', 'timestamp']).at[('B', 2), 'close'] == 7
+        assert ds.data.set_index(['symbol', 'timestamp']).at[('C', 3), 'high'] == 9
+        ds.reindex([1,2,3,4])
+        assert len(ds.data) == 12 
+
+    def test_reindex_different_fills(self):
+        ds = DataSource(self.df)
+        ds.reindex([1,2,3], method=None)
+        print(ds.data)
+        assert pd.isnull(ds.data.set_index(['symbol', 'timestamp']).at[('C', 3), 'high'])
+        ds = DataSource(self.df)
+        ds.reindex([1,2,3,4], method='bfill') 
+        assert ds.data.set_index(['symbol', 'timestamp']).at[('B', 2), 'close'] == 19
+
+

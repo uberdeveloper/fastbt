@@ -236,6 +236,36 @@ class DataSource(object):
             self._data = data.join(result)
         return self.data
 
+    def reindex(self, new_index, **kwargs):
+        """
+        Reindex all symbols to the new index and ffill NA's
+        labels
+            a datetime index
+        kwargs
+            kwargs to the reindex function
+        This will reindex all the symbols to the 
+        given datetime index
+        Note
+        ----
+        1) Call this function before adding any columns so that all the 
+        symbols in your dataframe have equal number of data points
+        2) reindex replaces the original dataframe with this data
+        3) NA's are forward filled by default; if you don't want
+        NA's to be filled, pass method=None
+
+        See also
+        ---------
+        utils.calendar 
+        """
+        # Check only key since None is allowed
+        if 'method' not in kwargs.keys():
+            kwargs['method'] = 'ffill'
+        self._data = self.data.set_index('timestamp').groupby('symbol').apply(
+            lambda x: x.reindex(new_index, axis='index', **kwargs))
+        del self._data['symbol']
+        self._data.reset_index(inplace=True)
+        return self.data
+
     def batch_process(self, batch):
         """
         Process data in batch
