@@ -30,7 +30,7 @@ class TestMetaPipeline(unittest.TestCase):
 		p = self.p
 		p.run()	
 		assert p.number == 10
-		assert len(p.pipeline) == 5
+		assert len(p.pipeline) == 6
 
 	def test_clear_pipeline(self):
 		p = self.p
@@ -70,7 +70,7 @@ class TestMetaPipeline(unittest.TestCase):
 		p = self.p
 		p.add_to_pipeline('unknown_func_1')
 		p.add_to_pipeline('unknown_func_2')
-		assert len(p.pipeline) == 5
+		assert len(p.pipeline) == 6
 		p.run()
 		assert p.number == 10
 
@@ -80,9 +80,19 @@ class TestMetaPipeline(unittest.TestCase):
 		for i in range(4):
 			p._pipeline.append('func_'+str(i))
 		p.add_to_pipeline('add_10')
-		assert len(p.pipeline) == 11
+		assert len(p.pipeline) == 12
 		p.run()
 		assert p.number == 30
+
+	def test_add_to_pipeline_custom_insert(self):
+		p = self.p
+		p._pipeline = ['dummy']
+		p.add_to_pipeline('add_10')
+		p.add_to_pipeline('mul_10', 1)
+		p.run()
+		assert p.number == 110
+
+
 
 	
 

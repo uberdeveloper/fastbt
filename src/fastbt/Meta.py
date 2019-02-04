@@ -13,6 +13,7 @@ class TradingSystem:
 		self._cycle = 0
 		self._data = []
 		self._pipeline = [
+			'dummy',
 			'fetch',
 			'process',
 			'entry',
@@ -84,8 +85,9 @@ class TradingSystem:
 		method
 			method to be added; should be part of the object
 		position
-			position of this method in the pipeline
-
+			position of this method in the pipeline.
+			Pipeline starts at 1 (0 is used for initialization).
+			So to insert an item at the second positions, use 2.
 		Note
 		-----
 		Internally, the pipeline is represented by a list
@@ -102,6 +104,9 @@ class TradingSystem:
 		This should be the only method to call at a high level. 
 		This method calls every method in the pipeline
 		Must update the cycle after run
+
+		Note:
+		zero th index is discarded in the pipeline since its empty
 		"""
 		for method in self._pipeline:
 			# Returns None if method not found
