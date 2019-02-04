@@ -12,13 +12,16 @@ class TradingSystem:
 		self.auth = auth
 		self._cycle = 0
 		self._data = []
+		# Pipeline is a list of 3-tuples with function
+		# name being the first element, args the 
+		# second element and kwargs the third element
 		self._pipeline = [
-			'dummy',
-			'fetch',
-			'process',
-			'entry',
-			'exit',
-			'order'
+			('dummy', {}),
+			('fetch',  {}),
+			('process', {}),
+			('entry', {}),
+			('exit', {}),
+			('order', {})
 		]
 		if tradebook is None:
 			self.tb = TradeBook(name="TradingSystem")
@@ -79,7 +82,7 @@ class TradingSystem:
 		"""
 		pass
 
-	def add_to_pipeline(self, method, position=None):
+	def add_to_pipeline(self, method, position=None, **kwargs):
 		"""
 		Add a method to the existing pipeline
 		method
@@ -88,6 +91,8 @@ class TradingSystem:
 			position of this method in the pipeline.
 			Pipeline starts at 1 (0 is used for initialization).
 			So to insert an item at the second positions, use 2.
+		kwargs
+			keyword arguments to the function
 		Note
 		-----
 		Internally, the pipeline is represented by a list
@@ -97,7 +102,7 @@ class TradingSystem:
 		if not(position):
 			position = len(self._pipeline)
 		if getattr(self, method, None):
-			self._pipeline.insert(position, method)
+			self._pipeline.insert(position, (method, kwargs))
 
 	def run(self):
 		"""
@@ -108,7 +113,21 @@ class TradingSystem:
 		Note:
 		zero th index is discarded in the pipeline since its empty
 		"""
-		for method in self._pipeline:
-			# Returns None if method not found
-			getattr(self, method, lambda : None)()
+		for method, fkwargs in self._pipeline:
+			# Returns None if method not found			
+			getattr(self, method, lambda : None)(**fkwargs)
+			# Check whether the function is given any 
+			# positional or keyword arguments
+			"""
+			isArgs = len(fargs) > 0
+			isKwargs = len(fkwargs) > 0
+			if isArgs and isKwargs:
+				func(*fargs, **fkwargs)
+			elif isArgs:
+				func(*fargs)
+			elif isKwargs:
+				func(**fkwargs)
+			else:
+				func()
+			"""
 		self._cycle += 1
