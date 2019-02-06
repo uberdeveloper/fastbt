@@ -81,5 +81,53 @@ def test_positions():
     assert len(tb.positions) == 2
     assert tb.positions['QQQ'] == -3
 
+class TestPositions(unittest.TestCase):
+    def setUp(self):
+        tb = TradeBook()
+        tb.add_trade(1, 'ABC', 75, 100, 'B')
+        tb.add_trade(1, 'AAA', 76, 100, 'B')
+        tb.add_trade(1, 'XYZ', 77, 100, 'S')
+        tb.add_trade(1, 'XXX', 78, 100, 'S')
+        self.tb = tb
+
+    def test_open_positions(self):
+        assert self.tb.o == 4
+        self.tb.add_trade(2, 'ABC', 75, 100, 'S')
+        assert self.tb.o == 3
+
+    def test_long_positions(self):
+        assert self.tb.l == 2
+        self.tb.add_trade(2, 'MAB', 10,10, 'B')
+        assert self.tb.l == 3
+        self.tb.add_trade(2, 'MAB', 10,10, 'S')
+        self.tb.add_trade(1, 'ABC', 75, 100, 'S')
+        self.tb.add_trade(1, 'AAA', 76, 100, 'S')
+        assert self.tb.l == 0
+        self.tb.add_trade(1, 'AAA', 76, 100, 'S')
+        assert self.tb.l == 0
+
+
+    def test_short_positions(self):
+        assert self.tb.s == 2
+        self.tb.add_trade(2, 'XYZ', 77, 100, 'B')
+        self.tb.add_trade(2, 'XXX', 78, 100, 'B')
+        assert self.tb.s == 0
+        for i in range(10):
+            self.tb.add_trade(i+3, 'MMM', 85, 10, 'S')
+        assert self.tb.s == 1
+
+    def test_long_positions_two(self):
+        assert self.tb.l == 2
+        for i in range(10):
+            self.tb.add_trade(i+2, 'AAA', 82, 10, 'B')
+        assert self.tb.l == 2
+        for i in range(10):
+            self.tb.add_trade(i+12, 'AAA'+str(i), 75, 10, 'B')
+            assert self.tb.l == i + 3
+ 
+
+
+
+
 
 

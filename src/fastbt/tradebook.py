@@ -1,6 +1,10 @@
 from collections import Counter, defaultdict
 
 class TradeBook:
+	"""
+	TO DO:
+	Add open, long, short positions
+	"""
 	def __init__(self, name='tradebook'):
 		self._name = name
 		self._trades = defaultdict(list)
@@ -36,6 +40,28 @@ class TradeBook:
 	@property
 	def positions(self):
 		return self._positions
+
+	@property
+	def o(self):
+		"""
+		return the count of open positions in the tradebook
+		"""
+		return sum([1 for pos in self.positions.values() if pos != 0])
+
+	@property
+	def l(self):
+		"""
+		return the count of long positions in the tradebook
+		"""
+		return sum([1 for pos in self.positions.values() if pos > 0])
+
+	@property
+	def s(self):
+		"""
+		return the count of short positions in the tradebook
+		"""
+		return sum([1 for pos in self.positions.values() if pos < 0])
+
 
 	def add_trade(self, timestamp, symbol, price, qty, order, **kwargs):
 		"""
