@@ -8,6 +8,7 @@ class TradeBook:
 	def __init__(self, name='tradebook'):
 		self._name = name
 		self._trades = defaultdict(list)
+		self._values = Counter()
 		self._positions = Counter()
 
 	def __repr__(self):
@@ -36,10 +37,19 @@ class TradeBook:
 				lst.extend(v)
 		return lst
 
-
 	@property
 	def positions(self):
+		"""
+		return the positions of all symbols
+		"""
 		return self._positions
+
+	@property
+	def values(self):
+		"""
+		return the values of all symbols
+		"""
+		return self._values
 
 	@property
 	def o(self):
@@ -98,3 +108,5 @@ class TradeBook:
 			self._trades[symbol] = [dct]
 		"""
 		self._positions.update({symbol:q})
+		value = q * price * -1
+		self._values.update({symbol: value})

@@ -3,6 +3,7 @@ import context
 import pytest
 
 from fastbt.tradebook import TradeBook
+from collections import Counter
 
 def test_name():
     tb = TradeBook()
@@ -124,10 +125,28 @@ class TestPositions(unittest.TestCase):
         for i in range(10):
             self.tb.add_trade(i+12, 'AAA'+str(i), 75, 10, 'B')
             assert self.tb.l == i + 3
- 
 
+class TestValues(unittest.TestCase):
+    
+    def setUp(self):
+        tb = TradeBook()
+        tb.add_trade(1, 'ABC', 75, 100, 'B')
+        tb.add_trade(1, 'AAA', 76, 100, 'B')
+        tb.add_trade(1, 'XYZ', 77, 100, 'S')
+        tb.add_trade(1, 'XXX', 78, 100, 'S')
+        self.tb = tb
 
+    def test_values(self):
+        c = Counter(ABC=-7500, AAA=-7600, XYZ=7700, XXX=7800)
+        assert self.tb.values == c
 
+    def test_values_pnl(self):
+        self.tb.add_trade(2, 'ABC', 80, 100, 'S')
+        c = Counter(ABC=500, AAA=-7600, XYZ=7700, XXX=7800)
+        assert self.tb.values == c
 
+    def test_values_pnl_two(self):
+        self.tb.add_trade(3, 'XXX', 80, 100, 'B')
+        assert self.tb.values['XXX'] == -200
 
 
