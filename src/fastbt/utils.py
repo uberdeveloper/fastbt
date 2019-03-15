@@ -148,7 +148,7 @@ def recursive_merge(dfs, on=None, how='inner', columns={}):
         dataframe in the list and value being the list of columns
         to merge. **your keys should be string**
         See examples for more details
-        >>> recursive_merge(dfs, columns{'1': ['one', 'two']})
+        >>> recursive_merge(dfs, columns = {'1': ['one', 'two']})
         Fetch only the columns one and two from the second dataframe
     """
     data = dfs[0]
@@ -197,7 +197,6 @@ def get_nearest_option(spot, n=1, opt='C', step=100):
         else:
             print('Option type not recognized; Check the opt argument')
     return option_prices
-
 
 def calendar(start, end, holidays=None, alldays=False,
              start_time=None, end_time=None, freq='D', **kwargs):
@@ -263,6 +262,95 @@ def calendar(start, end, holidays=None, alldays=False,
     else:
         return dates
 
+def get_ohlc_intraday(data, start_time, end_time, date_col=None,
+        col_mappings=None, sort=False):
+    """
+    Get ohlc for a specific period in a day for all days
+    for all the symbols.
+    data
+        dataframe with symbol, timestamp, date, open, high, low, close columns.
+        The timestamp and date columns are assumed to be of pandas datetime type.
+        Each row represents data for a single stock at a specified period of time
+        If you have different column names, use the col_mappings argument
+        to rename the columns
+    start_time
+        start time for each day
+    end_time
+        end time for each day
+    date_col
+        date column to aggregate; this is in addition to time column.
+        If no date column is specified, a date column is created.
+    col_mappings
+        column mappings as a dictionary
+        (Eg.) if the symbol column is named as assetName and timestamp
+        as ts, then pass rename={'assetName': 'symbol', 'ts': 'timestamp'}
+    sort
+        Whether the data is sorted by timestamp.
+        If True, data is not sorted else data is sorted
 
-if __name__ == "__main__":
-    pass
+    returns
+        a dataframe with symbol, date, open, high, low and close columns
+
+    Note
+    -----
+    To speed up computation
+        1) If the data is already sorted, pass sort=True
+        2) If date column is already available, then pass date_col=column_name
+    Timestamp and date are assumed to be pandas datetime
+    """
+    if col_mappings:
+        data = data.rename(col_mappings, axis='columns')
+    if not(sort):
+        data = data.sort_values(by='timestamp')
+    if not(date_col):
+        data['date'] = data['timestamp'].dt.date
+    data = data.set_index('timestamp')
+
+    def calculate_ohlc(df):
+        """
+        Internal function to calculate OHLC
+        """
+        date = df.iloc[0].at['date'].strftime('%Y-%m-%d')
+        fmt = "{date} {time}" # date time format
+        s = fmt.format(date=date, time=start_time)
+        e = fmt.format(date=date, time=end_time)
+        temp = df.loc[s:e]
+        agg = {'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last'}
+        return temp.groupby('symbol').agg(agg)
+    return data.groupby(['date']).apply(calculate_ohlc)
+
+
+def get_expanding_ohlc(data, freq, col_mappings=None):
+    """
+    Given a dataframe with OHLC, timestamp and symbol columns
+    return a OHLC dataframe with open price, expanding high,
+    expanding low and close prices
+    data
+        dataframe with OHLC, timestamp and symbol columns
+    freq
+        frequency by which the data is to be resampled.
+        A pandas frequency string
+    col_mappings
+        column mappings as a dictionary
+        (Eg.) if the symbol column is named as assetName and timestamp
+        as ts, then pass rename={'assetName': 'symbol', 'ts': 'timestamp'}
+    Note
+    -----
+    The returned dataframe has the same length and index of the 
+    original dataframe. The resampling is done only to calculate the
+    expanding high, low prices   
+    """
+    if col_mappings:
+        data = data.rename(col_mappings, axis='columns')
+
+    def calculate_ohlc(df):
+        temp = pd.DataFrame({
+        'high': df['high'].expanding().max(),
+        'low': df['low'].expanding().min()
+        })
+        temp['close'] = df['close']
+        temp['open'] = df['open'].iloc[0]
+        return temp
+
+    cols = ['open', 'high', 'low', 'close'] # for sorting return value
+    return data.resample(freq).apply(calculate_ohlc)[cols]

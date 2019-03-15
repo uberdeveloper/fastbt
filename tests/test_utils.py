@@ -7,6 +7,7 @@ import context
 
 from fastbt.utils import *
 
+
 def equation(a,b,c,x,y):
     return a*x**2 + b*y + c
 
@@ -227,6 +228,49 @@ def test_calendar_multiple_days():
     assert len(calendar(holidays=holidays, alldays=True, **kwargs, freq='H')) == 7*12
     assert len(calendar(holidays=holidays, alldays=True, **kwargs, freq='10min')) == 7*12*6
     assert len(calendar(holidays=holidays, alldays=True, **kwargs, freq='s')) == 7*12*3600
+
+class TestGetOHLCIntraday(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+class TestGetExpandingOHLC(unittest.TestCase):
+
+    def setUp(self):
+        index = pd.date_range('2019-01-01', freq='H', periods=720)
+        df = pd.DataFrame(index=index)
+        df['open'] = 100 + np.arange(720)
+        df['high'] = df['open'] + 3
+        df['low'] = df['open'] - 3
+        df['close'] = df['open'] + 1
+        self.df = df
+
+    def test_simple(self):
+        df = get_expanding_ohlc(self.df, freq='D')
+        assert(df.loc['2019-01-01 10:00:00', 'high'] == 113)
+        assert(df.loc['2019-01-10 16:00:00', 'open'] == 316)
+        # Low must be same for the entire day by construction
+        assert(df.loc['2019-01-20 01:00:00', 'low'] == 553)
+        assert(df.loc['2019-01-20 23:00:00', 'low'] == 553)
+        assert(df.loc['2019-01-24 18:00:00', 'close'] == 671)
+
+    def test_mappings(self):
+        df = self.df
+        # Intentionally renaming and adding columns
+        df.columns = list('ABCD')
+        df['XX'] = df['A'] + df['B']
+        df['XXX'] = np.random.randn(720)
+        mappings = {'A': 'open', 'B': 'high', 'C': 'low', 'D': 'close'}
+        df = get_expanding_ohlc(df, freq='D', col_mappings=mappings)
+        assert(df.loc['2019-01-10 19:00:00', 'open'] == 316)
+        assert(df.loc['2019-01-21 23:00:00', 'low'] == 577)
+
+    def test_different_frequencies(self):
+        df = get_expanding_ohlc(self.df, freq='W')
+        print(df)
+        assert(df.loc['2019-01-06 14:00:00', 'open'] == 100)
+        assert(df.loc['2019-01-27 16:00:00', 'low'] == 577)
+        # Test more frequencies
 
 
 
