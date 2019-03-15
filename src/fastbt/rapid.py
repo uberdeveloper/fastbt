@@ -216,12 +216,51 @@ def metrics(data, capital=100000, benchmark=0.0):
     dct.update(sharpe_ratio)
     return dct
 
+def price_sensitivity(results):
+    """
+    Calculate the price sensitivity of a strategy
+    results
+        results dataframe or any dataframe with the columns
+        open, high, low, close, profit
+    returns
+        the percentage of returns sensitive to open price
+
+    Note
+    -----
+    Price sensitivity is calculated by
+     1) Calculating the profit in cases where open=high and open=low
+     2) Dividing these profits by the total profits
+
+
+    A high percentage indicates that most of your orders may not get
+    executed at the LIMIT price since the stock tends have a sharp
+    movement when open=low or open=high. A value of 1 indicates that
+    all returns are sensitive to prices
+
+    This is somewhat a rough measure and it doesn't take into account
+    whether you BUY or SELL
+    """
+    profit = results['profit'].sum()
+    sen1 = results.query('open==low')['profit'].sum()
+    sen2 = results.query('open==high')['profit'].sum()
+    return (sen1+sen2)/profit
+
+
 def simple_score(correlation, sharpe, drawdown, alpha, sensitivity):
     """
     Calculate a simple score on a scale of 1 to 10 based on the 
-    given metrics
+    given metrics. Each metric is given 2 points. If alpha is zero,
+    then the score is zero since you have made no positive returns
     correlation
-
+        correlation of strategy, between 1 and -1
+    sharpe
+        sharpe ratio
+    drawdown
+        max drawdown percentage
+    alpha
+        excess returns
+    sensitivity
+        price sensitivity based on open=high or open=low prices
     """
     # A list to hold points for each of the metric
     points = [0,0,0,0,0]

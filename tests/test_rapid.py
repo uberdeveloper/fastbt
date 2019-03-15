@@ -23,7 +23,7 @@ def compare(frame1, frame2):
     r2 = randint(0, len(frame1.columns) - 1)
     return frame1.iloc[r1, r2] == frame2.iloc[r1, r2]
 
-
+"""
 class TestRapidFetchData(unittest.TestCase):
 
     def setUp(self):
@@ -441,3 +441,32 @@ def test_sharpe():
     ])
 def test_simple_score(args, expected):
     assert(simple_score(*args) == expected)
+"""
+
+def test_price_sensitivity():
+    timestamp = pd.date_range('2019-01-01', periods=20)
+    dfs = []
+    for i,s in zip(range(1,5), ['A', 'B', 'C', 'D']):
+        df = pd.DataFrame()
+        df['open'] = 100*i + np.arange(20)
+        df['high'] = df['open'] + 3
+        df['low'] = df['open'] - 3
+        df['close'] = df['open'] + 1
+        df['timestamp'] = timestamp
+        df['symbol'] = s
+        dfs.append(df)
+    df_big = pd.concat(dfs).reset_index(drop=True)
+    results = backtest(data=df_big, stop_loss=3, order='B')
+    sensitivity = price_sensitivity(results)
+    assert sensitivity == 0
+
+    # should fetch the same sensitivity
+    results = backtest(data=df_big, stop_loss=3, order='S')
+    sensitivity = price_sensitivity(results)    
+    assert sensitivity == 0
+
+    # all returns are sensitive
+    df_big['high'] = df_big['open']
+    results = backtest(data=df_big, stop_loss=3, order='S')
+    sensitivity = price_sensitivity(results)    
+    assert sensitivity == 1
