@@ -12,6 +12,7 @@ import context
 from fastbt.rapid import *
 R = lambda x: round(x, 2)
 
+
 def compare(frame1, frame2):
     """
     Compare a random value from 2 dataframes
@@ -30,9 +31,6 @@ class TestRapidFetchData(unittest.TestCase):
         self.tbl = 'eod'
 
     def test_fetch_data(self):
-        """
-        Additional date to be included for correct results due to
-        """
         universe = ['one', 'two']
         start, end = '2018-01-01 00:00:00.000000', '2018-01-02 00:00:00.000000'
         data = fetch_data(universe, start, end, self.con, self.tbl)
@@ -198,11 +196,11 @@ def test_backtest_data():
 def test_stop_loss_zero():
     pass
 
+
 def _build_input_output():
-    """
-    This function builds the input and output
-    from results for passing to pytest
-    """
+    # This function builds the input and output
+    # from results for passing to pytest
+
     data = pd.read_csv('tests/data/results.csv').to_dict(orient='records')
     with open('tests/data/BT.yaml') as f:
         params = yaml.load(f)
@@ -238,6 +236,7 @@ def _build_input_output():
             result[col] = d[col]
         final.append((kwargs, result))
     return final
+
 
 con = create_engine('sqlite:///tests/data/data.sqlite3')
 tbl = 'eod'
@@ -431,6 +430,14 @@ def test_sharpe():
     assert sharpe_ratio['sharpe'].round(3) == 0.075
     assert sharpe_ratio['raw'].round(3) == 0.042
 
-
-
-
+@pytest.mark.parametrize("args, expected", [
+    ((0.09, 2,0.06, 0.02, 0.15), 9.25),
+    ((-0.09, 2, 0.06, 0.02, 0.15), 9.25),
+    ((-0.05, 1, 0.06, 0.02, 0.15), 8.25),
+    ((-0.4, 0.5, 0.13, 0.04, 0.15), 5.2),
+    ((-0.4, 0.5, 0.05, 0, 0.15), 0),
+    ((0.15, -2, 0.1, -0.05, 0.02), 0),
+    ((0.15, 0, 0.1, 0.005, 0.15), 4.45)
+    ])
+def test_simple_score(args, expected):
+    assert(simple_score(*args) == expected)

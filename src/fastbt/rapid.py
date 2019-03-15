@@ -216,6 +216,40 @@ def metrics(data, capital=100000, benchmark=0.0):
     dct.update(sharpe_ratio)
     return dct
 
+def simple_score(correlation, sharpe, drawdown, alpha, sensitivity):
+    """
+    Calculate a simple score on a scale of 1 to 10 based on the 
+    given metrics
+    correlation
+
+    """
+    # A list to hold points for each of the metric
+    points = [0,0,0,0,0]
+    if abs(correlation) < 0.1:
+        points[0] = 2
+    else:
+        points[0] = 2*(1-abs(correlation))
+
+    if sharpe > 0:
+        points[1] = min(2, sharpe)
+
+    if drawdown < 0.05:
+        points[2] = 2
+    else:
+        points[2] = max(0, 2-((drawdown-0.05)*0.25*100))
+
+    if alpha > 0:
+        points[3] = min(2, alpha*100)
+
+    if sensitivity < 0.1:
+        points[4] = 2
+    else:
+        points[4] = max(0, (0.3-sensitivity)*10)
+    print(points)
+    return 0 if alpha <= 0 else sum(points)
+
+
+
 def backtest(start=None, end=None,
             capital=100000, leverage=1, commission=0,
             slippage=0, price='open', stop_loss=0, order='B',
