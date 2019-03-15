@@ -2,11 +2,11 @@ import pandas as pd
 import numpy as np
 import pytest
 import unittest
+import datetime
 import sys
 import context
 
 from fastbt.utils import *
-
 
 def equation(a,b,c,x,y):
     return a*x**2 + b*y + c
@@ -229,10 +229,60 @@ def test_calendar_multiple_days():
     assert len(calendar(holidays=holidays, alldays=True, **kwargs, freq='10min')) == 7*12*6
     assert len(calendar(holidays=holidays, alldays=True, **kwargs, freq='s')) == 7*12*3600
 
+
 class TestGetOHLCIntraday(unittest.TestCase):
 
     def setUp(self):
-        pass
+        timestamp = pd.date_range('2019-01-01', freq='15min', periods=480)
+        dfs = []
+        for i,s in zip(range(1,4), ['A', 'B', 'C']):
+            df = pd.DataFrame()
+            df['open'] = 100*i + np.arange(480)
+            df['high'] = df['open'] + 3
+            df['low'] = df['open'] - 3
+            df['close'] = df['open'] + 1
+            df['timestamp'] = timestamp
+            df['symbol'] = s
+            dfs.append(df)
+        self.df = pd.concat(dfs).reset_index(drop=True)
+
+    def test_simple(self):
+        df = get_ohlc_intraday(self.df, '13:00', '20:00').sort_index()
+        assert(len(df) == 15)
+        idx = pd.IndexSlice
+        dt = datetime.date(2019,1,1)
+        assert(df.loc[idx[dt, 'A'], 'open'] == 152)
+        assert(df.loc[idx[dt, 'A'], 'close'] == 181)
+        assert(df.loc[idx[dt, 'A'], 'high'] == 183)
+        assert(df.loc[idx[dt, 'A'], 'low'] == 149)
+
+    def test_date_column(self):
+        df = self.df
+        df['date_column'] = df.timestamp.dt.date
+        df = get_ohlc_intraday(self.df, '10:00', '16:00', 
+            date_col='date_column').sort_index()
+        idx = pd.IndexSlice
+        assert(df.loc[idx[datetime.date(2019,1,4), 'C'], 'open'] == 628)
+        assert(df.loc[idx[datetime.date(2019,1,4), 'C'], 'high'] == 655)
+
+    def test_column_mappings(self):
+        df = self.df
+        df.columns = list('ABCDEF') # renaming columns
+        df['date_column'] = df.E.dt.date
+        mappings = {'A': 'open', 'B': 'high', 'C': 'low', 'D': 'close',
+        'E': 'timestamp', 'F': 'symbol', 'date_column': 'date'}
+        df = get_ohlc_intraday(self.df, start_time='10:00', end_time='16:00',
+            date_col='date', col_mappings=mappings).sort_index()
+        idx = pd.IndexSlice
+        assert(df.loc[idx[datetime.date(2019,1,4), 'B'], 'open'] == 528)
+        assert(df.loc[idx[datetime.date(2019,1,4), 'B'], 'low'] == 525)
+
+    def test_sort(self):
+        df = get_ohlc_intraday(self.df.sort_values(by='timestamp'), 
+            '10:00', '16:00', sort=True)
+        idx = pd.IndexSlice
+        assert(df.loc[idx[datetime.date(2019,1,4), 'B'], 'close'] == 553)
+
 
 class TestGetExpandingOHLC(unittest.TestCase):
 

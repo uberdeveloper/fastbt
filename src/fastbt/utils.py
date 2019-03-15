@@ -304,20 +304,22 @@ def get_ohlc_intraday(data, start_time, end_time, date_col=None,
         data = data.sort_values(by='timestamp')
     if not(date_col):
         data['date'] = data['timestamp'].dt.date
+        date_col = 'date'
     data = data.set_index('timestamp')
 
     def calculate_ohlc(df):
         """
         Internal function to calculate OHLC
         """
-        date = df.iloc[0].at['date'].strftime('%Y-%m-%d')
+
+        date = df.iloc[0].at[date_col].strftime('%Y-%m-%d')
         fmt = "{date} {time}" # date time format
         s = fmt.format(date=date, time=start_time)
         e = fmt.format(date=date, time=end_time)
         temp = df.loc[s:e]
         agg = {'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last'}
         return temp.groupby('symbol').agg(agg)
-    return data.groupby(['date']).apply(calculate_ohlc)
+    return data.groupby([date_col]).apply(calculate_ohlc)
 
 
 def get_expanding_ohlc(data, freq, col_mappings=None):
