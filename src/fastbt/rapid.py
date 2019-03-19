@@ -264,15 +264,18 @@ def simple_score(correlation, sharpe, drawdown, alpha, sensitivity):
     """
     # A list to hold points for each of the metric
     points = [0,0,0,0,0]
-    if abs(correlation) < 0.1:
+    correlation = abs(correlation)
+    drawdown = abs(drawdown)
+
+    if correlation < 0.1:
         points[0] = 2
     else:
-        points[0] = 2*(1-abs(correlation))
+        points[0] = 2*(1-correlation)
 
     if sharpe > 0:
         points[1] = min(2, sharpe)
 
-    if drawdown < 0.05:
+    if abs(drawdown) < 0.05:
         points[2] = 2
     else:
         points[2] = max(0, 2-((drawdown-0.05)*0.25*100))
@@ -284,7 +287,6 @@ def simple_score(correlation, sharpe, drawdown, alpha, sensitivity):
         points[4] = 2
     else:
         points[4] = max(0, (0.3-sensitivity)*10)
-    print(points)
     return 0 if alpha <= 0 else sum(points)
 
 

@@ -23,7 +23,7 @@ def compare(frame1, frame2):
     r2 = randint(0, len(frame1.columns) - 1)
     return frame1.iloc[r1, r2] == frame2.iloc[r1, r2]
 
-"""
+
 class TestRapidFetchData(unittest.TestCase):
 
     def setUp(self):
@@ -430,18 +430,19 @@ def test_sharpe():
     assert sharpe_ratio['sharpe'].round(3) == 0.075
     assert sharpe_ratio['raw'].round(3) == 0.042
 
+
 @pytest.mark.parametrize("args, expected", [
     ((0.09, 2,0.06, 0.02, 0.15), 9.25),
     ((-0.09, 2, 0.06, 0.02, 0.15), 9.25),
     ((-0.05, 1, 0.06, 0.02, 0.15), 8.25),
-    ((-0.4, 0.5, 0.13, 0.04, 0.15), 5.2),
-    ((-0.4, 0.5, 0.05, 0, 0.15), 0),
-    ((0.15, -2, 0.1, -0.05, 0.02), 0),
+    ((-0.4, 0.5, -0.13, 0.04, 0.15), 5.2),
+    ((-0.4, 0.5, -0.05, 0, 0.15), 0),
+    ((0.15, -2, -0.1, -0.05, 0.02), 0),
     ((0.15, 0, 0.1, 0.005, 0.15), 4.45)
     ])
 def test_simple_score(args, expected):
     assert(simple_score(*args) == expected)
-"""
+
 
 def test_price_sensitivity():
     timestamp = pd.date_range('2019-01-01', periods=20)
