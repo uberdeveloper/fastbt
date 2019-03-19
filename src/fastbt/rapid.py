@@ -246,7 +246,7 @@ def price_sensitivity(results):
     return (sen1+sen2)/profit
 
 
-def simple_score(correlation, sharpe, drawdown, alpha, sensitivity):
+def simple_score(correlation, sharpe, drawdown, alpha, sensitivity, out=None):
     """
     Calculate a simple score on a scale of 1 to 10 based on the 
     given metrics. Each metric is given 2 points. If alpha is zero,
@@ -261,6 +261,10 @@ def simple_score(correlation, sharpe, drawdown, alpha, sensitivity):
         excess returns
     sensitivity
         price sensitivity based on open=high or open=low prices
+    out
+        output format.
+        returns score if None else the list of points for 
+        any other argument
     """
     # A list to hold points for each of the metric
     points = [0,0,0,0,0]
@@ -287,9 +291,11 @@ def simple_score(correlation, sharpe, drawdown, alpha, sensitivity):
         points[4] = 2
     else:
         points[4] = max(0, (0.3-sensitivity)*10)
-    return 0 if alpha <= 0 else sum(points)
 
-
+    if out == 'list':
+        return points
+    else:
+        return 0 if alpha <= 0 else sum(points)
 
 def backtest(start=None, end=None,
             capital=100000, leverage=1, commission=0,
