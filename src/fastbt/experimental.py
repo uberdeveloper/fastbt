@@ -9,6 +9,7 @@ having an entirely new branch
 import pandas as pd 
 import numpy as np
 from numba import jit, njit
+from intake.source.base import DataSource, Schema
 
 @jit
 def v_cusum(array):
@@ -84,6 +85,67 @@ def cusum(array):
 	df['reg'] = sign_change(df.d.values)
 	df['ratio'] = df['pos'] / df['neg']
 	return df
+
+
+
+class ExcelSource(DataSource):
+
+	container = 'dataframe'
+	name = 'universe'
+	version = '0.0.1'
+	partition_access = True
+
+	def __init__(self, filename, metadata=None):
+		"""
+		Initialize with filename and metadata
+		"""
+		self.filename = filename
+		self._source = pd.ExcelFile(self.filename)
+		super(ExcelSource, self).__init__(metadata=metadata)
+
+	def _get_schema(self):
+		sheets = self._source.sheet_names
+		return Schema(
+			datashape=None,
+			dtype=None,
+			shape=None,
+			npartitions= len(sheets),
+			extra_metadata = {'sheets': sheets}
+			)
+
+	def read_partition(self, sheet, **kwargs):
+		"""
+		Read a specific sheet from the list of sheets
+		sheet
+			sheet to read
+		kwargs
+			kwargs to the excel parse function
+		"""
+		self._load_metadata()
+		if sheet in self.metadata.get('sheets', []):
+			return self._source.parse(sheet, **kwargs)
+		else:
+			return 'No such sheet in the Excel File'
+
+	def read(self, **kwargs):
+		"""
+		Read all sheets into a single dataframe.
+		Sheetname is added as a column
+		kwargs
+			kwargs to the excel parse function
+		"""
+		self._load_metadata()
+		sheets = self.metadata.get('sheets')
+		collect = []
+		if len(sheets) > 1:
+			for sheet in sheets:
+				temp = self.read_partition(sheet, **kwargs)
+				temp['sheetname'] = sheet
+				collect.append(temp)
+		return pd.concat(collect, sort=False)
+
+	def _close(self):
+		self._source.close()
 
 
 
