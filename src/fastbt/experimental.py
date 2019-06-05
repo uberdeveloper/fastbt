@@ -86,6 +86,43 @@ def cusum(array):
 	df['ratio'] = df['pos'] / df['neg']
 	return df
 
+def percentage_bar(data, step):
+	"""
+	Generate the number of timesteps taken for each
+	equivalent step in price
+	data
+		numpy 1d array
+	step
+		step size
+	"""
+	start = data[0]
+	nextStep = start + step
+	counter = 0
+	steps = [start]
+	period = [0]
+	for d in data:
+		if step >= 0:
+			if d > nextStep:
+				steps.append(nextStep)
+				period.append(counter)
+				nextStep += step
+				counter = 0
+			else:
+				counter+=1
+		elif step < 0:
+			if d < nextStep:
+				steps.append(nextStep)
+				period.append(counter)
+				nextStep += step
+				counter = 0
+			else:
+				counter+=1
+
+	# Final loop exit			
+	steps.append(nextStep)
+	period.append(counter)
+	return (steps, period)		
+
 
 
 class ExcelSource(DataSource):
