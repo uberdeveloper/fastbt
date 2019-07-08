@@ -4,6 +4,7 @@ import numpy as np
 import context
 
 from fastbt.datasource import DataSource
+import talib
 
 class TestDataSource(unittest.TestCase):
 
@@ -214,5 +215,25 @@ class TestDataSourceReindex(unittest.TestCase):
         ds = DataSource(self.df)
         ds.reindex([1,2,3,4], method='bfill') 
         assert ds.data.set_index(['symbol', 'timestamp']).at[('B', 2), 'close'] == 19
+
+class TestDataSourceTALIB(unittest.TestCase):
+
+    """
+    Test TALIB indicators
+    """
+
+    def setUp(self):       
+        self.df = pd.read_csv('tests/data/sample.csv', parse_dates=['timestamp'])
+
+    def test_single_symbol(self):
+        df = self.df.query('symbol=="one"')
+        ds = DataSource(df)
+        ds.add_indicator('SMA', period=3, col_name='sma')
+        assert len(ds.data) == 6
+
+        sma = talib.SMA(df.close.values, timeperiod=3)
+        # If both are equal, there should be no differences
+        assert (ds.data.sma - sma).sum() == 0
+
 
 
