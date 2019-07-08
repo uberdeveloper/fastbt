@@ -160,11 +160,9 @@ class DataSource(object):
         >>> df.groupby(groupby)[on].transform(lambda x: x.rolling(**kwargs).agg(function))
         """
         grouped = self.data.groupby(groupby)
-        print(function)
         if col_name == 'auto':
             col_name = 'rol_{f}_{on}_{w}'.format(f=function, on=on, w=window)
         if function == 'zscore':
-            print('Zscore encountered')
             col = grouped[on].transform(lambda x: self._zscore(x, window))
         else:
             col = grouped[on].transform(lambda x: x.rolling(window, **kwargs).agg(function))
@@ -222,7 +220,16 @@ class DataSource(object):
 
         data = self.data.reset_index(drop=True)
         grouped = data.groupby('symbol')
-        result = grouped.apply(apply_func).reset_index(level='symbol')
+
+        # Hack when the number of groups is single
+        ngroups = grouped.ngroups
+        if ngroups == 1:
+            result = apply_func(data).to_frame() # Directly work on data
+            result['symbol'] = data.iloc[0]['symbol']
+        else:
+            result = grouped.apply(apply_func).reset_index(level='symbol')
+        # End of hack
+
         if col_name == 'auto':
             col_name = indicator + '_' + str(period if period is not None else 0)
         del result['symbol'] # Removed for easy join
