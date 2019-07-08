@@ -123,6 +123,43 @@ def percentage_bar(data, step):
 	period.append(counter)
 	return (steps, period)		
 
+def high_breach(s):
+	"""
+	Given a series of values, returns a series
+	with consecutive highs as values and timestamp as index
+	s
+		series with timestamp as index
+	"""
+	highs = []
+	ts = []
+	max_val = 0
+	index = s.index.values
+	for i,v in enumerate(s.values):
+		if v > max_val:
+			highs.append(v)
+			ts.append(index[i])
+			max_val = v
+	return pd.Series(highs, index=ts)
+
+
+def low_breach(s):
+	"""
+	Given a series of values, returns a series
+	with consecutive lows as values and timestamp as index
+	s
+		series with timestamp as index
+	"""
+	lows = []
+	ts = []
+	min_val = 1e+9 # Just setting an extreme value
+	index = s.index.values
+	for i,v in enumerate(s.values):
+		if v < min_val:
+			lows.append(v)
+			ts.append(index[i])
+			min_val = v
+	return pd.Series(lows, index=ts)
+
 
 
 class ExcelSource(DataSource):
