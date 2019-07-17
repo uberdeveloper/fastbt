@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from numba import jit, njit
 from intake.source.base import DataSource, Schema
+import os
 
 @jit
 def v_cusum(array):
@@ -165,7 +166,7 @@ def low_breach(s):
 class ExcelSource(DataSource):
 
 	container = 'dataframe'
-	name = 'universe'
+	name = 'excel_loader'
 	version = '0.0.1'
 	partition_access = True
 
@@ -220,6 +221,77 @@ class ExcelSource(DataSource):
 
 	def _close(self):
 		self._source.close()
+
+
+class HDFSource(DataSource):
+	"""
+	A simple intake container to load data from
+	HDF5 fixed formats
+	"""
+
+	container = 'dataframe'
+	name = 'HDF5_fixed_loader'
+	version = '0.0.1'
+	partition_access = True
+
+	def __init__(self, directory, metadata=None, extension='h5'):
+		"""
+		Initialize with directory and metadata
+		"""
+		self.directory = directory
+		self._ext = extension
+		self._get_schema()
+		super(HDFSource, self).__init__(metadata=metadata)
+
+	def _get_schema(self):
+		file_dict = {}	
+		for root,directory,files in os.walk(self.directory):
+			for file in files:
+				filename = os.path.join(root, file)
+				if filename.endswith(self._ext):
+					file_dict[file] = filename
+		return Schema(
+			datashape=None,
+			dtype=None,
+			shape=None,
+			npartitions= len(file_dict),
+			extra_metadata = {
+			'ext': self._ext,
+			'src': self.directory,
+			'files': file_dict
+			}
+			)
+
+	def read_partition(self, file, **kwargs):
+		"""
+		Read a specific sheet from the list of sheets
+		file
+			filename without extension
+		kwargs
+			kwargs to the excel parse function
+		"""
+		self._load_metadata()
+		ext = self.metadata.get('ext', self._ext)
+		file = '{file}.{ext}'.format(file=file, ext=ext)
+		if file in self.metadata.get('files', []):
+			filename = self.metadata['files'][file]
+			return pd.read_hdf(filename)
+		else:
+			return 'No such HDF file'
+
+	def read(self, **kwargs):
+		"""
+		Read all sheets into a single dataframe.
+		Sheetname is added as a column
+		kwargs
+			kwargs to the excel parse function
+		"""
+		self._load_metadata()
+		print('Not implemented')
+
+	def _close(self):
+		print('Not implemented')
+
 
 
 
