@@ -300,12 +300,9 @@ def twin_plot(data, y_axis, x_axis='timestamp'):
 	from bokeh.plotting import figure
 	from bokeh.models import LinearAxis, Range1d
 
-	datetime_tip = '@{}'.format(x_axis) + '{%F %H:%M}'
-	print(datetime_tip)
-
 	TOOLTIPS = [
 	('datetime', '@x{%F %H:%M}'),
-	('value', '$y{0.0}')
+	('value', '$y{0.00}')
 	]
 
 	y1,y2 = y_axis[0], y_axis[1]
@@ -314,12 +311,83 @@ def twin_plot(data, y_axis, x_axis='timestamp'):
 	h1 = data[y2].max()
 	l1 = data[y2].min()
 	p = figure(x_axis_type='datetime', y_range=(l0, h0),
-		tooltips=TOOLTIPS)
-	p.line(data[x_axis].values, data[y1].values, color="red")
+		tooltips=TOOLTIPS, height=240, width=600)
+	p.line(data[x_axis].values, data[y1].values, 
+		color="red", legend=y1)
 	p.extra_y_ranges = {"foo": Range1d(l1,h1)}
-	p.line(data[x_axis], data[y2].values, color="blue", y_range_name="foo")
+	p.line(data[x_axis], data[y2].values, color="blue", 
+		y_range_name="foo", legend=y2)
 	p.add_layout(LinearAxis(y_range_name="foo", axis_label=y2), 'left')
 	p.hover.formatters= {'x': 'datetime'}
+	p.legend.location = 'top_center'
+	p.legend.click_policy = 'hide'
 	return p
+
+
+class OptionPayoff:
+	"""
+	A simple class for calculating option payoffs
+	given spot prices and options
+	1) Add your options with the add method
+	2) Provide a spot price
+	3) Call calculate to get the payoff for this spot price
+	Note
+	-----
+	This class only does a simple arithmetic for the option and
+	doesn't include any calculations for volatility or duration.
+	It's assumed that the option is exercised at expiry and it
+	doesn't have any time value
+	"""
+	def __init__(self):
+		self._spot = 0
+		self._options = []
+
+	def add(self, strike, opt_type='C', position='B', premium=0, qty=1):
+		"""
+		Add an option
+		strike
+			strike price of the options
+		opt_type
+			option type - C for call and P for put
+		position
+			whether you are Buying or Selling the option
+			B for buy and S for sell
+		premium
+			option premium
+		qty
+			quantity of options contract
+		"""
+		if position == 'B':
+			premium = 0-abs(premium)
+		elif position == 'S':
+			qty = 0-abs(qty)
+		self._options.append({
+			'strike': strike,
+			'option': opt_type,
+			'position': position,
+			'premium': premium,
+			'qty': qty
+			})
+
+	@property
+	def options(self):
+		"""
+		return the list of options
+		"""
+		return self._options
+
+	def clear(self):
+		"""
+		Clear all options
+		"""
+		self._options = []
+
+	def spot(self, price):
+		"""
+		Set the spot price
+		"""
+		self._spot = price
+
+
 
 
