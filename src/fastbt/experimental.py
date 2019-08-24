@@ -342,6 +342,21 @@ class OptionPayoff:
 		self._spot = 0
 		self._options = []
 
+	def _payoff(self, strike, option, position, **kwargs):
+		"""
+		calculate the payoff for the option
+		"""
+		comb = (option, position)
+		spot = self._spot
+		if comb == ('C', 'B'):
+			return max(spot-strike, 0)
+		elif comb == ('P', 'B'):
+			return max(strike-spot, 0)
+		elif comb == ('C', 'S'):
+			return min(0, strike-spot)
+		elif comb == ('P', 'S'):
+			return min(0, spot-strike)
+
 	def add(self, strike, opt_type='C', position='B', premium=0, qty=1):
 		"""
 		Add an option
@@ -388,6 +403,45 @@ class OptionPayoff:
 		"""
 		self._spot = price
 
+	def calc(self):
+		"""
+		Calculate the payoff
+		"""
+		if self._spot <= 0:
+			print('Spot price incorrect.\nSet the price with the spot method')
+			return
+		else:
+			payoffs = []
+			for p in self.options:
+				profit = (self._payoff(**p) * abs(p['qty'])) + (p['premium'])
+				payoffs.append(profit)
+			return payoffs
 
 
 
+def conditional(data, c1, c2, out=None):
+	"""
+	Create a conditional probability table with counts
+	data
+		dataframe
+	c1
+		condition as string
+	c2
+		list of conditions as strings
+	out
+		output format
+	returns a dictionary with the conditions and
+	the counts in each of the conditions
+	Note
+	----
+	1. The dataframe is queried with c1 and each of the conditions
+	in c2 are evaluated based on this result.
+	2. All conditions are evaluated using `df.query`
+	3. The condition strings should be valid columns in the dataframe
+	"""
+	dct = {}
+	df = data.query(c1)
+	dct['c1'] = len(df)
+	for c in c2:
+		dct[c] = len(df.query(c))
+	return dct
