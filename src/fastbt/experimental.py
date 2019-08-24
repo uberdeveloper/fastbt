@@ -429,19 +429,28 @@ def conditional(data, c1, c2, out=None):
 	c2
 		list of conditions as strings
 	out
-		output format
+		output format. If None, counts are returned.
+		If a function is passed, it is applied to 
+		each of the conditions and the return value
+		of the function is stored for each condition.
+		The function should have a single argument that
+		takes a dataframe as an input.
+
 	returns a dictionary with the conditions and
-	the counts in each of the conditions
+	the counts or the return value of each of the conditions
 	Note
 	----
 	1. The dataframe is queried with c1 and each of the conditions
 	in c2 are evaluated based on this result.
 	2. All conditions are evaluated using `df.query`
 	3. The condition strings should be valid columns in the dataframe
+	4. The function passed should have a single argument, the dataframe.
 	"""
 	dct = {}
+	if out is None:
+		out = len
 	df = data.query(c1)
-	dct['c1'] = len(df)
+	dct[c1] = out(df)
 	for c in c2:
-		dct[c] = len(df.query(c))
+		dct[c] = out(df.query(c))
 	return dct
