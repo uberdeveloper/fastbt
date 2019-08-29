@@ -417,8 +417,6 @@ class OptionPayoff:
 				payoffs.append(profit)
 			return payoffs
 
-
-
 def conditional(data, c1, c2, out=None):
 	"""
 	Create a conditional probability table with counts
@@ -454,3 +452,59 @@ def conditional(data, c1, c2, out=None):
 	for c in c2:
 		dct[c] = out(df.query(c))
 	return dct
+
+
+class Catalog:
+	"""
+	A intake catalog creator
+	The catalog is created in the following manner
+		1. All files in the root directory are considered to
+		be separate files and loaded as such.
+		2. All directories and subdirectories inside the root 
+		directory are considered to be separate data sources
+		3. Each of the files are matched against the extension
+		name and the corresponding mapper
+		4. Files inside a directory are randomly selected and the
+		file type is determined for the entire directory.
+		**It's assumed that all files inside any sub-directories
+		are of the same file type**
+	"""
+	def __init__(self, directory):
+		"""
+		directory
+			directory to search for files
+		"""
+		try:
+			import yaml
+		except ImportError:
+			print('Install yaml before proceeding')
+		self._directory = directory
+		self._mappers =  {
+			'csv': 'intake.source.csv.CSVSource',
+			'txt': 'intake.source.csv.CSVSource',
+			'xls': 'fastbt.experimental.ExcelSource',
+			'xlsx': 'fastbt.experimental.ExcelSource'
+		}
+
+
+	def generate_catalog(self):
+		"""
+		Generate catalog
+		"""
+		dct = {}
+		dct['sources'] = {}
+		src = dct['sources']
+		for root,folder,files in os.walk(self._directory):
+			for file in files:
+				ext = file.split('.')[-1]
+				if ext in self._mappers:
+					src[file.split('.')[0]] = {
+						'args': {
+							'urlpath': os.path.join(root, file)
+						}						,
+						'driver': self._mappers[ext],
+						'description': '',
+						'metadata': {}
+					}
+		return dct
+			
