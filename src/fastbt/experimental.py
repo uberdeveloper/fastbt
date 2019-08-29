@@ -474,18 +474,35 @@ class Catalog:
 		directory
 			directory to search for files
 		"""
-		try:
-			import yaml
-		except ImportError:
-			print('Install yaml before proceeding')
 		self._directory = directory
-		self._mappers =  {
-			'csv': 'intake.source.csv.CSVSource',
-			'txt': 'intake.source.csv.CSVSource',
-			'xls': 'fastbt.experimental.ExcelSource',
-			'xlsx': 'fastbt.experimental.ExcelSource'
+		"""
+		**filetypes** is a dictionary with the file type as
+		key and a sub-dictionary with driver and extensions
+		as keys and the corresponding driver and extensions
+		as values. 
+		It is a logical structure that maps a file type to
+		its intake driver and possible extensions since each
+		file type can have more than one extension. This
+		dictionary is looped to get the self._mappers for each
+		extension.
+		**Assumed each filetype has a single driver but more than
+		one extension**
+		"""
+		filetypes = {
+			'excel': {
+				'driver': 'fast.experimental.ExcelSource',
+				'extensions': ['xls', 'xlsx']
+			},
+			'csv': {
+				'driver': 'intake.source.csv.CSVSource',
+				'extensions': ['csv', 'txt']
+			}
 		}
-
+		self._mappers =  {}
+		for k,v in filetypes.items():
+			for ext in v['extensions']:
+				self._mappers[ext] = v['driver']
+	
 
 	def generate_catalog(self):
 		"""
