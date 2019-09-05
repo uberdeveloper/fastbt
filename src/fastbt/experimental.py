@@ -507,21 +507,37 @@ class Catalog:
 	def generate_catalog(self):
 		"""
 		Generate catalog
+		#TO DO#
+		1. Replace multiple dots with underscores in filenames
 		"""
 		dct = {}
 		dct['sources'] = {}
 		src = dct['sources']
-		for root,folder,files in os.walk(self._directory):
-			for file in files:
-				ext = file.split('.')[-1]
-				if ext in self._mappers:
-					src[file.split('.')[0]] = {
-						'args': {
-							'urlpath': os.path.join(root, file)
-						}						,
-						'driver': self._mappers[ext],
-						'description': '',
-						'metadata': {}
-					}
+		def metadata():
+			"""
+			metadata generation for the file
+			"""
+			return {
+				'args': {
+					'urlpath': os.path.join(dirpath, file)					
+				},
+				'driver': self._mappers[ext],
+				'description': '',
+				'metadata': {
+					'extension': ext 
+				}
+			}
+
+		for dirpath,dirnames,filenames in os.walk(self._directory):
+			dirname = dirpath.split('/')[-1] #
+			if dirname == 'other':
+				for file in filenames:
+					ext = file.split('.')[-1]
+					if ext in self._mappers:
+						src[file.split('.')[0]] = metadata()
+			else:
+				ext = 'csv'
+				file = '*'
+				src[dirname] = metadata()
 		return dct
 			
