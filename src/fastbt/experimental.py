@@ -476,6 +476,11 @@ class Catalog:
 		"""
 		self._directory = directory
 		"""
+		All files in the below directories are added
+		individually as a data sources 
+		"""
+		self._file_dirs = ['files']
+		"""
 		**filetypes** is a dictionary with the file type as
 		key and a sub-dictionary with driver and extensions
 		as keys and the corresponding driver and extensions
@@ -490,12 +495,16 @@ class Catalog:
 		"""
 		filetypes = {
 			'excel': {
-				'driver': 'fast.experimental.ExcelSource',
+				'driver': 'fastbt.experimental.ExcelSource',
 				'extensions': ['xls', 'xlsx']
 			},
 			'csv': {
 				'driver': 'intake.source.csv.CSVSource',
 				'extensions': ['csv', 'txt']
+			},
+			'hdf': {
+				'driver': 'fastbt.experimental.HDFSource',
+				'extensions': ['h5', 'hdf5']
 			}
 		}
 		self._mappers =  {}
@@ -519,23 +528,26 @@ class Catalog:
 			"""
 			return {
 				'args': {
-					'urlpath': os.path.join(dirpath, file)					
+					'filename': os.path.join(dirpath, file)					
 				},
 				'driver': self._mappers[ext],
 				'description': '',
 				'metadata': {
-					'extension': ext 
+					'extension': ext,
+					'mode': mode
 				}
 			}
 
 		for dirpath,dirnames,filenames in os.walk(self._directory):
 			dirname = dirpath.split('/')[-1] #
-			if dirname == 'other':
+			if dirname in self._file_dirs:
+				mode = 'file'
 				for file in filenames:
 					ext = file.split('.')[-1]
 					if ext in self._mappers:
 						src[file.split('.')[0]] = metadata()
 			else:
+				mode = 'dir'
 				ext = 'csv'
 				file = '*'
 				src[dirname] = metadata()
