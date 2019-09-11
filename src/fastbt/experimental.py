@@ -570,19 +570,29 @@ def candlestick_plot(data):
 	"""
 	from math import pi
 	from bokeh.plotting import figure, show, output_file
+	from bokeh.models import ColumnDataSource
 	df = data.copy()
 	df["date"] = pd.to_datetime(df["date"])
-	inc = df.close > df.open
-	dec = df.open > df.close
+	df['color'] = ['green' if x > y else 'red' for (x,y) in 
+	zip(df.close, df.open)]
+	source = ColumnDataSource()
+	source.data = source.from_df(df)
 	w = 12*60*60*1000 # half day in ms
 	TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
 	p = figure(x_axis_type="datetime", tools=TOOLS, 
-		title = "Candlestick", plot_width=800)
+		title = "Candlestick", plot_width=800,
+		tooltips=[
+			('date', '@date{%F}'),
+			('open', '@open{0}'),
+			('high', '@high{0}'),
+			('low', '@low{0}'),
+			('close', '@close{0}')
+		])
+	p.hover.formatters= {'date': 'datetime'}
 	p.xaxis.major_label_orientation = pi/4
 	p.grid.grid_line_alpha=0.3
-	p.segment(df.date, df.high, df.date, df.low, color="black")
-	p.vbar(df.date[inc], w, df.open[inc], df.close[inc], 
-		fill_color="green", line_color="black")
-	p.vbar(df.date[dec], w, df.open[dec], df.close[dec], 
-		fill_color="red", line_color="black")
-	return p
+	p.segment('date', 'high', 'date', 'low', 
+		color="black", source=source)
+	p.vbar('date', w, 'open', 'close', 
+		fill_color='color', line_color="black", source=source)
+	return p, source
