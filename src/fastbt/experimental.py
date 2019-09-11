@@ -528,7 +528,7 @@ class Catalog:
 			"""
 			return {
 				'args': {
-					'filename': os.path.join(dirpath, file)					
+					first_arg: os.path.join(dirpath, file)					
 				},
 				'driver': self._mappers[ext],
 				'description': '',
@@ -544,12 +544,45 @@ class Catalog:
 				mode = 'file'
 				for file in filenames:
 					ext = file.split('.')[-1]
+					if 'xls' in ext:
+						first_arg = 'filename'
+					if 'csv' in ext:
+						first_arg = 'urlpath'
 					if ext in self._mappers:
 						src[file.split('.')[0]] = metadata()
 			else:
 				mode = 'dir'
 				ext = 'csv'
+				first_arg = 'urlpath'
 				file = '*'
 				src[dirname] = metadata()
 		return dct
-			
+
+def candlestick_plot(data):
+	"""
+	return a bokeh candlestick plot
+	data
+		dataframe with open,high,low and close columns
+	Note
+	-----
+	Prototype copied from the below link
+	https://bokeh.pydata.org/en/latest/docs/gallery/candlestick.html
+	"""
+	from math import pi
+	from bokeh.plotting import figure, show, output_file
+	df = data.copy()
+	df["date"] = pd.to_datetime(df["date"])
+	inc = df.close > df.open
+	dec = df.open > df.close
+	w = 12*60*60*1000 # half day in ms
+	TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
+	p = figure(x_axis_type="datetime", tools=TOOLS, 
+		title = "Candlestick", plot_width=800)
+	p.xaxis.major_label_orientation = pi/4
+	p.grid.grid_line_alpha=0.3
+	p.segment(df.date, df.high, df.date, df.low, color="black")
+	p.vbar(df.date[inc], w, df.open[inc], df.close[inc], 
+		fill_color="green", line_color="black")
+	p.vbar(df.date[dec], w, df.open[dec], df.close[dec], 
+		fill_color="red", line_color="black")
+	return p
