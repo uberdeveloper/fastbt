@@ -596,3 +596,54 @@ def candlestick_plot(data):
 	p.vbar('date', w, 'open', 'close', 
 		fill_color='color', line_color="black", source=source)
 	return p, source
+
+
+def calendar_plot(data, field='ret'):
+	"""
+	return a calendar plot
+	data
+		dataframe with year and month columns
+	field
+		field to plot values
+	Note
+	-----
+	Prototype copied from bokeh gallery
+	https://bokeh.pydata.org/en/latest/docs/gallery/unemployment.html
+	"""
+	from math import pi
+	from bokeh.models import LinearColorMapper, BasicTicker, PrintfTickFormatter, ColorBar
+	from bokeh.plotting import figure
+	from bokeh.palettes import Spectral
+	df = data.copy()
+	# Type conversion
+	df['year'] = df.year.astype('str')
+	df['month'] = df.month.astype('str')
+	years = list(df.year.unique())
+	months = [str(x) for x in range(12,0,-1)]
+	colors = list(reversed(Spectral[6]))
+	mapper = LinearColorMapper(palette=colors, 
+                           low=df[field].min(), high=df[field].max())
+	TOOLS = "hover,save,pan,box_zoom,reset,wheel_zoom"
+	p = figure(title="Calendar Plot",
+           x_range=years, y_range=list(reversed(months)),
+           x_axis_location="above", plot_width=1000, plot_height=600,
+           tools=TOOLS, toolbar_location='below',
+           tooltips=[('date', '@year-@month'), ('return', '@{}'.format(field))])
+	# Axis settings
+	p.grid.grid_line_color = None
+	p.axis.axis_line_color = None
+	p.axis.major_tick_line_color = None
+	p.axis.major_label_text_font_size = "10pt"
+	p.axis.major_label_standoff = 0
+	p.xaxis.major_label_orientation = pi / 3
+
+	p.rect(x="year", y="month", width=1, height=1,
+       source=df, fill_color={'field': field, 'transform': mapper},
+       line_color='black', line_width=0.5, line_alpha=0.3)
+
+	color_bar = ColorBar(color_mapper=mapper, major_label_text_font_size="8pt",
+                     ticker=BasicTicker(desired_num_ticks=len(colors)),
+                     formatter=PrintfTickFormatter(format="%d%%"),
+                     label_standoff=6, border_line_color=None, location=(0, 0))
+	p.add_layout(color_bar, 'right')
+	return p
