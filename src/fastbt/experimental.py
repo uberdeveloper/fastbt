@@ -650,8 +650,8 @@ def calendar_plot(data, field='ret'):
 
 def widget_plot(data):
 	from bokeh.models import (
-		TextInput, Button, Select, ColumnDataSource,
-		PreText,Paragraph
+		TextInput, Button, Select, MultiSelect,
+		ColumnDataSource, PreText,Paragraph
 		)
 	from bokeh.plotting import figure
 	from bokeh.layouts import row, column
@@ -660,24 +660,20 @@ def widget_plot(data):
 
 	def document(doc):
 		condition = TextInput(title='Enter your condition')
-		col = Select(title='Select a column', options=list(df.columns))
+		col = MultiSelect(title='Select the columns', options=list(df.columns))
 		button = Button(label='Update')
 		pre = PreText()
 		pre.text = condition.value
 
 		def update():
 			cond = condition.value
-			col_name = col.value
-			text = df.query(cond)[col_name].describe()
+			cols = col.value
+			text = df.query(cond)[cols].describe()
 			pre.text = str(text)
-			para.text = str(text)
 
 		button.on_click(update)
 
-		l = column(
-			row(condition, col),
-			button,
-			pre)
+		l = row(column(condition,button,pre), col)
 		doc.add_root(l)
 
 	return document
