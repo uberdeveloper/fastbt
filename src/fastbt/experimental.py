@@ -647,3 +647,38 @@ def calendar_plot(data, field='ret'):
                      label_standoff=6, border_line_color=None, location=(0, 0))
 	p.add_layout(color_bar, 'right')
 	return p
+
+def widget_plot(data):
+	from bokeh.models import (
+		TextInput, Button, Select, ColumnDataSource,
+		PreText,Paragraph
+		)
+	from bokeh.plotting import figure
+	from bokeh.layouts import row, column
+
+	df = data.copy()
+
+	def document(doc):
+		condition = TextInput(title='Enter your condition')
+		col = Select(title='Select a column', options=list(df.columns))
+		button = Button(label='Update')
+		pre = PreText()
+		pre.text = condition.value
+
+		def update():
+			cond = condition.value
+			col_name = col.value
+			text = df.query(cond)[col_name].describe()
+			pre.text = str(text)
+			para.text = str(text)
+
+		button.on_click(update)
+
+		l = column(
+			row(condition, col),
+			button,
+			pre)
+		doc.add_root(l)
+
+	return document
+
