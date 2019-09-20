@@ -648,13 +648,25 @@ def calendar_plot(data, field='ret'):
 	p.add_layout(color_bar, 'right')
 	return p
 
-def widget_plot(data):
+def summary_plot(data):
+	"""
+	Given a dataframe, create a widget with condition and list
+	of columns to provide summary data
+	data
+		dataframe
+	Note
+	-----
+	 * Condition is a valid eval string supported by pandas
+	 * Multiple columns can be selected
+	 * Summary statistics provided by the describe method
+
+	"""
 	from bokeh.models import (
 		TextInput, Button, Select, MultiSelect,
 		ColumnDataSource, PreText,Paragraph
 		)
 	from bokeh.plotting import figure
-	from bokeh.layouts import row, column
+	from bokeh.layouts import row, column, layout
 
 	df = data.copy()
 
@@ -673,7 +685,10 @@ def widget_plot(data):
 
 		button.on_click(update)
 
-		l = row(column(condition,button,pre), col)
+		l = layout([
+				[[condition,button], col],
+				pre
+			])
 		doc.add_root(l)
 
 	return document
