@@ -693,3 +693,33 @@ def summary_plot(data):
 
 	return document
 
+def slider_plot(data, cols):
+	"""
+	Given a dataframe, create a widget with range slider
+	"""
+	from bokeh.models import (
+		TextInput, Button, RangeSlider,
+		ColumnDataSource, PreText
+		)
+	from bokeh.plotting import figure
+	from bokeh.layouts import row, column, layout
+
+	df = data.copy()
+
+	def document(doc):
+		sliders = []
+		pre = PreText(text='something')
+		for col in cols:
+			MIN,MAX = df[col].min(), df[col].max()
+			STEP = (MAX-MIN)/100
+			slider = RangeSlider(start=MIN, end=MAX, step=STEP,
+				value=(MIN,MAX),title=col)
+			sliders.append(slider)
+		l = layout(
+			[sliders],
+			 pre)
+		doc.add_root(l)
+
+	return document
+
+
