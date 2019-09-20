@@ -702,22 +702,39 @@ def slider_plot(data, cols):
 		ColumnDataSource, PreText
 		)
 	from bokeh.plotting import figure
-	from bokeh.layouts import row, column, layout
+	from bokeh.layouts import row, column, layout, gridplot
 
 	df = data.copy()
 
 	def document(doc):
 		sliders = []
 		pre = PreText(text='something')
+		button = Button(label='Update')
 		for col in cols:
 			MIN,MAX = df[col].min(), df[col].max()
 			STEP = (MAX-MIN)/100
 			slider = RangeSlider(start=MIN, end=MAX, step=STEP,
 				value=(MIN,MAX),title=col)
 			sliders.append(slider)
+
+		def update():
+			values = []
+			txt = '({col} > {low}) & ({col} < {high})'
+			for slider in sliders:
+				low,high = slider.value
+				low,high = float(low), float(high)
+				formula = txt.format(col=slider.title,low=low,high=high)
+				values.append(formula)
+			q = '&'.join(values)
+			text = df.query(q)[cols].describe()
+			pre.text = str(text)
+
+		button.on_click(update)
+
 		l = layout(
-			[sliders],
-			 pre)
+			gridplot(sliders, ncols=2),
+			button,
+			pre)
 		doc.add_root(l)
 
 	return document
