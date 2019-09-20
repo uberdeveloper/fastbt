@@ -696,9 +696,13 @@ def summary_plot(data):
 def slider_plot(data, cols):
 	"""
 	Given a dataframe, create a widget with range slider
+	data
+		dataframe
+	cols
+		columns for which sliders are to be created
 	"""
 	from bokeh.models import (
-		TextInput, Button, RangeSlider,
+		TextInput, Button, RangeSlider, MultiSelect,
 		ColumnDataSource, PreText
 		)
 	from bokeh.plotting import figure
@@ -709,6 +713,7 @@ def slider_plot(data, cols):
 	def document(doc):
 		sliders = []
 		pre = PreText(text='something')
+		select = MultiSelect(title='Select the columns', options=list(df.columns))
 		button = Button(label='Update')
 		for col in cols:
 			MIN,MAX = df[col].min(), df[col].max()
@@ -726,14 +731,14 @@ def slider_plot(data, cols):
 				formula = txt.format(col=slider.title,low=low,high=high)
 				values.append(formula)
 			q = '&'.join(values)
-			text = df.query(q)[cols].describe()
+			summary_cols = select.value
+			text = df.query(q)[summary_cols].describe()
 			pre.text = str(text)
 
 		button.on_click(update)
 
 		l = layout(
-			gridplot(sliders, ncols=2),
-			button,
+			[column(sliders), [select,button]],
 			pre)
 		doc.add_root(l)
 
