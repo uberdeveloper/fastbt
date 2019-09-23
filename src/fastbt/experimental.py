@@ -170,11 +170,13 @@ class ExcelSource(DataSource):
 	version = '0.0.1'
 	partition_access = True
 
-	def __init__(self, filename, metadata=None):
+	def __init__(self, datapath, metadata=None):
 		"""
-		Initialize with filename and metadata
+		Initialize with datapath and metadata
+		datapath
+			filename with entire path
 		"""
-		self.filename = filename
+		self.filename = datapath
 		self._source = pd.ExcelFile(self.filename)
 		super(ExcelSource, self).__init__(metadata=metadata)
 
