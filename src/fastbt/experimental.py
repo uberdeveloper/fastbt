@@ -234,32 +234,49 @@ class HDFSource(DataSource):
 	version = '0.0.1'
 	partition_access = True
 
-	def __init__(self, directory, metadata=None, extension='h5'):
+	def __init__(self, datapath, metadata=None, extension='h5'):
 		"""
-		Initialize with directory and metadata
+		Initialize with datapath and metadata
+		datapath
+			filename or directory
+			If the filename ends in any of the extensions given in the
+			extension argument, then it is treated as a HDF5 file
 		"""
-		self.directory = directory
+		self.source = datapath
 		self._ext = extension
+		# Check whether the given path is a directory or file
+		if os.path.exists(datapath):
+			if os.path.isfile(datapath):
+				self._source_type = 'file'
+			else:
+				self._source_type = 'directory'
+		else:
+			print('Not a valid file or directory')
+			return
 		self._get_schema()
 		super(HDFSource, self).__init__(metadata=metadata)
 
 	def _get_schema(self):
-		file_dict = {}	
-		for root,directory,files in os.walk(self.directory):
-			for file in files:
-				filename = os.path.join(root, file)
-				if filename.endswith(self._ext):
-					file_dict[file] = filename
+		metadata = {
+			'ext': self._ext,
+			'src': self.source,
+			'type': self._source_type
+		}
+		file_dict = {}
+		if self._source_type == 'directory':
+			for root,directory,files in os.walk(self.source):
+				for file in files:
+					filename = os.path.join(root, file)
+					if filename.endswith(self._ext):
+						file_dict[file] = filename
+			metadata.update({'files': file_dict})
+
 		return Schema(
 			datashape=None,
 			dtype=None,
 			shape=None,
-			npartitions= len(file_dict),
-			extra_metadata = {
-			'ext': self._ext,
-			'src': self.directory,
-			'files': file_dict
-			}
+			npartitions=len(file_dict),
+			extra_metadata = metadata
 			)
 
 	def read_partition(self, file, **kwargs):
