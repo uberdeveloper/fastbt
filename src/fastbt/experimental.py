@@ -307,7 +307,11 @@ class HDFSource(DataSource):
 			kwargs to the excel parse function
 		"""
 		self._load_metadata()
-		print('Not implemented')
+		if self.metadata.get('type') == 'file':
+			return pd.read_hdf(self.metadata.get('src'))
+		else:
+			return 'The datasource is a directory.Use the read_partition method to read a specific file.'
+
 
 	def _close(self):
 		print('Not implemented')
