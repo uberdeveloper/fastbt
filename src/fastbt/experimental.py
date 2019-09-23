@@ -289,10 +289,13 @@ class HDFSource(DataSource):
 		"""
 		self._load_metadata()
 		ext = self.metadata.get('ext', self._ext)
-		file = '{file}.{ext}'.format(file=file, ext=ext)
-		if file in self.metadata.get('files', []):
-			filename = self.metadata['files'][file]
-			return pd.read_hdf(filename)
+		srctype = self.metadata.get('type')
+		if srctype == 'file':
+			return pd.read_hdf(self.metadata.get('src'))
+		filename = '{file}.{ext}'.format(file=file, ext=ext)
+		if filename in self.metadata.get('files', []):
+			filepath = self.metadata['files'][filename]
+			return pd.read_hdf(filepath)
 		else:
 			return 'No such HDF file'
 
