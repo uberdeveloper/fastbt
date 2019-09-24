@@ -570,10 +570,10 @@ class Catalog:
 				mode = 'file'
 				for file in filenames:
 					ext = file.split('.')[-1]
-					if 'xls' in ext:
-						first_arg = 'filename'
 					if 'csv' in ext:
 						first_arg = 'urlpath'
+					else:
+						first_arg = 'datapath'
 					if ext in self._mappers:
 						src[file.split('.')[0]] = metadata()
 			else:
