@@ -578,17 +578,19 @@ class Catalog:
 						src[file.split('.')[0]] = metadata()
 			else:
 				mode = 'dir'
-				# Check the extension of the first file in directory
-				ext = filenames[0].split('.')[-1]
-				file = '*'
-				if 'csv' in ext:
-					first_arg = 'urlpath'
+				# If the directory has any files 				
+				if len(filenames) > 0:
+					# Check the extension of the first file in directory
+					ext = filenames[0].split('.')[-1]
 					file = '*'
-				else:
-					first_arg = 'datapath'
-					file = ''
-				if ext in self._mappers:
-					src[dirname] = metadata()
+					if 'csv' in ext:
+						first_arg = 'urlpath'
+						file = '*'
+					else:
+						first_arg = 'datapath'
+						file = ''
+					if ext in self._mappers:
+						src[dirname] = metadata()
 		return dct
 
 def candlestick_plot(data):
