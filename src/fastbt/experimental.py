@@ -503,7 +503,7 @@ class Catalog:
 		self._directory = directory
 		"""
 		All files in the below directories are added
-		individually as a data sources 
+		individually as a data source
 		"""
 		self._file_dirs = ['files']
 		"""
@@ -512,10 +512,9 @@ class Catalog:
 		as keys and the corresponding driver and extensions
 		as values. 
 		It is a logical structure that maps a file type to
-		its intake driver and possible extensions since each
-		file type can have more than one extension. This
-		dictionary is looped to get the self._mappers for each
-		extension.
+		its intake driver since each file type can have more 
+		than one extension. This dictionary is looped to get
+		the self._mappers for each extension.
 		**Assumed each filetype has a single driver but more than
 		one extension**
 		"""
@@ -550,7 +549,8 @@ class Catalog:
 		src = dct['sources']
 		def metadata():
 			"""
-			metadata generation for the file
+			metadata generation for the file; has access to
+			all variables inside the parent function
 			"""
 			return {
 				'args': {
@@ -578,10 +578,17 @@ class Catalog:
 						src[file.split('.')[0]] = metadata()
 			else:
 				mode = 'dir'
-				ext = 'csv'
-				first_arg = 'urlpath'
+				# Check the extension of the first file in directory
+				ext = filenames[0].split('.')[-1]
 				file = '*'
-				src[dirname] = metadata()
+				if 'csv' in ext:
+					first_arg = 'urlpath'
+					file = '*'
+				else:
+					first_arg = 'datapath'
+					file = ''
+				if ext in self._mappers:
+					src[dirname] = metadata()
 		return dct
 
 def candlestick_plot(data):
