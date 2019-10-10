@@ -3,7 +3,8 @@ This is the meta trading class from which other classes
 are derived
 """
 from fastbt.tradebook import TradeBook
-from collections import namedtuple
+from collections import namedtuple, Counter
+from inspect import isfunction
 import datetime
 import os
 
@@ -205,3 +206,43 @@ class ExtTradingSystem(TradingSystem):
         Check whether we could enter into a position
         """
         pass
+
+
+class CandleStickSystem(TradingSystem):
+    """
+    A basic candlestick trading system
+    """
+    def __init__(self, pattern=None, entry_price=None,
+        exit_price=None, symbol='symbol'):
+        print('Hello world')
+        self.pattern = pattern
+        self.entry_price = entry_price
+        self.exit_price = exit_price
+        self.signal = None # to be one of LONG/SHORT/None
+        self.symbol = symbol
+        self.c = Counter()
+        self.MAX_TRADES = 2
+        self._cycle = 0
+        self.timestamp = None
+        super(CandleStickSystem, self).__init__()
+
+    def add_trade(self, **kwargs):
+        """
+        Enter into a trade
+        kwargs
+            kwargs for the tradebook
+        """
+        defaults = {
+            'timestamp': self.timestamp,
+            'symbol': self.symbol,
+            'price': 0,
+            'qty': 1,
+            'order': 'B',
+            'cycle': self.cycle
+        }
+        defaults.update(**kwargs)
+        self.tb.add_trade(**defaults)
+
+
+    
+
