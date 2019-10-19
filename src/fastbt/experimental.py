@@ -612,7 +612,7 @@ def candlestick_plot(data):
 	zip(df.close, df.open)]
 	source = ColumnDataSource()
 	source.data = source.from_df(df)
-	w = 12*60*60*1000 # half day in ms
+	w = 10*60*1000 # half day in ms
 	TOOLS = "pan,wheel_zoom,box_zoom,reset,save"
 	p = figure(x_axis_type="datetime", tools=TOOLS, 
 		title = "Candlestick", plot_width=800,
@@ -778,5 +778,48 @@ def slider_plot(data, cols):
 		doc.add_root(l)
 
 	return document
+
+
+def run_simulation(data, size=0.3, num=1000, column=None, function=np.mean):
+	"""
+	run a simulation on the given data by drawing repeated samples
+	and evaluating a metric
+	data
+		a pandas dataframe
+	size
+		size of the sample - float/int
+		if size is a float and less than , it is considered a percentage
+		in case of a num it is considered as the number of samples to take
+	num
+		number of simulations to be run
+	column
+		column for which sample is to be taken.
+		If None, the entire dataframe is sampled and this is considerably slow
+	function
+		function to be run on the column - string/function
+		default mean
+
+	returns a pandas Series with the result for each sample taken
+	"""
+	choice = np.random.choice
+	if size < 1:
+		N = int(len(data) * size)
+	else:
+		N = size
+	collect = []
+	if column is None:
+		# Take sample on the whole dataframe
+		for i in range(N):
+			sample = function(data.sample(N))
+			collect.append(sample)
+	else:
+		# Take sample on a particular column
+		# considerably faster since this is a numpy version
+		col = data[column].values
+		for i in range(N):
+			sample = np.mean(col)
+			collect.append(sample)
+	return pd.Series(collect)
+
 
 
