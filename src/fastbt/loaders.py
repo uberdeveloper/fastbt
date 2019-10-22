@@ -314,7 +314,7 @@ def collate_data(directory, function=None,  concat=True, **kwargs):
     else:
         return collect
 
-def read_file(filename, key=None, **kwargs):
+def read_file(filename, key=None, directory=None, **kwargs):
     """
     A simple wrapper for all pandas read functions
     filename
@@ -324,6 +324,10 @@ def read_file(filename, key=None, **kwargs):
         * excel file - sheet name
         * hdf file - path to data
         * SQL database - SQL Alchemy engine
+    directory
+        directory to look for files. This path is appended to the filename.
+        Creating a partial function would make things easier by
+        speciying only the filename every time instead of the entire path.
     kwargs
         list of keyword arguments for the specific pandas read function
     """
@@ -343,4 +347,6 @@ def read_file(filename, key=None, **kwargs):
         mappers.update(dct)
     ext = filename.split('.')[-1]
     func = mappers[ext]
+    if directory:
+        filename = os.path.join(directory, filename)
     return func(filename)
