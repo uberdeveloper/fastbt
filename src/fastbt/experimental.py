@@ -809,15 +809,15 @@ def run_simulation(data, size=0.3, num=1000, column=None, function=np.mean):
 	collect = []
 	if column is None:
 		# Take sample on the whole dataframe
-		for i in range(N):
+		for i in range(num):
 			sample = function(data.sample(N))
 			collect.append(sample)
 	else:
 		# Take sample on a particular column
 		# considerably faster since this is a numpy version
 		col = data[column].values
-		for i in range(N):
-			sample = np.mean(col)
+		for i in range(num):
+			sample = function(choice(col, N))
 			collect.append(sample)
 	return pd.Series(collect)
 
