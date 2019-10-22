@@ -1,7 +1,7 @@
 import pandas as pd
 import itertools as it
 import functools as ft
-
+from collections import defaultdict
 
 def multi_args(function, constants, variables, isProduct=False, maxLimit=None):
     """
@@ -356,3 +356,60 @@ def get_expanding_ohlc(data, freq, col_mappings=None):
 
     cols = ['open', 'high', 'low', 'close'] # for sorting return value
     return data.resample(freq).apply(calculate_ohlc)[cols]
+
+
+def generate_index(index, changes, dates=None):
+    """
+    index
+        list of symbols that make up the latest index
+    changes
+        changes to the index as a dataframe.
+        The dataframe should have the following three columns
+        in the following order
+         1. date - date of change
+         2. symbol - security involving the change
+         3. flag - True/False indicating inclusion/exclusion into the index
+         True indicates inclusion and False exclusion
+    dates
+        list of dates to generate index
+    returns a dataframe with symbols for each date
+
+    Note
+    -----
+    * The changes dataframe is expected in the exact order. 
+    Any other columns are discarded
+    """
+    myindex = defaultdict(list)
+    idx = index[:]
+    # The first 3 column names assigned for lookup
+    evt,sym,flag = changes.columns[:3]
+    first_date = changes[evt].min()
+    last_date = changes[evt].max()
+    all_dates = pd.date_range(first_date, last_date)
+    if dates is None:
+        dates = all_dates
+    # Create a change look up dictionary
+    chg_lu = defaultdict(list)
+    for chg in changes.to_dict(orient='records'):
+        dt = chg[evt]
+        # append a 2-tuple of symbol and flag
+        chg_lu[dt].append((chg[sym], chg[flag]))
+    for date in reversed(all_dates):
+        if date in chg_lu:
+            for symbol, flg in chg_lu[date]:
+                if flg is True:
+                    # since we see dates in reversed order
+                    # we remove them from the index for previous dates
+                    print(symbol, flg)
+                    idx.remove(symbol)
+                else:
+                    idx.append(symbol)
+        myindex[date] = idx[:]
+    lst = []
+    for k,v in myindex.items():
+        lst.extend([(k,vi) for vi in v])
+    df = pd.DataFrame(lst, columns=['date', 'symbol']).sort_values(
+        by='date')
+    return df[df.date.isin(dates)].reset_index(drop=True)
+
+
