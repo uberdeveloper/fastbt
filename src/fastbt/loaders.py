@@ -313,3 +313,34 @@ def collate_data(directory, function=None,  concat=True, **kwargs):
         return result
     else:
         return collect
+
+def read_file(filename, key=None, **kwargs):
+    """
+    A simple wrapper for all pandas read functions
+    filename
+        filename to load
+    key
+        key is the additional information required to load a file.
+        * excel file - sheet name
+        * hdf file - path to data
+        * SQL database - SQL Alchemy engine
+    kwargs
+        list of keyword arguments for the specific pandas read function
+    """
+    extensions = {
+        'excel': set(['xls', 'xlsx']),
+        'csv': set(['csv', 'txt', 'dat']),
+        'hdf': set(['h5', 'hdf', 'hdf5'])
+    }
+    functions = {
+        'excel': pd.read_excel,
+        'csv': pd.read_csv,
+        'hdf': pd.read_hdf
+    }
+    mappers = {}
+    for k,v in extensions.items():
+        dct = {e: functions[k] for e in v}
+        mappers.update(dct)
+    ext = filename.split('.')[-1]
+    func = mappers[ext]
+    return func(filename)
