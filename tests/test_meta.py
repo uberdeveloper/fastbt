@@ -1,6 +1,6 @@
 import unittest
 from fastbt.Meta import *
-"""
+
 class TestMetaPipeline(unittest.TestCase):
 	def setUp(self):
 		class PipelineTest(TradingSystem):
@@ -153,11 +153,12 @@ class TestExtTradingSystem(unittest.TestCase):
 		assert ts.MAX_GLOBAL_POSITIONS == 1
 		ts.MAX_GLOBAL_POSITIONS = 10
 		assert ts.MAX_GLOBAL_POSITIONS == 10
-"""
+
 class TestExtTradingSystem_isEntry(unittest.TestCase):
 
 	def setUp(self):
-		self.ts = ExtTradingSystem(MAX_QTY=100, MAX_GLOBAL_POSITIONS=3)
+		self.ts = ExtTradingSystem(MAX_QTY=100, MAX_GLOBAL_POSITIONS=2)
+		self.ts._symbol = None
 
 	def test_max_qty(self):
 		ts = self.ts
@@ -168,4 +169,19 @@ class TestExtTradingSystem_isEntry(unittest.TestCase):
 		assert ts.isEntry
 		ts.tb.add_trade(3, 'A', 10, 200, 'B')
 		assert not(ts.isEntry)
+
+	def test_max_global_positions(self):
+		ts = self.ts
+		ts.tb.add_trade(1, 'A', 10, 50, 'B')
+		ts._symbol = 'A'
+		assert ts.isEntry
+		ts._symbol = 'B'
+		ts.tb.add_trade(2, 'B', 13, 70, 'S')
+		assert not(ts.isEntry)
+		# Live changing not recommended in production
+		ts.MAX_GLOBAL_POSITIONS = 3
+		assert ts.isEntry
+		ts.tb.add_trade(3, 'C', 10,15, 'B')
+		assert not(ts.isEntry)
+
 
