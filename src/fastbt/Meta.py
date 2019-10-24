@@ -170,6 +170,40 @@ class ExtTradingSystem(TradingSystem):
     def timestamp(self):
         return self._timestamp
 
+    @property    
+    def isEntry(self):
+        """
+        conditions to check before entering into a position.
+        returns True/False
+        position is entered only when this is True
+        Note
+        -----
+        Put all conditions to check before entering into a 
+        position here.
+        """
+        # List of conditions to check
+        if self.tb.o >= self.MAX_GLOBAL_POSITIONS:
+            return False
+        elif abs(self.tb.positions.get(self._symbol, self.MAX_QTY)) >= self.MAX_QTY:
+            return False
+        else:
+            return True
+
+    def run(self):
+        """
+        run function overriden
+        """
+        for method, fkwargs in self._pipeline:
+            # Returns None if method not found 
+            if method == 'entry':
+                if self.isEntry:
+                    self.entry(**fkwargs)
+            else:
+                getattr(self, method, lambda : None)(**fkwargs)
+        self._cycle += 1
+
+
+
 
 class CandleStickSystem(TradingSystem):
     """
