@@ -349,4 +349,4 @@ def read_file(filename, key=None, directory=None, **kwargs):
     func = mappers[ext]
     if directory:
         filename = os.path.join(directory, filename)
-    return func(filename)
+    return func(filename, **kwargs)
