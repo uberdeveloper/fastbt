@@ -154,58 +154,21 @@ class ExtTradingSystem(TradingSystem):
         self.date = date
         self.log = {}
         self._timestamp = datetime.datetime.now()
-        # TO DO: Apply some logic
         self.name = name
-
-        args = {
-            'MAX_TRADES': 2, # Maximum trades per symbol
-            'MAX_GLOBAL_TRADES': 10, # Global maximum trades
-            'MAX_GLOBAL_POSITIONS': 1, # Only one position could be held
-            'MAX_VALUE': 1e10, # Max value per stock
-            'save_file': os.path.join(os.curdir, self.name+'.msg'),            
-            'restoreData': True,
-            # A named tuple for entry and exit times
-            'enterBefore': Time(hour=15, minute=0), # Don't enter into positions after this time
-            'enterAfter': Time(hour=9, minute=15), # Enter into positions after this time
-            'exitAfter': Time(hour=0, minute=0), # Only check for exits after this time
-            'exitTime': Time(hour=15, minute=10), # Exit all positions at this time
+        default_args = {
+            'MAX_GLOBAL_POSITIONS': 1, # maximum global positions
+            'MAX_QTY': 100 # maximum open quantity per stock
         }
-        for k,v in args.items():
-            if k in ['enterBefore', 'exitTime']:
-                if k in kwargs:
-                    setattr(self, k, Time(*kwargs.pop(k)))
-                else:
-                    setattr(self, k, v)
+        for k,v in default_args.items():
+            if k in kwargs:
+                setattr(self, k, kwargs.pop(k))
             else:
-                setattr(self, k, kwargs.pop(k, v))
+                setattr(self, k, v)
         super(ExtTradingSystem, self).__init__()
 
     @property
     def timestamp(self):
         return self._timestamp
-
-    @property
-    def isGlobalPositions(self):
-        """
-        is Max Global positions hit
-        """
-        pass
-
-    def isMaxTrades(self, symbol):
-        pass
-
-    def isMaxValue(self, symbol):
-        pass
-
-    def isMaxPercent(self, symbol):
-        pass
-
-
-    def isEntry(self):
-        """
-        Check whether we could enter into a position
-        """
-        pass
 
 
 class CandleStickSystem(TradingSystem):

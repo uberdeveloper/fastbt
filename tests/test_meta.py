@@ -133,6 +133,23 @@ class TestMetaPipeline(unittest.TestCase):
 		assert p.number == 200
 
 
+class TestExtTradingSystem(unittest.TestCase):
 
-	
+	def setUp(self):
+		self.ts = ExtTradingSystem
 
+	def test_default_arguments(self):
+		ts = self.ts()
+		assert ts.MAX_GLOBAL_POSITIONS == 1	
+		assert ts.MAX_QTY == 100
+
+	def test_user_arguments(self):
+		ts = self.ts(MAX_QTY=1000, MAX_GLOBAL_POSITIONS=2)
+		assert ts.MAX_GLOBAL_POSITIONS == 2
+		assert ts.MAX_QTY == 1000
+
+	def test_argument_assignment(self):
+		ts = self.ts()
+		assert ts.MAX_GLOBAL_POSITIONS == 1
+		ts.MAX_GLOBAL_POSITIONS = 10
+		assert ts.MAX_GLOBAL_POSITIONS == 10
