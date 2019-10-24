@@ -184,4 +184,20 @@ class TestExtTradingSystem_isEntry(unittest.TestCase):
 		ts.tb.add_trade(3, 'C', 10,15, 'B')
 		assert not(ts.isEntry)
 
+class TestExtTradingSystem_add_trade(unittest.TestCase):
+
+	def setUp(self):
+		self.ts = ExtTradingSystem(MAX_GLOBAL_POSITIONS=3, symbol='GOOG')
+
+	def test_add_trade_one_symbol(self):
+		ts = self.ts
+		ts.add_trade('B174')
+		assert ts.tb.trades['GOOG'][0]['price'] == 174
+		ts.add_trade('S110', qty=4)
+		ts.add_trade('S120', qty=3)
+		assert ts.tb.trades['GOOG'][1]['qty'] == -4
+		ts._symbol = 'AAPL'
+		ts.add_trade('B1128', qty=7)
+		assert ts.tb.all_trades[-1]['qty'] == 7
+
 

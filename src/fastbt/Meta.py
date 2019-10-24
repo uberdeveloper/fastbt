@@ -147,12 +147,13 @@ class ExtTradingSystem(TradingSystem):
     They return either True or False and used to check for
     some condition
     """
-    def __init__(self, name='trading_system', **kwargs):
+    def __init__(self, name='trading_system', symbol=None, **kwargs):
         # Default arguments and values
         date = datetime.datetime.today().strftime('%Y-%m-%d')
         Time = namedtuple('Time', 'hour,minute')
         self.date = date
         self.log = {}
+        self._symbol = symbol
         self._timestamp = datetime.datetime.now()
         self.name = name
         default_args = {
@@ -189,6 +190,30 @@ class ExtTradingSystem(TradingSystem):
         else:
             return True
 
+    def add_trade(self, string, **kwargs):
+        """
+        A simple shortcut to add trade
+        string
+            string with the first letter indicating B/S
+            and the rest price
+            (Eg)
+            B130.4 = buy at price 130.4
+            S77 = sell at price 77
+        Note
+        -----
+        Even if price and order are provided in keyword
+        arguments, they are overridden by the string argument
+        """
+        dct = {
+            'timestamp': self._timestamp,
+            'symbol': self._symbol,
+            'qty': 1
+        }
+        dct.update(**kwargs)
+        order,price = string[0], float(string[1:])
+        dct.update({'price': price, 'order': order})
+        self.tb.add_trade(**dct)
+
     def run(self):
         """
         run function overriden
@@ -201,8 +226,6 @@ class ExtTradingSystem(TradingSystem):
             else:
                 getattr(self, method, lambda : None)(**fkwargs)
         self._cycle += 1
-
-
 
 
 class CandleStickSystem(TradingSystem):
