@@ -185,7 +185,7 @@ class ExtTradingSystem(TradingSystem):
         # List of conditions to check
         if self.tb.o >= self.MAX_GLOBAL_POSITIONS:
             return False
-        elif abs(self.tb.positions.get(self._symbol, self.MAX_QTY)) >= self.MAX_QTY:
+        elif abs(self.tb.positions.get(self._symbol, 0)) >= self.MAX_QTY:
             return False
         else:
             return True
