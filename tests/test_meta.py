@@ -160,6 +160,11 @@ class TestExtTradingSystem_isEntry(unittest.TestCase):
 		self.ts = ExtTradingSystem(MAX_QTY=100, MAX_GLOBAL_POSITIONS=2)
 		self.ts._symbol = None
 
+	def test_max_qty_new_symbol(self):
+		ts = self.ts
+		ts._symbol = 'GOOG'
+		assert ts.isEntry
+
 	def test_max_qty(self):
 		ts = self.ts
 		ts._symbol = 'A'
