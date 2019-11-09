@@ -379,12 +379,14 @@ def generate_index(index, changes, dates=None):
     * The changes dataframe is expected in the exact order. 
     Any other columns are discarded
     """
+    import datetime
     myindex = defaultdict(list)
     idx = index[:]
     # The first 3 column names assigned for lookup
     evt,sym,flag = changes.columns[:3]
+    today = pd.to_datetime(datetime.date.today())
     first_date = changes[evt].min()
-    last_date = changes[evt].max()
+    last_date = max(changes[evt].max(), today)
     all_dates = pd.date_range(first_date, last_date)
     if dates is None:
         dates = all_dates
@@ -400,7 +402,6 @@ def generate_index(index, changes, dates=None):
                 if flg is True:
                     # since we see dates in reversed order
                     # we remove them from the index for previous dates
-                    print(symbol, flg)
                     idx.remove(symbol)
                 else:
                     idx.append(symbol)
