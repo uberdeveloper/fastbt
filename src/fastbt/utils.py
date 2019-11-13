@@ -1,7 +1,12 @@
 import pandas as pd
 import itertools as it
 import functools as ft
+from numpy import zeros, arange
 from collections import defaultdict
+try:
+    from numba import jit, njit
+except ImportError:
+    print('Install numba')
 
 def multi_args(function, constants, variables, isProduct=False, maxLimit=None):
     """
@@ -414,3 +419,55 @@ def generate_index(index, changes, dates=None):
     return df[df.date.isin(dates)].reset_index(drop=True)
 
 
+def custom_index(data, on, window=30, function='median', num=30, sort_mode=False):
+    """
+    Generate a custom index
+    data
+        dataframe with symbol and timestamp columns
+    on
+        column on which the index is to be generated
+    window
+        look back window
+    function
+        function to be applied
+    out
+        number of stocks to pick each day
+    sort_mode
+        whether to pick top stocks or bottom stocks
+    """
+    from fastbt.datasource import DataSource
+    ds = DataSource(data)
+    ds.add_rolling(on=on, window=window, function=function,
+        lag=1, col_name='custom_index')
+    df2 = ds.data.sort_values(by=['custom_index'])
+    if sort_mode:
+        return df2.groupby('timestamp').head(num)
+    else:
+        return df2.groupby('timestamp').tail(num)
+
+@jit
+def streak(values):
+    """
+    Calculates the continuous streak of a variable.
+    Given an array of discret values, calculate the
+    continuous streak of each value.
+    values
+        numpy array of values
+    Note
+    -----
+    1) Pass numpy arrays for faster computation. In case of pandas series,
+    pass series.values
+    2) Calculates the streak based on number of consecutive
+    values that appear in the array
+    """
+    l = len(values)
+    arr = zeros(l)
+    arr[0] = 1
+    cnt = 1
+    for i in arange(1, l):
+        if values[i] == values[i-1]:
+            cnt += 1
+        else:
+            cnt = 1
+        arr[i] = cnt
+    return arr

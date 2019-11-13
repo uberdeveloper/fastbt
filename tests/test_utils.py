@@ -323,6 +323,15 @@ class TestGetExpandingOHLC(unittest.TestCase):
         # Test more frequencies
 
 
+class TestFunctionStreak(unittest.TestCase):
+
+    def test_simple(self):
+        arr = np.array([0,0,1]) 
+        result = np.array([1,2,1]) 
+        print(streak(arr))      
+        assert all(streak(arr) == result)
+
+
 
 
 
