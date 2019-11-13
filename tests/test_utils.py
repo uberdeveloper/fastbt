@@ -327,9 +327,30 @@ class TestFunctionStreak(unittest.TestCase):
 
     def test_simple(self):
         arr = np.array([0,0,1]) 
-        result = np.array([1,2,1]) 
-        print(streak(arr))      
+        result = np.array([1,2,1])     
         assert all(streak(arr) == result)
+
+    def test_extended(self):
+        arr = [0]*100
+        arr[50] = 1
+        result = list(range(1,51))+[1]+list(range(1,50))
+        assert all(streak(arr) == result)
+
+    def test_multi(self):
+        arr = [0,0,1,2,2,3,1,4,1,5]
+        result = [1,2,1,1,2,1,1,1,1,1]
+        assert all(streak(arr)==result)
+
+    def test_same_symbol(self):
+        arr = [0]*1000
+        result = range(1, 1001)
+        assert all(streak(arr)==result)
+
+    def test_different_symbols(self):
+        arr = list(range(10000))
+        result = [1] * 10000
+        assert all(streak(arr)==result)
+
 
 
 
