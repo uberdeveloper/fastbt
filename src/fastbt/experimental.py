@@ -820,3 +820,15 @@ def run_simulation(data, size=0.3, num=1000, column=None, function=np.mean):
             sample = function(choice(col, N))
             collect.append(sample)
     return pd.Series(collect)
+
+def generate_parameters(dict_of_parameters):
+    """
+    Generate a list of parameters for backtest function
+    dict_of_parameters
+        dictionary of parameters in the given format
+    """
+    d = dict_of_parameters.copy()
+    lst = []
+    for k,v in d.items():        
+        lst.append([{k:val} for val in v])
+    return lst
