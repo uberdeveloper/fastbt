@@ -439,11 +439,13 @@ def custom_index(data, on, window=30, function='median', num=30, sort_mode=False
     ds = DataSource(data)
     ds.add_rolling(on=on, window=window, function=function,
         lag=1, col_name='custom_index')
-    df2 = ds.data.sort_values(by=['custom_index'])
+    grouped = ds.data.groupby('timestamp')
     if sort_mode:
-        return df2.groupby('timestamp').head(num)
+        return grouped.apply(lambda x: x.sort_values(
+            by='custom_index').head(num)).reset_index(drop=True)
     else:
-        return df2.groupby('timestamp').tail(num)
+        return grouped.apply(lambda x: x.sort_values(
+            by='custom_index').tail(num)).reset_index(drop=True)
 
 @jit
 def streak(values):
