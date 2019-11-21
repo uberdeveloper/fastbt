@@ -826,9 +826,38 @@ def generate_parameters(dict_of_parameters):
     Generate a list of parameters for backtest function
     dict_of_parameters
         dictionary of parameters in the given format
+    Note
+    -----
+    Only one level of nested dictionary is parsed
     """
+    from itertools import product
     d = dict_of_parameters.copy()
     lst = []
-    for k,v in d.items():        
-        lst.append([{k:val} for val in v])
+    def simple(dictionary, updt):
+        # An inner function for ugly lookup
+        # TO DO: Think of better way -> recursion
+        listed = []
+        for k,v in dictionary.items():
+            if isinstance(v, list):
+                listed.append([{k:val} for val in v])
+            elif isinstance(v, str):
+                listed.append([{k:v}])
+        temp = list(product(*listed))
+        lstk = []
+        for tp in temp:
+            temp_dict = updt.copy()
+            for t in tp:
+                temp_dict.update(t)        
+            lstk.append(temp_dict)
+        return lstk
+
+    for k,v in d.items():
+        if isinstance(v, list):
+            lst.append([{k:val} for val in v])
+        elif isinstance(v, str):
+            lst.append([{k:v}])
+        elif isinstance(v, dict):
+            for k1,v1 in v.items():
+                lst2 = simple(d[k][k1], {k:k1})
+                lst.append(lst2)    
     return lst
