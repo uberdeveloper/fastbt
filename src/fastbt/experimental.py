@@ -857,7 +857,9 @@ def generate_parameters(dict_of_parameters):
         elif isinstance(v, str):
             lst.append([{k:v}])
         elif isinstance(v, dict):
+            dict_lst = []
             for k1,v1 in v.items():
                 lst2 = simple(d[k][k1], {k:k1})
-                lst.append(lst2)    
+                dict_lst.extend(lst2)    
+            lst.append(dict_lst)
     return lst
