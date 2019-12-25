@@ -263,6 +263,71 @@ class CandleStickSystem(TradingSystem):
         defaults.update(**kwargs)
         self.tb.add_trade(**defaults)
 
+class Broker:
+    """
+    A metaclass implementation for live trading
+    All the methods need to be overriden for
+    specific brokers
+    """
+    def __init__(self, **kwargs):
+        """
+        All initial conditions go here
+        """
+        pass
 
-    
+    def authenticate(self):
+        """
+        Authenticate the user usually via an interface.
+        This methods takes no arguments. Any arguments
+        should be passed in the __init__ method
+        """
+        raise NotImplementedError
+
+    def profile(self):
+        """
+        Return the user profile
+        """
+        raise NotImplementedError
+
+    def orders(self):
+        """
+        Get the list of orders
+        """
+        raise NotImplementedError
+
+    def trades(self):
+        """
+        Get the list of trades
+        """
+        raise NotImplementedError
+
+    def positions(self):
+        """
+        Get the list of positions
+        """
+        raise NotImplementedError
+
+    def order_place(self, **kwargs):
+        """
+        Place an order
+        """
+        raise NotImplementedError
+
+    def order_modify(self, order_id, **kwargs):
+        """
+        Modify an order with the given order id
+        """
+        raise NotImplementedError
+
+    def order_cancel(self, order_id, **kwargs):
+        """
+        Cancel an order with the given order id
+        """
+        raise NotImplementedError
+
+    def quote(self, symbol, **kwargs):
+        """
+        Get the quote for the given symbol
+        """
+        raise NotImplementedError
 
