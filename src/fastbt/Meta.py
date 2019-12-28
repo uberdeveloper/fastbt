@@ -362,6 +362,33 @@ class Broker:
                 new_lst.append(d)
         return new_lst
 
+    @staticmethod
+    def rename(dct, keys):
+        """
+        rename the keys of an existing dictionary
+        dct
+            existing dictionary
+        keys
+            keys to be renamed as dictionary with
+            key as existing key and value as value
+            to be replaced
+        Note
+        -----
+        A new dictionary is constructed with existing
+        keys replaced by new ones. Values are not replaced.
+        >>> rename({'a': 10, 'b':20}, {'a': 'aa'})
+        {'aa':10, 'b': 20}
+        >>> rename({'a': 10, 'b': 20}, {'c': 'm'})
+        {'a':10, 'b':20}
+        """
+        new_dct = {}
+        for k,v in dct.items():
+            if keys.get(k):
+                new_dct[keys[k]] = v
+            else:
+                new_dct[k] = v
+        return new_dct
+
     def cancel_all_orders(self, **kwargs):
         """
         Cancel all pending orders
