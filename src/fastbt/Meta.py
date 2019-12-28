@@ -362,6 +362,12 @@ class Broker:
                 new_lst.append(d)
         return new_lst
 
-
-
-
+    def cancel_all_orders(self, **kwargs):
+        """
+        Cancel all existing orders
+        Places a market order to cancel all orders
+        """
+        orders = self.orders()
+        if len(orders) > 0:
+            for order in self.orders():
+                self.order_cancel(order['order_id'])
