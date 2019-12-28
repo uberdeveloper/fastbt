@@ -199,6 +199,12 @@ class Zerodha(Broker):
         """
         pass
 
+    def get_order_type(self, price, ltp, order):
+        if order == "BUY":
+            return 'LIMIT' if price < ltp else 'SL'
+        elif order == "SELL":
+            return 'LIMIT' if price > ltp else 'SL'
+ 
     def _custom_orders(self, data, **kwargs):
         """
         Generate custom orders.
