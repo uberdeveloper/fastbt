@@ -43,7 +43,7 @@ class Zerodha(Broker):
         self._pin = PIN
         self.exchange = exchange
         self.product = product
-        self._store_access_token = True
+        self._store_access_token = True        
         super(Zerodha, self).__init__()
 
     @property
@@ -120,6 +120,7 @@ class Zerodha(Broker):
         self.trades = self.kite.trades
         self.orders = self.kite.orders
         self.holdings = self.kite.holdings
+        self._sides = {'BUY': 'SELL', 'SELL': 'BUY'}
 
 
     def authenticate(self):
@@ -197,3 +198,38 @@ class Zerodha(Broker):
         stop loss or target order.
         """
         pass
+
+    def _custom_orders(self, data, **kwargs):
+        """
+        Generate custom orders.
+        This is for customized usage
+        data
+            dataframe with the following columns
+            symbol, price, side, quantity and stop_loss
+        kwargs
+            keyword arguments to be included in each order
+        """
+        cols = ['symbol', 'price', 'quantity', 'side', 'stop_loss']
+        data = data[cols].to_dict(orient='records')
+        all_orders = []
+        replace = {
+            'symbol': 'tradingsymbol',
+            'side': 'transaction_type',            
+            }
+        for d in data:
+            dct = d.copy()
+            del dct['stop_loss']
+            dct['order_type'] = 'MARKET'
+            dct.update(kwargs)
+            all_orders.append(self.rename(dct, keys=replace))
+        # Second leg for cover orders
+        for d in data:
+            dct = d.copy()
+            del dct['price']
+            dct['side'] = self._sides[dct['side']]
+            dct['order_type'] = 'MARKET'
+            dct.update(kwargs)
+            replace.update({'stop_loss': 'price'})
+            all_orders.append(self.rename(dct, keys=replace))
+        return all_orders
+
