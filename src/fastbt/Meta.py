@@ -273,7 +273,7 @@ class Broker:
         """
         All initial conditions go here
         """
-        pass
+        self._sides = {'B': 'S', 'S': 'B'}
 
     def authenticate(self):
         """
@@ -364,10 +364,24 @@ class Broker:
 
     def cancel_all_orders(self, **kwargs):
         """
-        Cancel all existing orders
-        Places a market order to cancel all orders
+        Cancel all pending orders
         """
         orders = self.orders()
         if len(orders) > 0:
             for order in self.orders():
                 self.order_cancel(order['order_id'])
+
+    def close_all_positions(self, **kwargs):
+        """
+        Close all existing positions by placing
+        market orders
+        """
+        positions = self.positions()
+        if len(positions) > 0:
+            for position in positions:
+                qty = abs(position['qty'])
+                symbol = position['symbol']
+                side = self._side[position['side']]
+                if qty > 0:
+                    self.order_place(symbol=symbol, quantity=qty,
+                        order_type='MARKET', side=side)
