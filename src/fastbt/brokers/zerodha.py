@@ -217,6 +217,11 @@ class Zerodha(Broker):
         """
         cols = ['symbol', 'price', 'quantity', 'side', 'stop_loss']
         data = data[cols].to_dict(orient='records')
+        exchange = kwargs.get('exchange', 'NSE')
+        sym = ['{e}:{s}'.format(e=exchange, s=x['symbol']) for x in data]
+        ltps = self.ltp(sym)
+        ltps = {k[4:]:v['last_price'] for k,v in ltps.items()}
+        print(ltps)
         all_orders = []
         replace = {
             'symbol': 'tradingsymbol',
@@ -225,7 +230,12 @@ class Zerodha(Broker):
         for d in data:
             dct = d.copy()
             del dct['stop_loss']
-            dct['order_type'] = 'MARKET'
+            ltp = ltps.get(d['symbol'])
+            order_type = self.get_order_type(price=d['price'],
+                ltp=ltp, order=d['side'])
+            dct['order_type'] = order_type
+            if order_type == "SL":
+                dct['trigger_price'] = dct['price'] - 0.05
             dct.update(kwargs)
             all_orders.append(self.rename(dct, keys=replace))
         # Second leg for cover orders
@@ -233,7 +243,7 @@ class Zerodha(Broker):
             dct = d.copy()
             del dct['price']
             dct['side'] = self._sides[dct['side']]
-            dct['order_type'] = 'MARKET'
+            dct['order_type'] = 'SL-M'
             dct.update(kwargs)
             replace.update({'stop_loss': 'price'})
             all_orders.append(self.rename(dct, keys=replace))
