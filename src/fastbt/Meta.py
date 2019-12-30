@@ -268,12 +268,48 @@ class Broker:
     A metaclass implementation for live trading
     All the methods need to be overriden for
     specific brokers
+    Override is a mechanism through which you could
+    replace the keys of the request/response to 
+    match the keys of the API.
     """
     def __init__(self, **kwargs):
         """
         All initial conditions go here
         """
         self._sides = {'B': 'S', 'S': 'B'}
+        self._override = {
+            'orders': {},
+            'positions': {},
+            'trades': {},
+            'profile': {},
+            'quote': {},
+            'order_place': {},
+            'order_cancel': {},
+            'order_modify': {}
+        }
+
+    def get_override(self, key=None):
+        """
+        get the override for the given ky
+        returns all if key is not specified
+        Note
+        ----
+        key should be implemented as a method
+        """
+        return self._override.get(key, self._override.copy())
+
+    def set_override(self, key, values):
+        """
+        set the overrides for the given key
+        key
+            key - usually a method
+        values
+            values for the key
+        returns the key if added
+        """
+        self._override[key] = values
+        return self.get_override(key)
+
 
     def authenticate(self):
         """
