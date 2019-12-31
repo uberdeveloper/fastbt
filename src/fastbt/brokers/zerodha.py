@@ -211,11 +211,11 @@ class Zerodha(Broker):
         This is for customized usage
         data
             dataframe with the following columns
-            symbol, price, side, quantity and stop_loss
+            open, symbol, price, side, quantity and stop_loss
         kwargs
             keyword arguments to be included in each order
         """
-        cols = ['symbol', 'price', 'quantity', 'side', 'stop_loss']
+        cols = ['open', 'symbol', 'price', 'quantity', 'side', 'stop_loss']
         data = data[cols].to_dict(orient='records')
         exchange = kwargs.get('exchange', 'NSE')
         sym = ['{e}:{s}'.format(e=exchange, s=x['symbol']) for x in data]
@@ -234,18 +234,29 @@ class Zerodha(Broker):
             order_type = self.get_order_type(price=d['price'],
                 ltp=ltp, order=d['side'])
             dct['order_type'] = order_type
+            dct['price'] = round(dct['price'], 2)
+            # TO DO: Trigger greater if price is low to correct
             if order_type == "SL":
-                dct['trigger_price'] = dct['price'] - 0.05
+                dct['trigger_price'] = round(dct['open'] - 0.05, 2)
             dct.update(kwargs)
+            del dct['open'] # Since its no longer needed
             all_orders.append(self.rename(dct, keys=replace))
-        # Second leg for cover orders
+        # Second leg for covering orders
         for d in data:
-            dct = d.copy()
-            del dct['price']
-            dct['side'] = self._sides[dct['side']]
-            dct['order_type'] = 'SL-M'
-            dct.update(kwargs)
-            replace.update({'stop_loss': 'price'})
-            all_orders.append(self.rename(dct, keys=replace))
+            try:
+                dct = d.copy()
+                del dct['open'] # Since this is not needed here
+                dct['side'] = self._sides[dct['side']]
+                dct['stop_loss'] = round(dct['stop_loss'], 2)
+                order_type = self.get_order_type(price=d['stop_loss'],
+                    ltp=ltp, order=d['side'])
+                if order_type == 'SL':
+                    order_type = 'SL-M'
+                dct['order_type'] = order_type
+                dct.update(kwargs)
+                replace.update({'stop_loss': 'trigger_price'})
+                all_orders.append(self.rename(dct, keys=replace))
+            except Exception as e:
+                print(e, self.rename(dct))
         return all_orders
 
