@@ -219,6 +219,7 @@ class Zerodha(Broker):
         data = data[cols].to_dict(orient='records')
         exchange = kwargs.get('exchange', 'NSE')
         sym = ['{e}:{s}'.format(e=exchange, s=x['symbol']) for x in data]
+        print(sym)
         ltps = self.ltp(sym)
         ltps = {k[4:]:v['last_price'] for k,v in ltps.items()}
         print(ltps)
@@ -231,8 +232,8 @@ class Zerodha(Broker):
             dct = d.copy()
             del dct['stop_loss']
             ltp = ltps.get(d['symbol'])
-            order_type = self.get_order_type(price=d['price'],
-                ltp=ltp, order=d['side'])
+            order_type = self.get_order_type(price=dct['price'],
+                ltp=ltp, order=dct['side'])
             dct['order_type'] = order_type
             dct['price'] = round(dct['price'], 2)
             # TO DO: Trigger greater if price is low to correct
@@ -246,10 +247,11 @@ class Zerodha(Broker):
             try:
                 dct = d.copy()
                 del dct['open'] # Since this is not needed here
+                ltp = ltps.get(dct['symbol'])
                 dct['side'] = self._sides[dct['side']]
                 dct['stop_loss'] = round(dct['stop_loss'], 2)
-                order_type = self.get_order_type(price=d['stop_loss'],
-                    ltp=ltp, order=d['side'])
+                order_type = self.get_order_type(price=dct['stop_loss'],
+                    ltp=ltp, order=dct['side'])
                 if order_type == 'SL':
                     order_type = 'SL-M'
                 dct['order_type'] = order_type
