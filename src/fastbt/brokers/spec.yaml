@@ -1,0 +1,49 @@
+profile:
+  - user_id
+  - user_name
+  - user_type
+  - email
+  - markets
+orders:
+  - order_id
+  - timestamp
+  - symbol
+  - price
+  - quantity
+  - order_type
+  - side
+  - filled_quantity
+  - status
+trades:
+  - trade_id
+  - timestamp
+  - order_id
+  - symbol
+  - price
+  - quantity
+  - order_type
+positions:
+  - symbol
+  - quantity
+  - average_price
+order_place:
+  - symbol
+  - price
+  - quantity
+  - order_type
+  - side
+order_modify:
+  - order_id
+  - quanity
+  - price
+order_cancel:
+  - order_id
+quote:
+  - symbol
+  - open
+  - high
+  - low
+  - close
+  - ltp
+  - volume
+  - ltt
