@@ -18,6 +18,20 @@ def pre(func):
         return func(*args, **kwargs)
     return f
 
+def post(func):
+    name = func.__name__
+    def f(*args, **kwargs):
+        self = args[0]
+        override = self.get_override(name)
+        response = func(*args, **kwargs)
+        if override:
+            if isinstance(response, list):
+                return [self.rename(r, override) for r in response]
+            elif isinstance(response, dict):
+                return self.rename(response, override)
+        return response
+    return f
+
 class TradingSystem:
 
     def __init__(self, auth=None, tradebook=None):
