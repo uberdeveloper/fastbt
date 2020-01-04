@@ -8,6 +8,16 @@ from inspect import isfunction
 import datetime
 import os
 
+def pre(func):
+    name = func.__name__
+    def f(*args, **kwargs):
+        self = args[0]
+        override = self.get_override(name)
+        if override:
+            kwargs = self.rename(kwargs, override)
+        return func(*args, **kwargs)
+    return f
+
 class TradingSystem:
 
     def __init__(self, auth=None, tradebook=None):
