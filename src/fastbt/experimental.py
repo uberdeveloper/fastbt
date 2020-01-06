@@ -863,3 +863,22 @@ def generate_parameters(dict_of_parameters):
                 dict_lst.extend(lst2)    
             lst.append(dict_lst)
     return lst
+
+@njit
+def traverse(start, high, low, points):
+    """
+    See whether the given points are traversed
+    """
+    start = high[0]
+    j = 0
+    price = points[j]
+    hit = np.zeros(len(points))
+    for i in range(len(high)):
+        if low[i] < price < high[i]:
+            hit[j] = 1
+            j+=1
+            if j == len(points):
+                break
+            else:
+                price = points[j]
+    return (hit, high[i], low[i])
