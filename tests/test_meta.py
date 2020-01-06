@@ -1,6 +1,7 @@
 import unittest
 import random
 import itertools
+from copy import deepcopy
 from fastbt.Meta import *
 
 class TestMetaPipeline(unittest.TestCase):
@@ -255,6 +256,36 @@ class TestBrokerDictFilter(unittest.TestCase):
 		lst2 = [{'x': 'B', 'y': 300, 'z': 5}] * 2
 		assert self.broker.dict_filter(self.dct, x='B', y=300, z=5) == lst2
 		assert self.broker.dict_filter(self.dct, x='B', y=300) == lst2
+
+class TestBrokerRename(unittest.TestCase):
+
+	def setUp(self):
+		self.broker = Broker()
+
+	def test_empty_dict(self):
+		assert self.broker.rename({}, {}) == {}
+
+	def test_single_dict(self):
+		assert self.broker.rename({'a': 10}, {'a':'b'}) == {'b': 10}
+		dct = {x:y for x,y in zip(list('ABCDEF'), range(6))}
+		dct2 = deepcopy(dct)
+		del dct2['A']
+		del dct2['F']
+		dct2.update({'X': 0, 'Y': 5})
+		assert self.broker.rename(dct, {'A': 'X', 'F': 'Y'}) == dct2
+
+	def test_single_dict_no_keys(self):
+		dct = {x:y for x,y in zip(list('ABCDEF'), range(6))}
+		dct2 = deepcopy(dct)
+		assert self.broker.rename(dct, {'M': 36, 'P': 14}) == dct2
+
+	def test_list_of_dicts(self):
+		lst = [dict(x=x, y=y, z=z) for x,y,z in 
+		zip(range(1,10), range(10,20), range(100,110))]
+		lst2 = [dict(p=x, q=y, z=z) for x,y,z in 
+		zip(range(1,10), range(10,20), range(100,110))]
+		rename = self.broker.rename
+		assert [rename(dct, {'x': 'p', 'y': 'q'}) for dct in lst] == lst2
 
 
 
