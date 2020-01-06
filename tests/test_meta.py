@@ -220,4 +220,42 @@ class TestBrokerDictFilter(unittest.TestCase):
 	def test_empty_dict(self):
 		assert self.broker.dict_filter([]) == []
 
+	def test_identity_dict(self):
+		dct = [
+			{'a': 15}, {'a': 20}, {'a': 10}
+		]
+		assert self.broker.dict_filter(dct) == dct
+
+	def test_simple_dict(self):
+		dct = [{'a': 15}, {'a': 20}, {'a': 10}]
+		assert self.broker.dict_filter(dct, a=10) == [{'a': 10}]
+
+	def test_no_matching_dict(self):
+		assert self.broker.dict_filter(self.dct, y=1500) == []
+		assert self.broker.dict_filter(self.dct, m=10) == []
+
+	def test_filter_one(self):
+		x = ['A'] * 8
+		y = [100,400,300,200,100,400,300,200]
+		z = [1,4,1,4,1,4,1,4]
+		lst1 = [dict(x=a, y=b, z=c) for a,b,c in zip(x,y,z)]
+		assert self.broker.dict_filter(self.dct, x='A') == lst1
+
+	def test_filter_two(self):
+		x = ['B'] * 4
+		y = [100,300,100,300]
+		z = [5] * 4
+		lst1 = [dict(x=a, y=b, z=c) for a,b,c in zip(x,y,z)]
+		assert self.broker.dict_filter(self.dct, z=5) == lst1
+
+	def test_multi_filter(self):
+		lst1 = [{'x': 'A', 'y':100, 'z': 1}] * 2
+		assert self.broker.dict_filter(self.dct, x='A', y=100) == lst1
+
+		lst2 = [{'x': 'B', 'y': 300, 'z': 5}] * 2
+		assert self.broker.dict_filter(self.dct, x='B', y=300, z=5) == lst2
+		assert self.broker.dict_filter(self.dct, x='B', y=300) == lst2
+
+
+
 
