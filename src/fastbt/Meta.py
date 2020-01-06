@@ -411,7 +411,7 @@ class Broker:
         """
         if len(lst) == 0:
             print('Nothing in the list')
-            return 
+            return []
         new_lst = []
         for d in lst:
             case = True

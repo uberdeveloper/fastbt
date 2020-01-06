@@ -1,4 +1,6 @@
 import unittest
+import random
+import itertools
 from fastbt.Meta import *
 
 class TestMetaPipeline(unittest.TestCase):
@@ -204,5 +206,18 @@ class TestExtTradingSystem_add_trade(unittest.TestCase):
 		ts._symbol = 'AAPL'
 		ts.add_trade('B1128', qty=7)
 		assert ts.tb.all_trades[-1]['qty'] == 7
+
+class TestBrokerDictFilter(unittest.TestCase):
+	def setUp(self):
+		def f(it, n):
+			return itertools.chain.from_iterable(itertools.repeat(it, n))
+		A = f(['A','B', 'C'], 8)
+		B = f([100,200,300,400], 6)
+		C = f([1,2,3,4,5,6], 4)
+		self.dct = [dict(x=x, y=y, z=z) for x,y,z in zip(A,B,C)]
+		self.broker = Broker()
+
+	def test_empty_dict(self):
+		assert self.broker.dict_filter([]) == []
 
 
