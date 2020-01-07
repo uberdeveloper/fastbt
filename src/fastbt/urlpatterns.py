@@ -1,6 +1,6 @@
 file_patterns = {
     'bhav': (
-        'https://www.nseindia.com/content/historical/EQUITIES/{year}/{month}/cm{date}bhav.csv.zip',
+        'https://archives.nseindia.com/content/historical/EQUITIES/{year}/{month}/cm{date}bhav.csv.zip',
         lambda x: {
             'year': x.year,
             'month': x.strftime('%b').upper(),
