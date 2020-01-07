@@ -4,9 +4,17 @@ are derived
 """
 from fastbt.tradebook import TradeBook
 from collections import namedtuple, Counter
+from enum import Enum
 from inspect import isfunction
 import datetime
 import os
+
+class Status(Enum):
+    FILLED = 1
+    WAITING = 2
+    PARTIAL = 3
+    REJECTED = 4
+    CANCELED = 5
 
 def pre(func):
     name = func.__name__
