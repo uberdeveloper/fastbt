@@ -865,20 +865,45 @@ def generate_parameters(dict_of_parameters):
     return lst
 
 @njit
-def traverse(start, high, low, points):
+def traverse(high, low, points):
     """
-    See whether the given points are traversed
+    See whether the price points are hit in the given order
+    high
+        high values as numpy array
+    low
+        low values as numpy array
+    points
+        list or numpy array of values to check
+    returns a 4-tuple with
+      1. an array indicating whether the values in 
+      the points list is hit; 1 indicates the value is hit
+      2. an array of timesteps indicating when the
+      value is hit; this is just the iteration cycle
+      3. high value when the last point is hit or the 
+      end of the iteration cycle if the point is not hit
+      4. low value when the last point is hit or the 
+      end of the iteration cycle if the point is not hit
+    Note
+    ----
+    1. This function checks whether the points are hit
+    in the given order. 
+    2. A point is considered hit if it is between high and
+    low value
+    3. high and low values are considered to be array of equal
+    size with the value of high always greater than or equal
+    to the value of low at every timestep
     """
-    start = high[0]
     j = 0
     price = points[j]
     hit = np.zeros(len(points))
+    timesteps = np.zeros(len(points))
     for i in range(len(high)):
         if low[i] < price < high[i]:
             hit[j] = 1
+            timesteps[j] = i
             j+=1
             if j == len(points):
                 break
             else:
                 price = points[j]
-    return (hit, high[i], low[i])
+    return (hit, timesteps, high[i], low[i])
