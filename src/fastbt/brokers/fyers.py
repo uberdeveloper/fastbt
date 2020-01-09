@@ -24,6 +24,7 @@ class Fyers(Broker):
         """
         self._login(**kwargs)
         self.fyers = fyersModel.FyersModel()
+        self._shortcuts()
 
     @staticmethod
     def get_token(url, key='access_token'):
