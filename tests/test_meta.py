@@ -3,6 +3,7 @@ import random
 import itertools
 from copy import deepcopy
 from fastbt.Meta import *
+from collections import OrderedDict
 
 class TestMetaPipeline(unittest.TestCase):
 	def setUp(self):
@@ -287,6 +288,44 @@ class TestBrokerRename(unittest.TestCase):
 		rename = self.broker.rename
 		assert [rename(dct, {'x': 'p', 'y': 'q'}) for dct in lst] == lst2
 
+class TestBrokerSimple(unittest.TestCase):
+	def setUp(self):
+		OD = OrderedDict # a shortcut for laziness
+		class MyBroker(Broker):
+			def __init__(self):
+				self.positions = lambda: []
+				self.trades = lambda: []
+				self.order_place = lambda: 'Order placed'
+				self.order_cancel = lambda x: 'Canceled order {}'.format(x)
+				self.order_modify = lambda x: 'Modified order {}'.format(x)
+				self.quote = lambda: []
+				super(MyBroker, self).__init__()
 
+			def profile(self):
+				return OD({
+					'name': 'MyName',
+					'email': 'example@gmail.com'
+				})
 
+			def orders(self):
+				return [
+					OD({'order_id': 1254, 'symbol': 'AAPL', 'quantity': 10}),
+					OD({'order_id': 1728, 'symbol': 'GOOG', 'quantity': 14})
+				]	
+		self.brok = MyBroker()
 
+	def test_simple_return_values(self):
+		assert self.brok.profile() == {'name': 'MyName', 'email': 'example@gmail.com'}
+		orders = [
+		{'order_id': 1254, 'symbol': 'AAPL', 'quantity': 10},
+		{'order_id': 1728, 'symbol': 'GOOG', 'quantity': 14}
+		]
+		assert self.brok.orders() == orders
+
+	def test_simple_return_values_two(self):
+		assert self.brok.positions() == []
+		assert self.brok.trades() == []
+		assert self.brok.quote() == []
+		assert self.brok.order_place() == 'Order placed'
+		assert self.brok.order_modify(150) == 'Modified order 150'
+		assert self.brok.order_cancel(199) == 'Canceled order 199'
