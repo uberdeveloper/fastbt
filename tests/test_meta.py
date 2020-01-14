@@ -344,8 +344,8 @@ class TestBrokerOverride(unittest.TestCase):
 				]
 
 			@pre
-			def order_place(self):				
-				return [{'oid': 1001, 'symbol': 'AAPL'}]
+			def order_place(self, **kwargs):				
+				return kwargs
 
 		self.brok = MyBroker()
 
@@ -362,4 +362,9 @@ class TestBrokerOverride(unittest.TestCase):
 		{'order_id': 1728, 'symbol': 'GOOG', 'quantity': 14}
 		]
 		assert self.brok.orders() == orders
+
+	def test_override_pre_function(self):
+		self.brok.set_override('order_place',
+			{'oid': 'order_id', 'symbol': 'tradingsymbol'})
+		assert self.brok.order_place(oid=100,symbol='AAPL') == {'order_id':100, 'tradingsymbol': 'AAPL'}
 
