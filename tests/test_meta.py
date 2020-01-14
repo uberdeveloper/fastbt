@@ -329,3 +329,37 @@ class TestBrokerSimple(unittest.TestCase):
 		assert self.brok.order_place() == 'Order placed'
 		assert self.brok.order_modify(150) == 'Modified order 150'
 		assert self.brok.order_cancel(199) == 'Canceled order 199'
+
+class TestBrokerOverride(unittest.TestCase):
+	def setUp(self):
+		class MyBroker(Broker):
+			def __init__(self):
+				super(MyBroker, self).__init__()
+
+			@post
+			def orders(self):
+				return  [
+				{'order_id': 1254, 'ticker': 'AAPL', 'qty': 10},
+				{'order_id': 1728, 'ticker': 'GOOG', 'qty': 14}
+				]
+
+			@pre
+			def order_place(self):				
+				return [{'oid': 1001, 'symbol': 'AAPL'}]
+
+		self.brok = MyBroker()
+
+	def test_override(self):
+		self.brok.set_override('orders', 
+			{'ticker': 'symbol', 'qty': 'quantity'})
+		assert self.brok.get_override('orders') == {'ticker':'symbol', 'qty': 'quantity'}
+
+	def test_override_post_function(self):
+		self.brok.set_override('orders',
+			{'ticker': 'symbol', 'qty': 'quantity'})
+		orders = [		
+		{'order_id': 1254, 'symbol': 'AAPL', 'quantity': 10},
+		{'order_id': 1728, 'symbol': 'GOOG', 'quantity': 14}
+		]
+		assert self.brok.orders() == orders
+
