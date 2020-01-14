@@ -22,9 +22,22 @@ class Fyers(Broker):
         """
         Fyers authentication to be implemented
         """
-        self._login(**kwargs)
-        self.fyers = fyersModel.FyersModel()
-        self._shortcuts()
+        try:
+            with open('fyers-token.tok', 'r') as f:
+                self._token = f.read()
+            self.fyers = fyersModel.FyersModel()
+            self._shortcuts()
+            code = self.fyers.get_profile(self._token)['code']
+            if code == 401:
+                print('Authentication failure, logging in again')
+                self._login(**kwargs)
+                self.fyers = fyersModel.FyersModel()
+                self._shortcuts()
+        except Exception as E:
+            print('Into Exception', E)
+            self._login(**kwargs)
+            self.fyers = fyersModel.FyersModel()
+            self._shortcuts()
 
     @staticmethod
     def get_token(url, key='access_token'):
@@ -72,7 +85,10 @@ class Fyers(Broker):
         WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.NAME, "email")))
         url = driver.current_url
-        self._token = self.get_token(url)
+        token = self.get_token(url)
+        self._token = token
+        with open("fyers-token.tok", "w") as f:
+            f.write(token)
         driver.close()
 
 
@@ -82,6 +98,12 @@ class Fyers(Broker):
         self.orders = partial(self.fyers.orders, token=self._token)
         self.trades = partial(self.fyers.tradebook, token=self._token)
         self.positions = partial(self.fyers.positions, token=self._token)
+
+    def order_place(self, **kwargs):
+        """
+        Place an order
+        """
+        pass
 
 
 
