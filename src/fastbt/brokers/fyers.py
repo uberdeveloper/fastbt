@@ -1,5 +1,5 @@
 import pandas as pd
-from fastbt.Meta import Broker
+from fastbt.Meta import Broker,pre,post
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -99,11 +99,17 @@ class Fyers(Broker):
         self.trades = partial(self.fyers.tradebook, token=self._token)
         self.positions = partial(self.fyers.positions, token=self._token)
 
+    @pre    
     def order_place(self, **kwargs):
         """
         Place an order
         """
-        pass
+        return self.fyers.place_orders(token=self._token, data=kwargs)
+
+    def order_cancel(self, order_id):
+        return self.fyers.delete_orders(token=self._token, 
+            data={'id': 'order_id'})
+
 
 
 
