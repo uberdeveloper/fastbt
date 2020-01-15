@@ -1,0 +1,7 @@
+orders:
+  qty: quantity
+  id: order_id
+  orderDateTime: timestamp
+  limitPrice: price
+  filledQty: filled_quantity
+  type: order_type
