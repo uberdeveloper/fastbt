@@ -3,7 +3,8 @@ This is the meta trading class from which other classes
 are derived
 """
 from fastbt.tradebook import TradeBook
-from collections import namedtuple, Counter
+from collections import namedtuple, Counter, defaultdict
+from itertools import groupby
 from enum import Enum
 from inspect import isfunction
 import datetime
@@ -480,3 +481,27 @@ class Broker:
                 if qty > 0:
                     self.order_place(symbol=symbol, quantity=qty,
                         order_type='MARKET', side=side)
+
+    def covered(self):
+        """
+        Get the consolidated list of orders and positions
+        by each symbol
+        """
+        dct = defaultdict()
+        orders = self.orders()
+        orders = [x for x in orders if x['status'] in 
+        ['CANCELED', 'REJECTED', 'COMPLETE']]
+        orders = sorted(orders, key=lambda x: x['symbol'])
+        it = groupby(orders, key = lambda x: x['symbol'])
+        for name, group in it:
+            dct[name] = Counter()
+            d = dct[name]
+            for g in group:
+                d['side'] += abs(g['quantity'])
+        positions = self.positions()
+        for p in positions:
+            name = p['symbol']
+            if not(dct.get(name)):
+                dct[name] = Counter()
+            dct[name][p['side']] += abs(p['quantity'])
+        return dct
