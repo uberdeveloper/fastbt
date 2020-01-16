@@ -1,12 +1,10 @@
 profile:
-  - user_id
-  - user_name
-  - user_type
+  - id
+  - name
   - email
-  - markets
 orders:
   - order_id
-  - timestamp
+  - order_timestamp
   - symbol
   - price
   - quantity
@@ -21,10 +19,11 @@ trades:
   - symbol
   - price
   - quantity
-  - order_type
+  - side
 positions:
   - symbol
   - quantity
+  - side
   - average_price
 order_place:
   - symbol

@@ -1,0 +1,196 @@
+openapi: 3.0.0
+info:
+  title: Trading API
+  description: A generic trading API for stock markets. 
+  version: 0.1.0
+  
+servers: 
+  - url: https://localhost
+  
+paths:
+  /profile:
+    get:
+      summary: User profile
+      description: Get the user profile
+      responses:
+        '200':
+          description: Returns a dictionary of user properties
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+  /orders:
+    get:
+      summary: List of orders
+      description: Gets the list of all orders placed for the day
+      responses:
+        '200':
+          description: Returns a list of dictionaries for each of the orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: '#/components/schemas/Order'
+                  
+  /order_cancel/{id}:
+    post:
+      summary: Cancel an order
+      description: Given an order id, cancel an order
+      parameters: 
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            description: Given an order id, cancel an order
+      responses:
+        '200':
+          description: Response from provider
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+                
+                  
+  /trades:
+    get:
+      summary: List of trades
+      description: Gets the list of all trades
+      responses:
+        '200':
+          description: Returns a list of all trades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trade'
+                  
+  /positions:
+    get:
+      summary: List of positions
+      description: Gets the list of all positions
+      responses:
+        '200':
+          description: Returns a list of all positions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Position'
+                  
+components:
+  schemas:
+    Profile:
+      type: object
+      properties:
+        id: 
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          
+    Order:
+      type: object
+      additionalProperties: true
+      properties:
+        order_id:
+          type: integer
+        order_timestamp:
+          type: string
+        symbol:
+          type: string
+        price:
+          type: number
+        quantity:
+          type: number
+        order_type:
+          type: string
+        side:
+          type: string
+        filled_quantity:
+          type: string
+        status:
+          type: string
+          
+    Trade:
+      type: object
+      additionalProperties: true
+      properties:
+        trade_id:
+          type: integer
+        order_id:
+          type: integer
+        timestamp:
+          type: string
+        symbol:
+          type: string
+        price:
+          type: number
+        quantity:
+          type: integer
+        side:
+          type: string
+          
+    Position:
+      type: object
+      additionalProperties: true
+      properties:
+        symbol:
+          type: string
+        quantity:
+          type: integer
+        side:
+          type: string
+        average_price:
+          type: number
+    
+    Quote:
+      type: object
+      properties:
+        symbol:
+          type: string
+        open:
+          type: number
+        high:
+          type: number
+        low:
+          type: number
+        close:
+          type: number
+        ltp:
+          type: number
+        volume:
+          type: number
+        ltt:
+          type: string
+          description: last traded timestamp
+          
+    Message:
+      type: object
+      additionalProperties: true
+      properties:
+        code:
+          type: integer
+          description: A numeric code indicating the success or failure of the transaction
+        id:
+          type: integer
+          description: The corresponding identifier usually an order id  or a trade id
+        message:
+          type: string
+          description: A detailed message of what really happened from the provider
+          
+          
+          
+    
+          
+      
+          
+        
+          
+      
+
+                
