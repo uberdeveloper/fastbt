@@ -11,7 +11,7 @@ import datetime
 import os
 
 class Status(Enum):
-    FILLED = 1
+    COMPLETE = 1
     PENDING = 2
     PARTIAL = 3
     REJECTED = 4

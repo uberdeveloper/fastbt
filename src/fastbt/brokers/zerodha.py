@@ -1,5 +1,5 @@
 import pandas as pd
-from fastbt.Meta import Broker
+from fastbt.Meta import Broker,Status
 
 from kiteconnect import KiteConnect
 from selenium import webdriver
@@ -118,7 +118,6 @@ class Zerodha(Broker):
         self.ohlc = self.kite.ohlc
         self.positions = self.kite.positions
         self.trades = self.kite.trades
-        self.orders = self.kite.orders
         self.holdings = self.kite.holdings
         self._sides = {'BUY': 'SELL', 'SELL': 'BUY'}
 
@@ -204,6 +203,25 @@ class Zerodha(Broker):
             return 'LIMIT' if price < ltp else 'SL'
         elif order == "SELL":
             return 'LIMIT' if price > ltp else 'SL'
+
+    def orders(self):
+        status_map = {
+            'OPEN': Status.PENDING,
+            'COMPLETE': Status.COMPLETE,
+            'CANCELLED': Status.CANCELED,
+            'REJECTED': Status.REJECTED,
+            'MODIFY_PENDING': Status.PENDING,
+            'OPEN_PENDING': Status.PENDING,
+            'CANCEL_PENDING': Status.PENDING,
+            'AMO_REQ_RECEIVED': Status.PENDING,
+            'TRIGGER_PENDING': Status.PENDING
+        }
+        ords = self.kite.orders()
+        # Update status
+        for o in ords:
+            o['status'] = status_map.get(o['status'], Status.PENDING)
+        return ords
+
  
     def _custom_orders(self, data, **kwargs):
         """
