@@ -108,7 +108,17 @@ class Fyers(Broker):
 
     def order_cancel(self, order_id):
         return self.fyers.delete_orders(token=self._token, 
-            data={'id': 'order_id'})
+            data={'id': order_id})
+
+    @post
+    def orders(self):
+        ords = self.fyers.orders(token=self._token)
+        if ords['code'] == 200:
+            return ords['data']['orderBook']
+        else:
+            return []
+
+
 
 
 
