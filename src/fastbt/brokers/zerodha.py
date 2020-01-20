@@ -116,7 +116,6 @@ class Zerodha(Broker):
         self.ltp = self.kite.ltp
         self.quote = self.kite.quote
         self.ohlc = self.kite.ohlc
-        self.positions = self.kite.positions
         self.trades = self.kite.trades
         self.holdings = self.kite.holdings
         self._sides = {'BUY': 'SELL', 'SELL': 'BUY'}
@@ -223,6 +222,18 @@ class Zerodha(Broker):
             o['status'] = status_map.get(o['status'], Status.PENDING)
         return ords
 
+    @post
+    def positions(self):
+        """
+        Return only the positions for the day
+        """
+        pos = self.kite.positions()['day']
+        for p in pos:
+            if p['quantity'] > 0:
+                p['side'] = 'BUY'
+            else:
+                p['side'] = 'SELL'
+        return pos
  
     def _custom_orders(self, data, **kwargs):
         """
