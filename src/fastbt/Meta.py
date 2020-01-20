@@ -12,7 +12,7 @@ import os
 
 class Status(Enum):
     FILLED = 1
-    WAITING = 2
+    PENDING = 2
     PARTIAL = 3
     REJECTED = 4
     CANCELED = 5
