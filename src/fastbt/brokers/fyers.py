@@ -78,9 +78,9 @@ class Fyers(Broker):
             EC.presence_of_element_located((By.ID, "myForm")))
         login_form.find_elements_by_id('fyers_id')[0].send_keys(username)
         login_form.find_elements_by_id('password')[0].send_keys(password)
-        login_form.find_elements_by_name('panOrDob')[1].click()
+        login_form.find_elements_by_class_name('login-dob')[0].click()
         login_form.find_elements_by_id('dob')[0].send_keys(dob)
-        driver.find_element_by_xpath('//button').click()
+        driver.find_element_by_id('btn_id').click()
         time.sleep(2)
         WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.NAME, "email")))
