@@ -1,5 +1,5 @@
 import pandas as pd
-from fastbt.Meta import Broker,Status
+from fastbt.Meta import Broker,Status,pre,post
 
 from kiteconnect import KiteConnect
 from selenium import webdriver
@@ -204,6 +204,7 @@ class Zerodha(Broker):
         elif order == "SELL":
             return 'LIMIT' if price > ltp else 'SL'
 
+    @post
     def orders(self):
         status_map = {
             'OPEN': Status.PENDING,
