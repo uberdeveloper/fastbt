@@ -482,26 +482,25 @@ class Broker:
                     self.order_place(symbol=symbol, quantity=qty,
                         order_type='MARKET', side=side)
 
-    def covered(self):
+    def consolidated(self):
         """
         Get the consolidated list of orders and positions
         by each symbol
         """
         dct = defaultdict()
-        orders = self.orders()
-        orders = [x for x in orders if x['status'] in 
-        ['CANCELED', 'REJECTED', 'COMPLETE']]
-        orders = sorted(orders, key=lambda x: x['symbol'])
-        it = groupby(orders, key = lambda x: x['symbol'])
-        for name, group in it:
-            dct[name] = Counter()
-            d = dct[name]
-            for g in group:
-                d['side'] += abs(g['quantity'])
-        positions = self.positions()
-        for p in positions:
-            name = p['symbol']
-            if not(dct.get(name)):
-                dct[name] = Counter()
-            dct[name][p['side']] += abs(p['quantity'])
+        ords = self.orders()
+        orders = []
+        for o in ords:
+            if o['status'] == Status.PENDING or o['status'] == Status.PARTIAL:
+                orders.append(o)
+        for o in orders:
+            symbol = o['symbol']
+            if not(dct.get(symbol)):
+                dct[symbol] = Counter()
+            dct[symbol][o['side']] += abs(o['quantity'])
+        for p in self.positions():
+            symbol = p['symbol']
+            if not(dct.get(symbol)):
+                dct[symbol] = Counter()
+            dct[symbol][p['side']] += abs(p['quantity'])
         return dct
