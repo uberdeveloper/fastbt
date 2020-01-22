@@ -28,7 +28,6 @@ def get_key(url, key='request_token'):
     else:
         return key[0]
 
-
 class Zerodha(Broker):
     """
     Automated Trading class
@@ -206,20 +205,20 @@ class Zerodha(Broker):
     @post
     def orders(self):
         status_map = {
-            'OPEN': Status.PENDING,
-            'COMPLETE': Status.COMPLETE,
-            'CANCELLED': Status.CANCELED,
-            'REJECTED': Status.REJECTED,
-            'MODIFY_PENDING': Status.PENDING,
-            'OPEN_PENDING': Status.PENDING,
-            'CANCEL_PENDING': Status.PENDING,
-            'AMO_REQ_RECEIVED': Status.PENDING,
-            'TRIGGER_PENDING': Status.PENDING
+            'OPEN': 'PENDING',
+            'COMPLETE': 'COMPLETE',
+            'CANCELLED': 'CANCELED',
+            'REJECTED': 'REJECTED',
+            'MODIFY_PENDING': 'PENDING',
+            'OPEN_PENDING': 'PENDING',
+            'CANCEL_PENDING': 'PENDING',
+            'AMO_REQ_RECEIVED': 'PENDING',
+            'TRIGGER_PENDING': 'PENDING'
         }
         ords = self.kite.orders()
         # Update status
         for o in ords:
-            o['status'] = status_map.get(o['status'], Status.PENDING)
+            o['status'] = status_map.get(o['status'], 'PENDING')
         return ords
 
     @post

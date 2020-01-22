@@ -499,16 +499,24 @@ class Broker:
         ords = self.orders()
         orders = []
         for o in ords:
-            if o['status'] == Status.PENDING or o['status'] == Status.PARTIAL:
+            if (o['status'] == 'PENDING') or (o['status'] == 'PARTIAL'):
                 orders.append(o)
         for o in orders:
             symbol = o['symbol']
             if not(dct.get(symbol)):
                 dct[symbol] = Counter()
+            price = max(o['price'], o['trigger_price'])
+            value = abs(price * o['quantity'])
             dct[symbol][o['side']] += abs(o['quantity'])
+            text = '{}_value'.format(o['side'])
+            dct[symbol].update({text: value})
         for p in self.positions():
             symbol = p['symbol']
             if not(dct.get(symbol)):
                 dct[symbol] = Counter()
+            price = p['average_price']
+            value = abs(price * p['quantity'])
+            text = '{}_value'.format(p['side'])
             dct[symbol][p['side']] += abs(p['quantity'])
+            dct[symbol].update({text: value})
         return dct
