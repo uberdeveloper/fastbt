@@ -460,9 +460,13 @@ class Broker:
 
     def cancel_all_orders(self, **kwargs):
         """
-        Cancel all pending orders
+        Cancel all pending orders.
+        To close a particular class or orders, include
+        them in kwargs
         """
         orders = self.orders()
+        if kwargs:
+            orders = at.dict_filter(orders, **kwargs)
         if len(orders) > 0:
             for order in self.orders():
                 self.order_cancel(order['order_id'])
@@ -470,9 +474,13 @@ class Broker:
     def close_all_positions(self, **kwargs):
         """
         Close all existing positions by placing
-        market orders
+        market orders.
+        To close a particular class of orders, include 
+        them in kwargs
         """
         positions = self.positions()
+        if kwargs:
+            positions = at.dict_filter(positions, **kwargs)
         if len(positions) > 0:
             for position in positions:
                 qty = abs(position['qty'])
