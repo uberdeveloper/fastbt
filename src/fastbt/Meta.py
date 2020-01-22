@@ -491,13 +491,14 @@ class Broker:
                     self.order_place(symbol=symbol, quantity=qty,
                         order_type='MARKET', side=side)
 
-    def consolidated(self):
+    def consolidated(self, **kwargs):
         """
         Get the consolidated list of orders and positions
         by each symbol
         """
         dct = defaultdict()
         ords = self.orders()
+        ords = self.dict_filter(ords, **kwargs)
         orders = []
         for o in ords:
             if (o['status'] == 'PENDING') or (o['status'] == 'PARTIAL'):
@@ -511,7 +512,9 @@ class Broker:
             dct[symbol][o['side']] += abs(o['quantity'])
             text = '{}_value'.format(o['side'])
             dct[symbol].update({text: value})
-        for p in self.positions():
+        positions = self.positions()
+        positions = self.dict_filter(positions, **kwargs)
+        for p in positions:
             symbol = p['symbol']
             if not(dct.get(symbol)):
                 dct[symbol] = Counter()
@@ -522,18 +525,23 @@ class Broker:
             dct[symbol].update({text: value})
         return dct
 
-    def not_covered(self, tick_size=0.05):
+    def not_covered(self, tick_size=0.05, **kwargs):
         """
         Get the list of orders/positions not covered.
         returns a named tuple containing the symbol, the side not covered,
         quantity not covered and the average price of the side covered
+        tick_size
+            tick_size to be adjusted in the final price
+        kwargs
+            list of keyword arguments to filter orders and positions
+            to be passed to the consolidated function
         Note
         -----
         1) This is a consolidated list including both positions and orders
         2) Orders are compared by quantity and not by price
         3) Bracket, OCO and other order types not covered
         """
-        all_orders = self.consolidated()
+        all_orders = self.consolidated(**kwargs)
         tup = namedtuple('uncovered', ['symbol', 'side', 'quantity', 'price'])
         uncovered = []
         for k,v in all_orders.items():
