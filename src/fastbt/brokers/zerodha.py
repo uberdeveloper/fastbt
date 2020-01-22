@@ -298,3 +298,30 @@ class Zerodha(Broker):
                 print(e, self.rename(dct))
         return all_orders
 
+    def _create_stop(self):
+        sl = self._create_stop_loss_orders(percent=3)
+        orders = []
+        for s in sl:
+            dct = s.copy()
+            dct.update({
+                'exchange': 'NSE',
+                'product': 'MIS',
+                'validity': 'DAY',
+                'variety': 'regular'
+                })
+            dct['trigger_price'] = s['price']
+            symbol = '{e}:{sym}'.format(e='NSE', sym=s['symbol'])
+            ltp = self.ltp(symbol)[symbol]['last_price']
+            order_type = self.get_order_type(s['price'], ltp, s['side'])
+            dct['order_type'] = order_type
+            orders.append(dct)
+        return orders
+
+    def cover_all(self):
+        """
+        Place a stop loss for all uncovered orders
+        """
+        orders = self._create_stop()
+        for o in orders:
+            print(self.order_place(**o))
+
