@@ -233,6 +233,13 @@ class Zerodha(Broker):
             else:
                 p['side'] = 'SELL'
         return pos
+
+    @pre
+    def order_place(self, **kwargs):
+        """
+        Place an order
+        """
+        return self.kite.place_order(**kwargs)
  
     def _custom_orders(self, data, **kwargs):
         """
