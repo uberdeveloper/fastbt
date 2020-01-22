@@ -525,6 +525,8 @@ class Broker:
     def not_covered(self, tick_size=0.05):
         """
         Get the list of orders/positions not covered.
+        returns a named tuple containing the symbol, the side not covered,
+        quantity not covered and the average price of the side covered
         Note
         -----
         1) This is a consolidated list including both positions and orders
@@ -544,4 +546,37 @@ class Broker:
                 tp = tup(k, 'BUY', v['SELL']-v['BUY'], avg_price)
                 uncovered.append(tp)
         return uncovered
+
+    def _create_stop_loss_orders(self, percent=1, tick_size=0.05):
+        """
+        Create a list of stop orders for orders not covered
+        percent
+            percentage of stop loss on the average price
+        """
+        not_covered = self.not_covered()
+        lst = []
+        def get_sl(price, side, percent):
+            """
+            Get stop loss for the order
+            Note
+            -----
+            The implementation is in the reverse since we 
+            already knew the side to place the order and 
+            the price is that of the opposite side
+            """
+            if side == 'BUY':
+                return tick(price*(1+percent*0.01), tick_size)
+            elif side == 'SELL':
+                return tick(price*(1-percent*0.01), tick_size)
+            else:
+                return price
+        for nc in not_covered:
+            dct = {}
+            dct['symbol'] = nc.symbol
+            dct['quantity'] = nc.quantity
+            dct['side'] = nc.side
+            dct['price'] = get_sl(nc.price, nc.side, percent)
+            lst.append(dct)
+        return lst
+
 
