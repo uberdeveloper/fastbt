@@ -3,6 +3,7 @@ This is the meta trading class from which other classes
 are derived
 """
 from fastbt.tradebook import TradeBook
+from fastbt.utils import tick
 from collections import namedtuple, Counter, defaultdict
 from itertools import groupby
 from enum import Enum
@@ -520,3 +521,27 @@ class Broker:
             dct[symbol][p['side']] += abs(p['quantity'])
             dct[symbol].update({text: value})
         return dct
+
+    def not_covered(self, tick_size=0.05):
+        """
+        Get the list of orders/positions not covered.
+        Note
+        -----
+        1) This is a consolidated list including both positions and orders
+        2) Orders are compared by quantity and not by price
+        3) Bracket, OCO and other order types not covered
+        """
+        all_orders = self.consolidated()
+        tup = namedtuple('uncovered', ['symbol', 'side', 'quantity', 'price'])
+        uncovered = []
+        for k,v in all_orders.items():
+            if v['BUY'] > v['SELL']:
+                avg_price = tick(v['BUY_value']/v['BUY'], tick_size)
+                tp = tup(k, 'SELL', v['BUY']-v['SELL'], avg_price)
+                uncovered.append(tp)
+            elif v['SELL'] > v['BUY']:
+                avg_price = tick(v['SELL_value']/v['SELL'], tick_size)
+                tp = tup(k, 'BUY', v['SELL']-v['BUY'], avg_price)
+                uncovered.append(tp)
+        return uncovered
+
