@@ -298,8 +298,8 @@ class Zerodha(Broker):
                 print(e, self.rename(dct))
         return all_orders
 
-    def _create_stop(self):
-        sl = self._create_stop_loss_orders(percent=3)
+    def _create_stop(self, **kwargs):
+        sl = self._create_stop_loss_orders(percent=3, **kwargs)
         orders = []
         for s in sl:
             dct = s.copy()
@@ -317,11 +317,11 @@ class Zerodha(Broker):
             orders.append(dct)
         return orders
 
-    def cover_all(self):
+    def cover_all(self, **kwargs):
         """
         Place a stop loss for all uncovered orders
         """
-        orders = self._create_stop()
+        orders = self._create_stop(**kwargs)
         for o in orders:
             print(self.order_place(**o))
 

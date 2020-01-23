@@ -555,13 +555,13 @@ class Broker:
                 uncovered.append(tp)
         return uncovered
 
-    def _create_stop_loss_orders(self, percent=1, tick_size=0.05):
+    def _create_stop_loss_orders(self, percent=1, tick_size=0.05, **kwargs):
         """
         Create a list of stop orders for orders not covered
         percent
             percentage of stop loss on the average price
         """
-        not_covered = self.not_covered()
+        not_covered = self.not_covered(**kwargs)
         lst = []
         def get_sl(price, side, percent):
             """
