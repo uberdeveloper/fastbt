@@ -484,9 +484,9 @@ class Broker:
             positions = at.dict_filter(positions, **kwargs)
         if len(positions) > 0:
             for position in positions:
-                qty = abs(position['qty'])
+                qty = abs(position['quantity'])
                 symbol = position['symbol']
-                side = self._side[position['side']]
+                side = self._sides[position['side']]
                 if qty > 0:
                     self.order_place(symbol=symbol, quantity=qty,
                         order_type='MARKET', side=side)
