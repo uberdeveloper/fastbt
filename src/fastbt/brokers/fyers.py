@@ -91,13 +91,30 @@ class Fyers(Broker):
             f.write(token)
         driver.close()
 
-
     def _shortcuts(self):
-        self.profile = partial(self.fyers.get_profile, token=self._token)
         self.holdings = partial(self.fyers.holdings, token=self._token)
-        self.orders = partial(self.fyers.orders, token=self._token)
         self.trades = partial(self.fyers.tradebook, token=self._token)
         self.positions = partial(self.fyers.positions, token=self._token)
+
+    def _fetch(self, data):
+        """
+        Fetch the necessary data from the request
+        data
+            the data dictionary returned from the request
+        returns None in case of other status codes
+        """
+        if data['code'] in [200,201]:
+            return data['data']
+        else:
+            return None
+
+    @post
+    def profile(self):
+        prof = self.fyers.get_profile(self._token) 
+        if self._fetch(prof):
+            return self._fetch(prof)['result']
+        else:
+            return {}  
 
     @pre    
     def order_place(self, **kwargs):
@@ -113,6 +130,7 @@ class Fyers(Broker):
     @post
     def orders(self):
         ords = self.fyers.orders(token=self._token)
+
         if ords['code'] == 200:
             return ords['data']['orderBook']
         else:
