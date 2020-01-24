@@ -111,8 +111,9 @@ class Fyers(Broker):
     @post
     def profile(self):
         prof = self.fyers.get_profile(self._token) 
-        if self._fetch(prof):
-            return self._fetch(prof)['result']
+        prof = self._fetch(profi)
+        if prof:
+            prof['result']
         else:
             return {}  
 
@@ -130,9 +131,25 @@ class Fyers(Broker):
     @post
     def orders(self):
         ords = self.fyers.orders(token=self._token)
-
-        if ords['code'] == 200:
-            return ords['data']['orderBook']
+        ords = self._fetch(ords)
+        if ords:
+            all_orders = ords['orderBook']
+            for o in all_orders:
+                if o['side'] == 1:
+                    o['side'] = 'BUY'
+                elif o['side'] == -1:
+                    o['side'] = 'SELL'
+            # update status
+            status_map = {
+                1: 'CANCELED',
+                2: 'COMPLETE',
+                4: 'PENDING',
+                5: 'REJECTED',
+                6: 'PENDING'
+                }
+            for o in all_orders:
+                o['status'] = status_map.get(o['status'], 'PENDING')               
+            return all_orders
         else:
             return []
 
