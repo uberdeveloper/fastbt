@@ -31,4 +31,15 @@ def spread_test(data, periods=['Y','Q','M']):
 		collect.append(values)
 	return pd.DataFrame(collect, index=periods, 
 		columns=['num_profit', 'profit', 'num_loss', 'loss'])
+
+def shuffled_drawdown(data, capital=1000):
+	"""
+	Calculate the shuffled drawdown for the given data
+	"""
+	np.random.shuffle(data)
+	cum_p = data.cumsum()
+	max_p = np.maximum.accumulate(cum_p)
+	diff = (cum_p - max_p)/capital
+	return diff.min()
+
 	
