@@ -37,7 +37,7 @@ def shuffled_drawdown(data, capital=1000):
 	Calculate the shuffled drawdown for the given data
 	"""
 	np.random.shuffle(data)
-	cum_p = data.cumsum()
+	cum_p = data.cumsum() + capital
 	max_p = np.maximum.accumulate(cum_p)
 	diff = (cum_p - max_p)/capital
 	return diff.min()
