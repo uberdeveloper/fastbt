@@ -7,9 +7,10 @@ from fastbt.utils import tick
 from collections import namedtuple, Counter, defaultdict
 from itertools import groupby
 from enum import Enum
-from inspect import isfunction
+import inspect
 import datetime
 import os
+import yaml
 
 class Status(Enum):
     COMPLETE = 1
@@ -309,6 +310,12 @@ class Broker:
     def __init__(self, **kwargs):
         """
         All initial conditions go here
+        kwargs
+        The following keyword arguments are supported
+        is_override
+            use the override option
+        override_file
+            path to override file
         """
         self._sides = {'B': 'S', 'S': 'B'}
         self._override = {
@@ -321,6 +328,18 @@ class Broker:
             'order_cancel': {},
             'order_modify': {}
         }
+        override = kwargs.pop('is_override', True)
+        name = self.__class__.__name__
+        file_path = inspect.getfile(self.__class__).split('.')[0]
+        override_file = kwargs.pop('override_file', f'{file_path}.yaml')
+        try:
+            with open(override_file, 'r') as f:
+                dct = yaml.safe_load(f)
+            for k,v in dct.items():
+                self.set_override(k, v)
+        except FileNotFoundError:
+            print('Default override file not found')
+
 
     def get_override(self, key=None):
         """
