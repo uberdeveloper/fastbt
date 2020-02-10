@@ -508,8 +508,9 @@ class Broker:
             if not(dct.get(symbol)):
                 dct[symbol] = Counter()
             price = max(o['price'], o['trigger_price'])
-            value = abs(price * o['quantity'])
-            dct[symbol][o['side']] += abs(o['quantity'])
+            qty = abs(o['quantity']) - abs(o['filled_quantity'])
+            value = abs(price *qty)
+            dct[symbol][o['side']] += qty
             text = '{}_value'.format(o['side'])
             dct[symbol].update({text: value})
         positions = self.positions()
