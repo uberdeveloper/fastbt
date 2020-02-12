@@ -500,7 +500,7 @@ class Broker:
         """
         positions = self.positions()
         if kwargs:
-            positions = at.dict_filter(positions, **kwargs)
+            positions = self.dict_filter(positions, **kwargs)
         if len(positions) > 0:
             for position in positions:
                 qty = abs(position['quantity'])
