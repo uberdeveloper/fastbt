@@ -325,3 +325,21 @@ class Zerodha(Broker):
         for o in orders:
             print(self.order_place(**o))
 
+    def close_all_positions(self, **kwargs):
+        """
+        Close all existing positions
+        """
+        positions = self.positions()
+        print(kwargs)
+        if kwargs:
+            positions = self.dict_filter(positions, **kwargs)
+        if len(positions) > 0:
+            for position in positions:
+                qty = abs(position['quantity'])
+                symbol = position['symbol']
+                side = self._sides[position['side']]
+                if qty > 0:
+                    self.order_place(symbol=symbol, quantity=qty,
+                        order_type='MARKET', side=side,
+                        variety='regular', exchange='NSE', product='MIS')
+
