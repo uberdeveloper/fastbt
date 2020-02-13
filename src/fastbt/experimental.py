@@ -907,3 +907,64 @@ def traverse(high, low, points):
             else:
                 price = points[j]
     return (hit, timesteps, high[i], low[i])
+
+class Strategy:
+    """
+    An automated strategy implementation class
+    """
+    def __init__(self):
+        self.datas = []
+
+    @staticmethod    
+    def tradebook(open, high, low, close, **kwargs):
+        """
+        Numpy tradebook implementation with logic.
+        To be implemented for each case
+        """
+        raise NotImplementedError
+
+    def _agged(self, times, data=None):        
+        """
+        Get the aggregated data for the given times
+        data
+            intraday dataframe. If None, self.datas[0] is picked
+        times
+            list of 2-tuples with start and end times
+        Note
+        -----
+        1) For each time tuple given in list, data is aggregated
+        in OHLC form and added to a dataframe
+        2) Columns are numbered based on the order of the times 
+        list so that the first tuple is named 0, the next 1 and so on 
+        3) Expect a date and timestamp column in the list
+        """
+        from fastbt.utils import recursive_merge
+        print(times)
+        agged = {
+            'open': 'first',
+            'high': 'max',
+            'low': 'min',
+            'close': 'last'
+            }
+        dfs = []
+        if not(data):
+            data = self.datas[0]
+        for i,(s,e) in enumerate(times):
+            temp = data.set_index('timestamp').between_time(s,e).groupby('date').agg(agged)
+            columns = {x:'{x}{i}'.format(x=x,i=i)
+            for x in ['open', 'high', 'low', 'close']}
+            temp.rename(columns=columns, inplace=True)
+            dfs.append(temp)
+        return recursive_merge(dfs, on=['date']).reset_index()
+
+    def metric(self):
+        """
+        Default metric to use
+        """
+        pass
+
+    def plot(self):
+        """
+        A general plotting function
+        """
+        pass
