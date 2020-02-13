@@ -912,14 +912,32 @@ class Strategy:
     """
     An automated strategy implementation class
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
+        """
+        keyword arguments
+        result_cols
+            column names for any extra value emitted 
+            from the tradebook function. The first 4
+            columns are automatically named entry_time,
+            entry_price, exit_time and exit_price and
+            must correspond accordingly
+        """
         self.datas = []
+        self.result_cols = kwargs.pop('result_cols', None)
 
     @staticmethod    
     def tradebook(open, high, low, close, **kwargs):
         """
         Numpy tradebook implementation with logic.
         To be implemented for each case
+        Note
+        -----
+        1) Should always return an array of values
+        2) The array must be a one-dimensional array
+        3) The first 4 values in the array must be
+        entry time, entry price, exit time and exit price
+        4) It is assumed only one trade is done each day
+        5) For multiple trades, modify the result function
         """
         raise NotImplementedError
 
@@ -956,6 +974,60 @@ class Strategy:
             temp.rename(columns=columns, inplace=True)
             dfs.append(temp)
         return recursive_merge(dfs, on=['date']).reset_index()
+
+    def _each_day(self, data=None, cols=None, **kwargs):
+        """
+        Runs the tradebook function on each day.
+        data
+            dataframe on which tradebook simulation is run.
+            In case of None, the last item in self.datas is used
+            The dataframe must have a date column and it must
+            be sorted by timestamp
+        cols
+            columns to be passed to the tradebook function.
+            The columns should be argument names in the
+            tradebook function
+        """
+        if not(data):
+            data = self.datas[-1] # the last appended data
+        grouped = data.groupby('date')
+        if not(cols):
+            cols = ['open', 'high', 'low', 'close']
+        tradebook = self.tradebook
+        def tb(x):
+            dct = {c:x[c].values for c in cols}
+            kwargs.update(dct)
+            return tradebook(**kwargs)
+        res = grouped.apply(tb)
+        return res
+
+    def result(self):
+        """
+        Result of the strategy.
+        The output of the tradebook function is the input to
+        this function. Converts the array into a dataframe 
+        and adds some useful columns
+        """
+        tmp = self._each_day()
+        def get_column_names():
+            """
+            Get column names
+            """
+            cols = ['entry_time', 'entry_price', 'exit_time', 'exit_price']
+            if self.result_cols:
+                print(cols + self.result_cols)
+                return cols + self.result_cols
+            else:
+                L = len(tmp.iloc[0])                
+                return cols + [f'col{i}' for i in range(4,L)]
+        
+        res = pd.DataFrame(tmp.values.tolist(),
+            index=tmp.index,
+            columns=get_column_names())
+        res['profit'] = res.eval('exit_price-entry_price')
+        res['cum_p'] = res.profit.cumsum()
+        res['max_p'] = res.cum_p.expanding().max()
+        return res
 
     def metric(self):
         """
