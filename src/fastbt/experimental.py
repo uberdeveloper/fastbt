@@ -8,9 +8,11 @@ having an entirely new branch
 """
 import pandas as pd 
 import numpy as np
+import matplotlib.pyplot as plt
 from numba import jit, njit
 from intake.source.base import DataSource, Schema
 import os
+
 
 @jit
 def v_cusum(array):
@@ -987,6 +989,8 @@ class Strategy:
             columns to be passed to the tradebook function.
             The columns should be argument names in the
             tradebook function
+        kwargs
+            keyword arguments would be passed to the tradebook function
         """
         if not(data):
             data = self.datas[-1] # the last appended data
@@ -1001,14 +1005,14 @@ class Strategy:
         res = grouped.apply(tb)
         return res
 
-    def result(self):
+    def result(self, **kwargs):
         """
         Result of the strategy.
         The output of the tradebook function is the input to
         this function. Converts the array into a dataframe 
         and adds some useful columns
         """
-        tmp = self._each_day()
+        tmp = self._each_day(**kwargs)
         def get_column_names():
             """
             Get column names
@@ -1024,7 +1028,8 @@ class Strategy:
         res = pd.DataFrame(tmp.values.tolist(),
             index=tmp.index,
             columns=get_column_names())
-        res['profit'] = res.eval('exit_price-entry_price')
+        res['year'] = res.index.year
+        res['profit'] = res.eval('entry_price-exit_price')
         res['cum_p'] = res.profit.cumsum()
         res['max_p'] = res.cum_p.expanding().max()
         return res
@@ -1035,8 +1040,20 @@ class Strategy:
         """
         pass
 
-    def plot(self):
+    def plot(self, data):
         """
         A general plotting function
         """
-        pass
+        data[['cum_p', 'max_p']].plot()
+        plt.figure()
+        data.groupby('year').profit.sum().plot.bar()
+
+    def run(self, plotting=True, **kwargs):
+        """
+        Run the entire process
+        """
+        res = self.result(**kwargs)
+        if plotting:
+            self.plot(res)
+        return res # For further analysis
+        
