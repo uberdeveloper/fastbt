@@ -330,7 +330,7 @@ class Broker:
         }
         override = kwargs.pop('is_override', True)
         name = self.__class__.__name__
-        file_path = inspect.getfile(self.__class__).split('.')[0]
+        file_path = inspect.getfile(self.__class__)[:-3]
         override_file = kwargs.pop('override_file', f'{file_path}.yaml')
         try:
             with open(override_file, 'r') as f:
