@@ -10,9 +10,18 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from numba import jit, njit
-from intake.source.base import DataSource, Schema
 import os
+from fastbt.utils import multi_args
 
+class DataSource:
+    """
+    A dummy datasource class replacing the intake datasource
+    class to enable fast loading of this module
+    This is a temporary ugly fix
+    Intake catalog classes must be moved to a separate module
+    """
+    def __init__(self):
+        pass
 
 @jit
 def v_cusum(array):
@@ -319,6 +328,7 @@ class HDFSource(DataSource):
 
     def _close(self):
         print('Not implemented')
+
 
 
 def twin_plot(data, y_axis, x_axis='timestamp'):
@@ -959,7 +969,6 @@ class Strategy:
         3) Expect a date and timestamp column in the list
         """
         from fastbt.utils import recursive_merge
-        print(times)
         agged = {
             'open': 'first',
             'high': 'max',
@@ -1029,7 +1038,7 @@ class Strategy:
             index=tmp.index,
             columns=get_column_names())
         res['year'] = res.index.year
-        res['profit'] = res.eval('entry_price-exit_price')
+        res['profit'] = res.eval('exit_price-entry_price')
         res['cum_p'] = res.profit.cumsum()
         res['max_p'] = res.cum_p.expanding().max()
         return res
@@ -1038,7 +1047,7 @@ class Strategy:
         """
         Default metric to use
         """
-        pass
+        return
 
     def plot(self, data):
         """
@@ -1047,6 +1056,18 @@ class Strategy:
         data[['cum_p', 'max_p']].plot()
         plt.figure()
         data.groupby('year').profit.sum().plot.bar()
+
+    def simulator(self, **kwargs):
+        """
+        Run simulation and return results
+        kwargs
+            keyword arguments where argument is the name of 
+            the variable and values as list the variable takes.
+            The keyword variable is passed to the tradebook
+            function apart from OHLC values
+        """
+        pass
+
 
     def run(self, plotting=True, **kwargs):
         """
