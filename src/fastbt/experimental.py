@@ -1078,3 +1078,31 @@ class Strategy:
             self.plot(res)
         return res # For further analysis
         
+def advances(data, date='date', column=None, out='advances'):
+    """
+    Get the advances by day
+    data
+        dataframe with the necessary columns
+    date
+        date column in the dataframe to group by
+    column
+        column on which ratio would be calculated, usually a returns column
+        If column is not available, the close/open return is calculated
+    out
+        output format one of advances/declines/difference/ratio/all
+        all returns everything
+    """
+    data = data.copy()
+    if column is None:
+        data['pret'] = data.eval('(close/open)-1')
+        column = 'pret'
+    col = 'is_' + column
+    data[col] = data.eval(f'{column}>0')+0
+    data2 = data.groupby([date, col]).size().unstack().fillna(0).astype(int)
+    data2.columns = ['declines', 'advances']
+    data2['difference'] = data2.eval('advances-declines')
+    data2['ratio'] = data2.eval('advances/declines')
+    if out == 'all':
+        return data2
+    else:
+        return data2[out]
