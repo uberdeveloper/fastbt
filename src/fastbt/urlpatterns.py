@@ -9,7 +9,7 @@ file_patterns = {
     ),
     
     'sec_del': (
-        'https://www.nseindia.com/archives/equities/mto/MTO_{date}.DAT',
+        'https://archives.nseindia.com/archives/equities/mto/MTO_{date}.DAT',
         lambda x: {
             'date': x.strftime('%d%m%Y')
         }
@@ -29,6 +29,13 @@ file_patterns = {
             'month': x.strftime('%b').upper(),
             'date': x.strftime('%d%b%Y').upper()           
         }
-    )
+    ),
+
+    'bhav_sec': (
+        'https://archives.nseindia.com/products/content/sec_bhavdata_full_{date}.csv',
+        lambda x: {
+            'date': strftime('%d%m%Y')
+        }
+        )
 }
 
