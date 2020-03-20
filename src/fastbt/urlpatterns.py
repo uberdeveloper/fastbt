@@ -34,7 +34,7 @@ file_patterns = {
     'bhav_sec': (
         'https://archives.nseindia.com/products/content/sec_bhavdata_full_{date}.csv',
         lambda x: {
-            'date': strftime('%d%m%Y')
+            'date': x.strftime('%d%m%Y')
         }
         )
 }
