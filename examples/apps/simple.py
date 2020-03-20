@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import pyfolio as pf
+import matplotlib.pyplot as plt
 from fastbt.rapid import backtest
 from fastbt.datasource import DataSource
 
@@ -25,6 +27,15 @@ def transform(data):
 def backtesting(data, **kwargs):
     results = backtest(data=data, **kwargs)
     return results
+
+
+def results_frame(data):
+    byday = result.groupby('timestamp').net_profit.sum().reset_index()
+    byday['cum_profit'] = byday.net_profit.cumsum()
+    byday['max_profit'] = byday.cum_profit.expanding().max()
+    byday['year'] = byday.timestamp.dt.year
+    byday['month'] = byday.timestamp.dt.month
+    return byday.set_index('timestamp')
 
 
 data_uploader = st.text_input(label='Enter the entire path of your file')
@@ -65,3 +76,8 @@ if data_uploader:
     df2 = transform(df2)
     if st.checkbox('Run Backtest'):
         result = backtesting(data=df2, order=order, price=price, stop_loss=stop_loss, sort_by=sort_by, sort_mode=sort_mode)
+        res = results_frame(result)
+        st.line_chart(res[['cum_profit', 'max_profit']])
+        by_month = res.groupby(['year', 'month']).net_profit.sum()
+        st.write(by_month)
+        st.pyplot(by_month)
