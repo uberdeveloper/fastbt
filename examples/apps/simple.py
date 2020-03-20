@@ -29,6 +29,7 @@ def backtesting(data, **kwargs):
     return results
 
 
+@st.cache
 def results_frame(data):
     byday = result.groupby('timestamp').net_profit.sum().reset_index()
     byday['cum_profit'] = byday.net_profit.cumsum()
@@ -40,8 +41,6 @@ def results_frame(data):
 
 data_uploader = st.text_input(label='Enter the entire path of your file')
 universe_uploader = st.file_uploader(label='Load your universe Excel file')
-st.write(data_uploader)
-st.write(universe_uploader)
 universes = []
 symbols = None
 xls = None
@@ -75,9 +74,17 @@ if data_uploader:
     df2 = load_data(data, symbols)
     df2 = transform(df2)
     if st.checkbox('Run Backtest'):
-        result = backtesting(data=df2, order=order, price=price, stop_loss=stop_loss, sort_by=sort_by, sort_mode=sort_mode)
+        result = backtesting(data=df2, order=order, price=price, stop_loss=stop_loss, sort_by=sort_by, sort_mode=sort_mode,
+                             commission=0.035, slippage=0.03)
         res = results_frame(result)
         st.line_chart(res[['cum_profit', 'max_profit']])
         by_month = res.groupby(['year', 'month']).net_profit.sum()
-        st.write(by_month)
-        st.pyplot(by_month)
+        by_month.plot.bar(title='Net profit by month')
+        st.pyplot()
+        st.subheader('Statistics')
+        st.write(pf.timeseries.perf_stats(res.net_profit/100000))
+        st.subheader('Drawdown table')
+        st.table(pf.timeseries.gen_drawdown_table(res.net_profit/100000))
+        if st.checkbox('Export results to csv'):
+            result.to_csv('output.csv')
+            st.write('File saved')
