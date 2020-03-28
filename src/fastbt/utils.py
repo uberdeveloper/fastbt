@@ -384,39 +384,27 @@ def generate_index(index, changes, dates=None):
     * The changes dataframe is expected in the exact order. 
     Any other columns are discarded
     """
-    import datetime
-    myindex = defaultdict(list)
+    collect = {}
     idx = index[:]
-    # The first 3 column names assigned for lookup
-    evt,sym,flag = changes.columns[:3]
-    today = pd.to_datetime(datetime.date.today())
-    first_date = changes[evt].min()
-    last_date = max(changes[evt].max(), today)
-    all_dates = pd.date_range(first_date, last_date)
-    if dates is None:
-        dates = all_dates
-    # Create a change look up dictionary
-    chg_lu = defaultdict(list)
-    for chg in changes.to_dict(orient='records'):
-        dt = chg[evt]
-        # append a 2-tuple of symbol and flag
-        chg_lu[dt].append((chg[sym], chg[flag]))
-    for date in reversed(all_dates):
-        if date in chg_lu:
-            for symbol, flg in chg_lu[date]:
-                if flg is True:
-                    # since we see dates in reversed order
-                    # we remove them from the index for previous dates
-                    idx.remove(symbol)
-                else:
-                    idx.append(symbol)
-        myindex[date] = idx[:]
-    lst = []
-    for k,v in myindex.items():
-        lst.extend([(k,vi) for vi in v])
-    df = pd.DataFrame(lst, columns=['date', 'symbol']).sort_values(
-        by='date')
-    return df[df.date.isin(dates)].reset_index(drop=True)
+    changes = changes.sort_values(by='date', ascending=False)
+    dates = [x for x in reversed(dates)]
+    uniq_dates = [x for x in changes.date.unique()]
+    for d in dates:
+        if d in uniq_dates:
+            formula = f'date=="{d}"'
+            chx = changes.query(formula)
+            for i, row in chx.iterrows():
+                try:
+                    if not(row['flag']):
+                        idx.append(row['symbol'])
+                    else:
+                        idx.remove(row['symbol'])
+                except Exception as e:
+                    print(e, d, row)
+        collect[d] = idx[:]
+    frame = pd.melt(pd.DataFrame.from_dict(collect))
+    frame.columns = ['date', 'symbol']
+    return frame.sort_values(by='date').reset_index(drop=True)
 
 
 def custom_index(data, on, window=30, function='median', num=30, sort_mode=False):
