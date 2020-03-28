@@ -5,3 +5,9 @@ orders:
   limitPrice: price
   filledQty: filled_quantity
   type: order_type
+
+profile:
+  user_id: user_id
+  user_name: user_name
+  email: email_id
+  
