@@ -173,7 +173,6 @@ def low_breach(s):
     return pd.Series(lows, index=ts)
 
 
-
 class ExcelSource(DataSource):
 
     container = 'dataframe'
@@ -1106,3 +1105,28 @@ def advances(data, date='date', column=None, out='advances'):
         return data2
     else:
         return data2[out]
+
+class CodeGenerator:
+
+    def __init__(self, name):
+        self._name = name
+        self._code = """
+        def {{func_name | default('tradebook', true)}}(open, high, low, close, **kwargs):
+            length = len(high)
+            arr = np.zeros({{n|default(4, true)}})
+            isTrade = False
+            canTrade = False
+            sl = 0
+            for i in np.arange(1, length):
+                pass
+        """
+
+    @property
+    def name(self):
+        return self._name
+
+    def make_code(self):
+        from jinja2 import Template
+        template = Template(self._code)
+        return template.render()
+
