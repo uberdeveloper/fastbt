@@ -1108,22 +1108,51 @@ def advances(data, date='date', column=None, out='advances'):
 
 class CodeGenerator:
 
-    def __init__(self, name):
+    def __init__(self, name, blocks=None):
         self._name = name
-        self._code = """
-        def {{func_name | default('tradebook', true)}}(open, high, low, close, **kwargs):
-            length = len(high)
-            arr = np.zeros({{n|default(4, true)}})
-            isTrade = False
-            canTrade = False
-            sl = 0
-            for i in np.arange(1, length):
-                pass
-        """
+        self._struct = []
+        self._blocks = {}
 
     @property
     def name(self):
         return self._name
+
+    def add_block(self, name):
+        """
+        Add a code block
+        name
+            name of the code block
+        name should be a key in the blocks dictionary
+        """
+        self._struct.append('{{' + str(name) + '}}')
+
+    def add_text(self, text):
+        """
+        Add text
+        text
+            Text to add
+        the given text is added without any variable interpolation
+        """
+        self._struct.append(text)
+
+    def add_code_block(self, name, block):
+        """
+        Add a code block to the existing blocks dictionary
+        name
+            name of the block
+        block
+            actual code
+        If name is already in the blocks dictionary, 
+        it would be overwritten
+        """
+        self._blocks[name] = block
+
+    def clear(self):
+        """
+        Clear everything in the existing structure
+        """
+        self._struct = []
+
 
     def make_code(self):
         from jinja2 import Template
