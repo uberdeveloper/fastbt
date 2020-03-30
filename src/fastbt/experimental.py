@@ -1112,6 +1112,7 @@ class CodeGenerator:
         self._name = name
         self._struct = []
         self._blocks = {}
+        self._block_names = []
 
     @property
     def name(self):
@@ -1124,6 +1125,7 @@ class CodeGenerator:
             name of the code block
         name should be a key in the blocks dictionary
         """
+        self._block_names.append(name)
         self._struct.append('{{' + str(name) + '}}')
 
     def add_text(self, text):
@@ -1152,10 +1154,14 @@ class CodeGenerator:
         Clear everything in the existing structure
         """
         self._struct = []
+        self._block_names = []
 
 
-    def make_code(self):
+    def generate_code(self):
         from jinja2 import Template
-        template = Template(self._code)
-        return template.render()
+        code = '\n'.join(self._struct)
+        template = Template(code)
+        substitution = {b:self._blocks.get(b) for b in self._block_names}
+        return template.render(**substitution)
+  
 
