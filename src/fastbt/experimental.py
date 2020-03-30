@@ -1118,15 +1118,26 @@ class CodeGenerator:
     def name(self):
         return self._name
 
-    def add_block(self, name):
+    def add_block(self, name, indent=False):
         """
         Add a code block
         name
             name of the code block
-        name should be a key in the blocks dictionary
+        indent
+            whether to apply indentation to the code
+            only one level of indentation is added
+        Note
+        -----
+        1. name should be a key in the blocks dictionary
+        2. indentation is provided with 4 spaces
+
         """
-        self._block_names.append(name)
-        self._struct.append('{{' + str(name) + '}}')
+        self._block_names.append(name)        
+        if indent:
+            txt = '{{' +  str(name) + ' | indent(4, first=True)}}'
+        else:
+            txt = '{{' + str(name) + '}}'
+        self._struct.append(txt)
 
     def add_text(self, text):
         """
@@ -1157,11 +1168,12 @@ class CodeGenerator:
         self._block_names = []
 
 
-    def generate_code(self):
+    def generate_code(self, **kwargs):
         from jinja2 import Template
         code = '\n'.join(self._struct)
         template = Template(code)
         substitution = {b:self._blocks.get(b) for b in self._block_names}
+        substitution.update(kwargs)
         return template.render(**substitution)
   
 
