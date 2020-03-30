@@ -1168,12 +1168,18 @@ class CodeGenerator:
         self._block_names = []
 
 
-    def generate_code(self, **kwargs):
+    def generate_code(self):
         from jinja2 import Template
         code = '\n'.join(self._struct)
         template = Template(code)
         substitution = {b:self._blocks.get(b) for b in self._block_names}
-        substitution.update(kwargs)
         return template.render(**substitution)
+
+    def save_file(self, filename=None):
+        if not(filename):
+            filename = self.name + '.py'
+        code = self.generate_code()
+        with open(filename, 'w') as f:
+            f.write(code)
   
 
