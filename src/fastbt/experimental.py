@@ -1118,7 +1118,7 @@ class CodeGenerator:
     def name(self):
         return self._name
 
-    def add_block(self, name, indent=False):
+    def add_block(self, name, indent=False, n=4):
         """
         Add a code block
         name
@@ -1132,9 +1132,9 @@ class CodeGenerator:
         2. indentation is provided with 4 spaces
 
         """
-        self._block_names.append(name)        
+        self._block_names.append(name)
         if indent:
-            txt = '{{' +  str(name) + ' | indent(4, first=True)}}'
+            txt = '{{' + str(name) + ' | indent(' + str(n) + ', first=True)}}'
         else:
             txt = '{{' + str(name) + '}}'
         self._struct.append(txt)
