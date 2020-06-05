@@ -1183,3 +1183,75 @@ class CodeGenerator:
             f.write(code)
   
 
+def renko_plot(data, bricks_col='brick'):
+    """
+    Draw a renko plot from the given dataframe
+    data
+        dataframe containing renko data
+    bricks_col
+        name of the bricks column; default brick
+    Note
+    -----
+    Brick size is calculated from bricks column automatically
+    """
+    from bokeh.plotting import figure
+    data = data.copy()
+    brick_size = abs(data[bricks_col].iloc[0] - data[bricks_col].iloc[1])
+    data['left'] = range(len(data))
+    data['right'] = data.left.values + 1
+    data['top'] = data[bricks_col].values
+    data['bottom'] = data.top + brick_size
+    data['move'] = (data.brick>data.brick.shift(1))+0
+    data['color'] = ['green' if x == 1 else 'red' for x in data.move.values]
+    p = figure(title='Renko chart')
+    p.quad(top='top', bottom='bottom', left='left', right='right',color= 'color',
+       source=data)
+    return p
+
+class DayTrading:
+    def __init__(self,data=None, interval=None):
+        """
+        arguments to be passed to init
+        data
+            primary dataframe
+            this is the dataframe on which all work would be done
+        interval
+            interval as pandas dataframe
+        """
+        self._interval = interval
+        self._data = data
+        self._sources = {}        
+    
+    @staticmethod
+    def agged(data, interval='5min', column_name='timestamp'):
+        return data.set_index(column_name).resample(interval, label='right').agg({
+        'open': 'first',
+        'high': 'max',
+        'low': 'min',
+        'close': 'last'
+    })
+   
+    def add_source(self, name:str, data:str):
+        """
+        adds a data source to the existing sources.
+        you could access this as an attribute
+        name
+            the name of the data source
+        data
+            actual data as a pandas dataframe
+        Note
+        -----
+        This is just a convenient function to 
+        add a datasource as an attribute
+        """
+        self._sources[name] = data
+        setattr(self, name, data)
+        
+    def run(self):
+        print('Started running the program')
+        if self._interval:
+            interval = self._interval
+        else:
+            interval = '5min'
+        df2 = self.agged(self._data, interval=interval)
+        return df2.dropna().tail()
