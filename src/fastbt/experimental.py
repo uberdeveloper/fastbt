@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from numba import jit, njit
 import os
 from fastbt.utils import multi_args
+import inspect
 
 class DataSource:
     """
@@ -1209,7 +1210,7 @@ def renko_plot(data, bricks_col='brick'):
     return p
 
 class DayTrading:
-    def __init__(self,data=None, interval=None):
+    def __init__(self, data=None, interval=None, tradebook=None):
         """
         arguments to be passed to init
         data
@@ -1217,10 +1218,17 @@ class DayTrading:
             this is the dataframe on which all work would be done
         interval
             interval as pandas dataframe
+        tradebook
+            a valid tradebook function
         """
         self._interval = interval
         self._data = data
         self._sources = {}        
+        self._tradebook = tradebook
+    
+    @property
+    def data(self):
+        return self._data
     
     @staticmethod
     def agged(data, interval='5min', column_name='timestamp'):
@@ -1230,7 +1238,38 @@ class DayTrading:
         'low': 'min',
         'close': 'last'
     })
-   
+    
+    def _by_day(self):
+        """
+        Run the function on each day
+        """
+        func_spec = inspect.getfullargspec(self._tradebook)
+        columns = self.data.columns
+        def f(data):
+            kwargs = {}
+            for arg in func_spec.args:
+                if arg in columns:
+                    if arg in func_spec.annotations.keys():
+                        kwargs[arg] = data[arg].values[0]
+                    else:
+                        kwargs[arg] = data[arg].values
+            return self._tradebook(**kwargs)
+        grouped = self.data.groupby('date')
+        tbs = grouped.apply(f)
+        trades = []
+        for v in tbs.values:
+            trades.extend(v.all_trades)
+        all_trades = pd.DataFrame(trades)
+        all_trades['date'] = pd.to_datetime(all_trades.ts.dt.date)
+        all_trades['value'] = all_trades.eval('price*qty*-1')
+        return all_trades.tail()
+    
+    def _convert_to_legs(self):
+        """
+        Convert trades to daily legs for better summary
+        """
+        pass
+    
     def add_source(self, name:str, data:str):
         """
         adds a data source to the existing sources.
@@ -1249,9 +1288,8 @@ class DayTrading:
         
     def run(self):
         print('Started running the program')
-        if self._interval:
-            interval = self._interval
-        else:
-            interval = '5min'
-        df2 = self.agged(self._data, interval=interval)
-        return df2.dropna().tail()
+        res = self._by_day()
+        self._result = res
+        return res
+        for arg in func_spec.args:
+            print(arg, arg in df2.columns)
