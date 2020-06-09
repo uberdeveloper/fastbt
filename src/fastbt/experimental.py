@@ -1225,6 +1225,8 @@ class DayTrading:
         self._data = data
         self._sources = {}        
         self._tradebook = tradebook
+        import pyfolio as pf
+        self.pf = pf
     
     @property
     def data(self):
@@ -1314,6 +1316,14 @@ class DayTrading:
         """
         self._sources[name] = data
         setattr(self, name, data)
+        
+    def perf_stats(self, cost=0, capital=1000):
+        returns = (self.summary.set_index('date').pnl-cost)/capital
+        return self.pf.timeseries.perf_stats(returns)
+    
+    def drawdown_table(self, cost=0, capital=1000):
+        returns = (self.summary.set_index('date').pnl-cost)/capital
+        return self.pf.timeseries.gen_drawdown_table(returns)
         
     def run(self):
         print('Started running the program')
