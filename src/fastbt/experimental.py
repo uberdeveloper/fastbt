@@ -1259,16 +1259,45 @@ class DayTrading:
         trades = []
         for v in tbs.values:
             trades.extend(v.all_trades)
+        return trades
+        # This is excess to be corrected
         all_trades = pd.DataFrame(trades)
         all_trades['date'] = pd.to_datetime(all_trades.ts.dt.date)
         all_trades['value'] = all_trades.eval('price*qty*-1')
         return all_trades.tail()
     
-    def _convert_to_legs(self):
+    def _convert_to_legs(self, result=None):
         """
         Convert trades to daily legs for better summary
+        result
+            a tradebook with alternate buy and sell trades
         """
-        pass
+        if result is None:
+            result = self._result
+        x = range(0, len(result), 2)
+        y = range(1, len(result), 2)
+        trds = []
+        for m, n in zip(x, y):
+            a = result[m]
+            b = result[n]
+            d = {}
+            d['symbol'] = a['symbol']
+            d['order'] = a['order']
+            d['entry_time'] = a['ts']
+            d['entry_price'] = a['price']
+            d['qty'] = a['qty']
+            d['exit_time'] = b['ts']
+            d['exit_price'] = b['price']
+            trds.append(d)
+        trds = pd.DataFrame(trds)
+        trds['hour'] = trds.entry_time.dt.hour
+        trds['date'] = pd.to_datetime(trds.entry_time.dt.date)
+        trds['pnl'] = trds.eval('(exit_price-entry_price)*qty')
+        return trds
+    
+    @property
+    def summary(self):
+        return self._summary
     
     def add_source(self, name:str, data:str):
         """
@@ -1288,8 +1317,6 @@ class DayTrading:
         
     def run(self):
         print('Started running the program')
-        res = self._by_day()
-        self._result = res
-        return res
-        for arg in func_spec.args:
-            print(arg, arg in df2.columns)
+        self._result = self._by_day()
+        summary = self._convert_to_legs()
+        self._summary = summary
