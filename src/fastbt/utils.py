@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import itertools as it
 import functools as ft
 from numpy import zeros, arange
@@ -7,6 +8,7 @@ try:
     from numba import jit, njit
 except ImportError:
     print('Install numba')
+
 
 def multi_args(function, constants, variables, isProduct=False, maxLimit=None):
     """
@@ -203,6 +205,7 @@ def get_nearest_option(spot, n=1, opt='C', step=100):
             print('Option type not recognized; Check the opt argument')
     return option_prices
 
+
 def calendar(start, end, holidays=None, alldays=False,
              start_time=None, end_time=None, freq='D', **kwargs):
     """
@@ -267,8 +270,9 @@ def calendar(start, end, holidays=None, alldays=False,
     else:
         return dates
 
+
 def get_ohlc_intraday(data, start_time, end_time, date_col=None,
-        col_mappings=None, sort=False):
+                      col_mappings=None, sort=False):
     """
     Get ohlc for a specific period in a day for all days
     for all the symbols.
@@ -318,7 +322,7 @@ def get_ohlc_intraday(data, start_time, end_time, date_col=None,
         """
 
         date = df.iloc[0].at[date_col].strftime('%Y-%m-%d')
-        fmt = "{date} {time}" # date time format
+        fmt = "{date} {time}"  # date time format
         s = fmt.format(date=date, time=start_time)
         e = fmt.format(date=date, time=end_time)
         temp = df.loc[s:e]
@@ -352,14 +356,14 @@ def get_expanding_ohlc(data, freq, col_mappings=None):
 
     def calculate_ohlc(df):
         temp = pd.DataFrame({
-        'high': df['high'].expanding().max(),
-        'low': df['low'].expanding().min()
+            'high': df['high'].expanding().max(),
+            'low': df['low'].expanding().min()
         })
         temp['close'] = df['close']
         temp['open'] = df['open'].iloc[0]
         return temp
 
-    cols = ['open', 'high', 'low', 'close'] # for sorting return value
+    cols = ['open', 'high', 'low', 'close']  # for sorting return value
     return data.resample(freq).apply(calculate_ohlc)[cols]
 
 
@@ -426,7 +430,7 @@ def custom_index(data, on, window=30, function='median', num=30, sort_mode=False
     from fastbt.datasource import DataSource
     ds = DataSource(data)
     ds.add_rolling(on=on, window=window, function=function,
-        lag=1, col_name='custom_index')
+                   lag=1, col_name='custom_index')
     grouped = ds.data.groupby('timestamp')
     if sort_mode:
         return grouped.apply(lambda x: x.sort_values(
@@ -435,11 +439,12 @@ def custom_index(data, on, window=30, function='median', num=30, sort_mode=False
         return grouped.apply(lambda x: x.sort_values(
             by='custom_index').tail(num)).reset_index(drop=True)
 
+
 @jit
 def streak(values):
     """
     Calculates the continuous streak of a variable.
-    Given an array of discret values, calculate the
+    Given an array of discrete values, calculate the
     continuous streak of each value.
     values
         numpy array of values
@@ -460,4 +465,31 @@ def streak(values):
         else:
             cnt = 1
         arr[i] = cnt
+    return arr
+
+
+@njit
+def trend(up, down, threshold=2/3):
+    """
+    up
+        numpy array
+        up values as the difference between open and high
+    down
+        numpy array
+        down values as the difference between open and low
+    threshold
+        threshold considered as a valid trend
+    """
+    total = up+down
+    up_vals = up/total
+    down_vals = down/total
+    length = len(total)
+    arr = np.zeros(length)
+    for i in np.arange(length):
+        if up_vals[i] > threshold:
+            arr[i] = 1
+        elif down_vals[i] > threshold:
+            arr[i] = -1
+        else:
+            arr[i] = 0
     return arr
