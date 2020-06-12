@@ -1210,7 +1210,7 @@ def renko_plot(data, bricks_col='brick'):
     return p
 
 class DayTrading:
-    def __init__(self, data=None, interval=None, tradebook=None):
+    def __init__(self, data=None, interval=None, tradebook=None, tradebook_args={}):
         """
         arguments to be passed to init
         data
@@ -1220,11 +1220,14 @@ class DayTrading:
             interval as pandas dataframe
         tradebook
             a valid tradebook function
+        tradebook_args
+            extra argument to be passed to tradebook
         """
         self._interval = interval
         self._data = data
         self._sources = {}        
         self._tradebook = tradebook
+        self._tradebook_args = tradebook_args
         import pyfolio as pf
         self.pf = pf
     
@@ -1255,6 +1258,7 @@ class DayTrading:
                         kwargs[arg] = data[arg].values[0]
                     else:
                         kwargs[arg] = data[arg].values
+            kwargs.update(self._tradebook_args)
             return self._tradebook(**kwargs)
         grouped = self.data.groupby('date')
         tbs = grouped.apply(f)
