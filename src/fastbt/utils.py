@@ -493,3 +493,23 @@ def trend(up, down, threshold=2/3):
         else:
             arr[i] = 0
     return arr
+
+@njit
+def generate_weights(n=2, size=1):
+    """
+    Generate random weights
+    """
+    weights = np.random.randint(0,100,size=size)
+    arr = np.zeros((size,n))
+    for i in np.arange(size):
+        counter = weights[i]
+        arr[i][0] = counter
+        for j in np.arange(1, n):
+            arr[i][j] = weights[i]
+            if (j+1) == n:
+                arr[i][j] = 100 - counter
+            else:
+                val = np.random.randint(0,100-counter)
+                counter+=val
+                arr[i][j] = val
+    return arr 
