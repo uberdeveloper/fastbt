@@ -78,3 +78,38 @@ def lot_compounding(pnl, lot_size, initial_capital, capital_per_lot):
         'capital': capital_array,
         'lots': lots_array
     }, index=pnl.index)
+
+class MultiStrategy:
+    """
+    A class to analyze multiple strategies 
+    """
+    def __init__(self):
+        """
+        All initialization goes here
+        """
+        from fastbt.utils import generate_weights
+        self._sources = {}
+        self.generate_weights = generate_weights
+
+    def add_source(self, name, data):
+        """
+        Add a data source as a pandas series
+        name
+            name of the data source
+        data
+            a pandas series with date as index
+            and profit and loss as values
+        """
+        self._sources[name] = data
+    
+    def corr(self, names=[]):
+        """
+        Create a correlation matrix
+        """ 
+        pass
+
+    def simulate(self, num=1000):
+        """
+        Create a simulation with different weights
+        """
+        pass
