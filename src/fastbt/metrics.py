@@ -9,6 +9,7 @@ try:
 except ImportError:
     print('pyfolio not installed')
 
+from fastbt.utils import generate_weights, recursive_merge
 
 def spread_test(data, periods=['Y', 'Q', 'M']):
     """
@@ -87,7 +88,6 @@ class MultiStrategy:
         """
         All initialization goes here
         """
-        from fastbt.utils import generate_weights
         self._sources = {}
         self.generate_weights = generate_weights
 
@@ -102,11 +102,31 @@ class MultiStrategy:
         """
         self._sources[name] = data
     
-    def corr(self, names=[]):
+    def corr(self, names=[], column='pnl'):
         """
         Create a correlation matrix
+        names
+            names are the names of data sources to be merged
+            by default, all data sources are used
+        column
+            column name to merge
         """ 
-        pass
+        keys = self._sources.keys()
+        if not(names):
+            names = keys
+        # Rename columns for better reporting
+        collect = [] 
+        for name in names:
+            src = self._sources.get(name)
+            if src is not None:
+               cols = ['date', column]
+               tmp = src[cols].rename(columns={column:name})
+               collect.append(tmp)
+        if len(collect) > 0:
+            frame = recursive_merge(collect, on=['date'], how='outer').fillna(0)
+            return frame.corr()
+        else:
+            return []
 
     def simulate(self, num=1000):
         """
