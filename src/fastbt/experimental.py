@@ -1334,3 +1334,23 @@ class DayTrading:
         self._result = self._by_day()
         summary = self._convert_to_legs()
         self._summary = summary
+
+
+def single_filter(frame, col1, col2, func=np.mean):
+    """
+    Create a single filter and returns results as a dictionary
+    frame
+        dataframe
+    col1
+        column on which the filter is to be applied
+    col2
+        list of columns with each column being a categorical
+    func
+        arbitary function to be applied on each group
+    """
+    collect = {}
+    for col in col2:
+        val = frame.groupby(col)[col1].apply(func)
+        collect[col] = val
+    return collect
+
