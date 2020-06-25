@@ -1296,6 +1296,8 @@ class DayTrading:
             d['exit_price'] = b['price']
             trds.append(d)
         trds = pd.DataFrame(trds)
+        trds['entry_time'] = pd.to_datetime(trds.entry_time)
+        trds['exit_time'] = pd.to_datetime(trds.exit_time)
         trds['hour'] = trds.entry_time.dt.hour
         trds['date'] = pd.to_datetime(trds.entry_time.dt.date)
         trds['pnl'] = trds.eval('(exit_price-entry_price)*qty')
