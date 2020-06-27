@@ -4,6 +4,7 @@ This module contains consolidated metrics
 
 import pandas as pd
 import numpy as np
+import os
 try:
     import pyfolio as pf
 except ImportError:
@@ -127,6 +128,32 @@ class MultiStrategy:
             return frame.corr()
         else:
             return []
+
+    def from_directory(self, directory):
+        """
+        Add data sources from a directory
+        directory
+            directory in which the results are stores
+        Note
+        ----
+        This is a helper function to add all portfolio
+        results in a directory.
+        1) All files are expected to be in csv format
+        2) All files should have date and pnl columns
+        3) Each file is added as a data source with 
+        the filename considered the name
+        4) Files are not considered case sensitive.
+        So, if you have 2 files result.csv and RESULT.csv
+        they are considered the same and the data is overwritten
+        5) Except csv files, all files in the directory are discarded
+        """
+        for root,direc,files in os.walk(directory):
+            for f in files:
+                if f.endswith('.csv'):
+                    name = f.split('.')[0]
+                    path = os.path.join(root, f)
+                    tmp = pd.read_csv(path)
+                    self.add_source(name=name, data=tmp)
 
     def simulate(self, num=1000):
         """
