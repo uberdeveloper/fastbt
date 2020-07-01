@@ -129,11 +129,13 @@ class MultiStrategy:
         else:
             return []
 
-    def from_directory(self, directory):
+    def from_directory(self, directory, func=None):
         """
         Add data sources from a directory
         directory
-            directory in which the results are stores
+            directory in which the results are stored
+        func
+            function to be applied after the file is read
         Note
         ----
         This is a helper function to add all portfolio
@@ -153,10 +155,7 @@ class MultiStrategy:
                     name = f.split('.')[0]
                     path = os.path.join(root, f)
                     tmp = pd.read_csv(path)
+                    if func is not None:
+                        tmp = func(tmp)
                     self.add_source(name=name, data=tmp)
 
-    def simulate(self, num=1000):
-        """
-        Create a simulation with different weights
-        """
-        pass
