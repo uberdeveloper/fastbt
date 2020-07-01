@@ -159,3 +159,20 @@ class MultiStrategy:
                         tmp = func(tmp)
                     self.add_source(name=name, data=tmp)
 
+    def get_column(self, column='pnl', on='date', how='outer'):
+        """
+        Get a single column from all the dataframes and merge
+        them into a single dataframe
+        """
+        names = self._sources.keys()
+        # Rename columns for better reporting
+        collect = [] 
+        for name in names:
+            src = self._sources.get(name)
+            if src is not None:
+               cols = ['date', column]
+               tmp = src[cols].rename(columns={column:name})
+               collect.append(tmp)
+        if len(collect) > 0:
+            frame = recursive_merge(collect, on=['date'], how='outer').fillna(0)
+            return frame
