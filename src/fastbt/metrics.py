@@ -176,3 +176,18 @@ class MultiStrategy:
         if len(collect) > 0:
             frame = recursive_merge(collect, on=['date'], how='outer').fillna(0)
             return frame
+
+    def apply(self, column='pnl', func=None):
+        """
+        Apply a function to each column in the dataframe
+        """
+        if func is None:
+            return pd.DataFrame()
+        names = self._sources.keys()
+        collect = {}
+        for name in names:
+            collect[name] = func(self._sources[name][column]/1000)
+        frame = self.get_column(column=column)
+        frame2 = frame.mean(axis=1)/1000
+        collect['all'] = func(frame2)
+        return collect
