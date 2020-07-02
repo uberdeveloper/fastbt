@@ -1356,3 +1356,24 @@ def single_filter(frame, col1, col2, func=np.mean):
         collect[col] = val
     return collect
 
+@njit
+def clean_ticks(price, threshold=10):
+    """
+    Clean out of sample ticks
+    """
+    length = len(price)
+    arr = np.zeros(length)
+    s = price[0]
+    dropped = 0
+    nobs = 0
+    for i in np.arange(1,length):
+        if np.abs(price[i]-s) < threshold:
+            arr[i] = price[i]
+            s = price[i]
+            nobs = 0
+        else:
+            nobs+=1
+            dropped+=1
+            if nobs > 10:
+                s = price[i]
+    return arr[arr>0]
