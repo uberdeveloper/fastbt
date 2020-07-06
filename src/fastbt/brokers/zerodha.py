@@ -302,19 +302,22 @@ class Zerodha(Broker):
         sl = self._create_stop_loss_orders(percent=3, **kwargs)
         orders = []
         for s in sl:
-            dct = s.copy()
-            dct.update({
-                'exchange': 'NSE',
-                'product': 'MIS',
-                'validity': 'DAY',
-                'variety': 'regular'
-                })
-            dct['trigger_price'] = s['price']
-            symbol = '{e}:{sym}'.format(e='NSE', sym=s['symbol'])
-            ltp = self.ltp(symbol)[symbol]['last_price']
-            order_type = self.get_order_type(s['price'], ltp, s['side'])
-            dct['order_type'] = order_type
-            orders.append(dct)
+            try:
+                dct = s.copy()
+                dct.update({
+                    'exchange': 'NSE',
+                    'product': 'MIS',
+                    'validity': 'DAY',
+                    'variety': 'regular'
+                    })
+                dct['trigger_price'] = s['price']
+                symbol = '{e}:{sym}'.format(e='NSE', sym=s['symbol'])
+                ltp = self.ltp(symbol)[symbol]['last_price']
+                order_type = self.get_order_type(s['price'], ltp, s['side'])
+                dct['order_type'] = order_type
+                orders.append(dct)
+            except Exception as e:
+                print(e)
         return orders
 
     def cover_all(self, **kwargs):
@@ -323,7 +326,10 @@ class Zerodha(Broker):
         """
         orders = self._create_stop(**kwargs)
         for o in orders:
-            print(self.order_place(**o))
+            try:
+                print(self.order_place(**o))
+            except Exception as e:
+                print(e)
 
     def close_all_positions(self, **kwargs):
         """
