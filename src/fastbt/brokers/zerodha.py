@@ -90,8 +90,9 @@ class Zerodha(Broker):
         """
         for o in self.orders():
             try:
-                if o['status'] != 'COMPLETE':
-                    self.cancel_order(o['order_id'])
+                if o['status'] == 'PENDING':
+                    self.order_cancel(variety=o['variety'], order_id=o['order_id'],
+                            parent_order_id=o['parent_order_id'])
             except Exception as e:
                 print(e)
         i = 0
@@ -100,8 +101,8 @@ class Zerodha(Broker):
             i+=1
             for o in self.orders():
                 try:
-                    if o['status'] != 'COMPLETE':
-                        self.cancel_order(o['order_id'])
+                    if o['status'] == 'PENDING':
+                        self.order_cancel(variety=o['variety'], order_id=o['order_id'], parent_order_id=o['parent_order_id'])
                 except Exception as e:
                     print(e)
             if i > retries:
@@ -248,6 +249,12 @@ class Zerodha(Broker):
         Place an order
         """
         return self.kite.place_order(**kwargs)
+    
+    def order_cancel(self, order_id, variety='regular', parent_order_id=None):
+        """
+        Cancel an existing order
+        """
+        return self.kite.cancel_order(variety=variety, order_id=order_id, parent_order_id=parent_order_id)
  
     def _custom_orders(self, data, **kwargs):
         """
