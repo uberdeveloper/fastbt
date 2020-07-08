@@ -344,8 +344,13 @@ class Zerodha(Broker):
                 qty = abs(position['quantity'])
                 symbol = position['symbol']
                 side = self._sides[position['side']]
+                exchange = position['exchange']
+                product = position['product']
                 if qty > 0:
-                    self.order_place(symbol=symbol, quantity=qty,
-                        order_type='MARKET', side=side,
-                        variety='regular', exchange='NSE', product='MIS')
+                    try:
+                        self.order_place(symbol=symbol, quantity=qty,
+                                order_type='MARKET', side=side,
+                                variety='regular', exchange=exchange, product=product)
+                    except Exception as e:
+                        print(e)
 
