@@ -75,11 +75,8 @@ class Zerodha(Broker):
         return True if there are no pending orders 
         else return False
         """   
-        orders = pd.DataFrame(self.orders())
-        pending = orders.pending_quantity.abs().sum()
-        canceled = orders.cancelled_quantity.abs().sum()
-        net_pending = pending - canceled
-        if net_pending == 0:
+        pending = [o for o in self.orders() if o.get('status', 'PENDING')=='PENDING']
+        if len(pending) == 0:
             return True
         else:
             return False
