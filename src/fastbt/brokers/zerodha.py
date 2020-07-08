@@ -84,19 +84,27 @@ class Zerodha(Broker):
         else:
             return False
 
-    def cancel_all_orders(self):
+    def cancel_all_orders(self, retries=5):
         """
         Cancel all existing orders
         """
         for o in self.orders():
-            self.kite.cancel_order(variety='regular', order_id=o['order_id'])
+            try:
+                if o['status'] != 'COMPLETE':
+                    self.cancel_order(o['order_id'])
+            except Exception as e:
+                print(e)
         i = 0
         while not(self.isNilOrders):
             print('Into the loop')
             i+=1
             for o in self.orders():
-                self.kite.cancel_order(variety='regular', order_id=o['order_id'])
-            if i > 5:
+                try:
+                    if o['status'] != 'COMPLETE':
+                        self.cancel_order(o['order_id'])
+                except Exception as e:
+                    print(e)
+            if i > retries:
                 print('Breaking out of loop without canceling all orders')
                 break
 
@@ -104,7 +112,7 @@ class Zerodha(Broker):
         """
         Provides shortcuts to kite functions by mapping functions.
         Instead of calling at.kite.quote, you would directly call
-        at.quote.
+        at.quote
         Note
         -----
         1) Kite functions are initialized only after authentication
@@ -336,7 +344,6 @@ class Zerodha(Broker):
         Close all existing positions
         """
         positions = self.positions()
-        print(kwargs)
         if kwargs:
             positions = self.dict_filter(positions, **kwargs)
         if len(positions) > 0:
