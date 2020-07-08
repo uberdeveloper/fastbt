@@ -217,6 +217,7 @@ class Zerodha(Broker):
             'OPEN': 'PENDING',
             'COMPLETE': 'COMPLETE',
             'CANCELLED': 'CANCELED',
+            'CANCELLED AMO': 'CANCELED',
             'REJECTED': 'REJECTED',
             'MODIFY_PENDING': 'PENDING',
             'OPEN_PENDING': 'PENDING',
