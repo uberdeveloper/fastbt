@@ -170,8 +170,6 @@ class Zerodha(Broker):
             EC.presence_of_element_located((By.CLASS_NAME, "button-orange")))
         driver.find_element_by_xpath('//button[@type="submit"]').click() 
         time.sleep(2)
-        WebDriverWait(driver, 15).until(
-            EC.presence_of_element_located((By.NAME, "email")))
         token = get_key(driver.current_url)
         access = self.kite.generate_session(request_token=token, api_secret=self._secret)
         self.kite.set_access_token(access['access_token'])
@@ -253,6 +251,16 @@ class Zerodha(Broker):
         Cancel an existing order
         """
         return self.kite.cancel_order(variety=variety, order_id=order_id, parent_order_id=parent_order_id)
+
+    def order_modify(self, order_id, variety='regular', **kwargs):
+        """
+        Modify an existing order
+        Note
+        ----
+        This is just a basic implementation
+        So, all changes must be passed as keyword arguments
+        """
+        return self.kite.modify_order(order_id=order_id, variety=variety, **kwargs)
  
     def _custom_orders(self, data, **kwargs):
         """
