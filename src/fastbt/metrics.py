@@ -47,7 +47,7 @@ def shuffled_drawdown(data, capital=1000):
     return diff.min()
 
 
-def lot_compounding(pnl, lot_size, initial_capital, capital_per_lot):
+def lot_compounding(pnl, lot_size, initial_capital, capital_per_lot, max_lots=None):
     """
         Calculate the compounded returns based on lot size
         pnl
@@ -60,6 +60,8 @@ def lot_compounding(pnl, lot_size, initial_capital, capital_per_lot):
         capital_per_lot
                 capital per lot. Capital at the start of the day
                 is divided by this amount to calculate the number of lots
+        max_lots
+            maximum lots after which lot size would not be compounded
         returns a dataframe with daily capital and the number of lots
         """
     length = len(pnl)
@@ -74,6 +76,8 @@ def lot_compounding(pnl, lot_size, initial_capital, capital_per_lot):
         daily_profit = profit[i] * lot_size * lots
         capital += daily_profit
         lots = round(capital/capital_per_lot)
+        if max_lots:
+            lots = min(lots, max_lots)
         capital_array[i+1] = capital
         lots_array[i+1] = lots
     return pd.DataFrame({
