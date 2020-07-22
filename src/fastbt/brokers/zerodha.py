@@ -374,3 +374,23 @@ class Zerodha(Broker):
                     except Exception as e:
                         print(e)
 
+    def get_instrument_map(self, exchange='NSE',
+            key='tradingsymbol', value='instrument_token'):
+        """
+        Get the instrument map as a dictionary
+        exchange
+            exchange to fetch the symbols and tokens
+        key
+            dictionary key to be used as the key
+            in the output
+        value
+            dictionary value to be used as the value
+            in the output
+        Note
+        -----
+        1) The instrument map is returned as a dictionary with
+        key as the symbol and instrument token as value
+        """
+        instruments = self.kite.instruments(exchange=exchange)
+        inst_map = {inst[key]: inst[value] for inst in instruments}
+        return inst_map
