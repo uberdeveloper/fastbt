@@ -2,6 +2,7 @@ import pandas as pd
 from fastbt.Meta import Broker,Status,pre,post
 
 from kiteconnect import KiteConnect
+from kiteconnect import KiteTicker
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
@@ -138,15 +139,21 @@ class Zerodha(Broker):
                 access_token = f.read()
             self.kite.set_access_token(access_token)
             self.kite.profile()
+            self.ticker = KiteTicker(api_key=self._api_key, 
+                    access_token=self.kite.access_token)
             self._shortcuts()
         except TokenException:
             print('Into Exception')
             self._login()
             self._shortcuts()
+            self.ticker = KiteTicker(api_key=self._api_key, 
+                    access_token=self.kite.access_token)
         except:
             print('Unknown Exception')
             self._login()
             self._shortcuts()        
+            self.ticker = KiteTicker(api_key=self._api_key, 
+                    access_token=self.kite.access_token)
         
     def _login(self):
         import time
