@@ -440,7 +440,7 @@ def custom_index(data, on, window=30, function='median', num=30, sort_mode=False
             by='custom_index').tail(num)).reset_index(drop=True)
 
 
-@jit
+@njit
 def streak(values):
     """
     Calculates the continuous streak of a variable.
