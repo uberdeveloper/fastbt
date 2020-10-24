@@ -1,0 +1,5 @@
+from fastbt.models.base import *
+
+def test_something:
+    assert 4==5
+
