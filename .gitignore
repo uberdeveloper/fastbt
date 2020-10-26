@@ -135,5 +135,9 @@ dmypy.json
 pyvenv.cfg
 pip-selfcheck.json
 
+# Vim swap files
+.swp
+
+
 
 # End of https://www.gitignore.io/api/python
