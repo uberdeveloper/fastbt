@@ -83,7 +83,7 @@ class BaseSystem(TradingSystem):
     _params =  {
             'INTERVAL': 60, # in seconds
             'MAX_POSITIONS': 10,
-            # All parameters that end with NAME
+            # All parameters that end with TIME 
             # take a 3-tuple with hour,minute,second as arguments
             'SYSTEM_START_TIME': (9,15,0),
             'SYSTEM_END_TIME': (15,15,0),
@@ -161,7 +161,7 @@ class BaseSystem(TradingSystem):
         periods = [x for x in timespan.range(unit='seconds',amount=self.INTERVAL)]
         return periods
     
-    def get_next_scan(self):
+    def get_next_scan(self) -> pendulum.DateTime:
         """
         Get the next scan
         """
