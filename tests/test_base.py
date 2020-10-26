@@ -25,6 +25,9 @@ class TestBaseParams:
         assert base.INTERVAL == 60
         assert base.MAX_POSITIONS == 10
         assert base.TZ == 'Asia/Kolkata'
+        assert base.CAPITAL_PER_STOCK == 100000
+        assert base.RISK_PER_STOCK == 1000
+        assert base.WEIGHTAGE == 'capital'
         
     def test_properties(self):
         base = BaseSystem()
@@ -47,6 +50,11 @@ class TestBaseParams:
         base = BaseSystem(env='live', name='new_strategy')
         assert base.name == 'new_strategy' 
         assert base.env == 'live' 
+
+        base = BaseSystem(CAPITAL_PER_STOCK=10000,RISK_PER_STOCK=100,WEIGHTAGE='risk')
+        assert base.CAPITAL_PER_STOCK == 10000
+        assert base.RISK_PER_STOCK == 100
+        assert base.WEIGHTAGE == 'risk'
         
 
 class TestBaseTimeSpans:

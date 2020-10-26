@@ -90,10 +90,27 @@ class BaseSystem(TradingSystem):
             'TRADE_START_TIME': (9,16,0),
             'SQUARE_OFF_TIME': (15,15,0),
             'TZ': 'Asia/Kolkata',
+            'CAPITAL_PER_STOCK': 100000,
+            'RISK_PER_STOCK': 1000,
+            'WEIGHTAGE': 'capital' # either capital or risk
             }
 
     def __init__(self, name:str='base_strategy', env:str='paper',
             broker:Any=None, **kwargs):
+        
+        """
+        Initialize the strategy.
+        The initialize sets up sensible defaults 
+        name
+            name of the strategy
+        env
+            environment in which it is traded.
+            if env is live real trades are executed
+        broker
+            broker class in case of live trading
+        kwargs
+            list of keyword arguments to modify the system
+        """
         for k,v in self._params.items():
             if k in kwargs:
                 value = kwargs.get(k)
