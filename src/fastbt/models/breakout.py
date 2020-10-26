@@ -65,3 +65,39 @@ class Breakout(BaseSystem):
                 d.high = hl.high
                 d.low = hl.low
 
+    def stop_loss(self,symbol:str, side:str, method:str='auto',
+            stop:float=0)->float:
+        """
+        Get the stop loss for the symbol
+        symbol
+            name of the symbol
+        side
+            BUY/SELL
+        method
+            stop loss calculation method
+        Note
+        ----
+        1) returns 0 if the method if the symbol is not found
+        2) sl method reverts to auto in case of unknown string
+        """
+        def sl():
+            # Internal function to calculate stop
+            if side == 'BUY':
+                return float(self.data[symbol].low)
+            elif side == 'SELL':
+                return float(self.data[symbol].high)
+            else:
+                return 0.0
+
+        # TO DO: A better way to implement stop functions
+        d = self.data.get(symbol)
+        if d:
+            ltp = d.ltp
+            if method == 'value':
+                return self.stop_loss_by_value(price=ltp, side=side,stop=stop)
+            elif method == 'percent':
+                return self.stop_loss_by_percentage(price=ltp,side=side, stop=stop)
+            else:
+                return sl()
+        else:
+            return 0.0

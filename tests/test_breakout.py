@@ -9,6 +9,19 @@ def base_breakout():
     return Breakout(symbols=['GOOG','AAPL'],
              instrument_map={'GOOG':1010,'AAPL':2100})
     
+@pytest.fixture
+def sl_breakout():
+    ts = Breakout(symbols=['GOOG','AAPL','INTL'],
+            instrument_map={'GOOG':1010,'AAPL':2100, 'INTL':3000})
+    ts.update_high_low([
+            HighLow(symbol='AAPL', high=101, low=98),
+            HighLow(symbol='GOOG', high=104, low=100),
+            HighLow(symbol='INTL', high=302, low=295),
+            ])
+    ts._data['AAPL'].ltp = 100
+    ts._data['GOOG'].ltp = 104
+    ts._data['INTL'].ltp = 300
+    return ts
 
 def test_breakout_parent_defaults(base_breakout):
     ts = base_breakout
@@ -16,7 +29,6 @@ def test_breakout_parent_defaults(base_breakout):
     assert ts.SYSTEM_END_TIME == pendulum.today(tz='Asia/Kolkata').add(hours=15,minutes=15)
     assert ts.env == 'paper'
     assert ts.done is False
-
 
 def test_stock_data(base_breakout):
     ts = base_breakout
@@ -72,11 +84,42 @@ def test_high_low_no_data_raise_error(base_breakout):
             {'symbol': 'AAPL', 'high':15}
             ])
 
+def test_stop_loss_default(sl_breakout):
+    ts = sl_breakout
+    sl = ts.stop_loss('AAPL','BUY')
+    assert sl == 98
+    sl = ts.stop_loss('INTL', 'SELL')
+    assert sl == 302 
+
+def test_stop_loss_value(sl_breakout):
+    ts = sl_breakout
+    sl = ts.stop_loss('AAPL','BUY')
+    assert sl == 98
+    sl = ts.stop_loss('AAPL','BUY', method='value')
+    assert sl == 100
+    sl = ts.stop_loss('AAPL','BUY', method='value', stop=1)
+    assert sl == 99 
+    sl = ts.stop_loss('GOOG','SELL', method='value', stop=1)
+    assert sl == 105 
+
+def test_stop_loss_percentage(sl_breakout):
+    ts = sl_breakout
+    sl = ts.stop_loss('AAPL','BUY')
+    assert sl == 98
+    sl = ts.stop_loss('AAPL','BUY', method='percent')
+    assert sl == 100
+    sl = ts.stop_loss('AAPL','BUY', method='percent', stop=1.5)
+    assert sl == 98.5 
+    sl = ts.stop_loss('INTL','SELL', method='percent', stop=3)
+    assert sl == 309 
     
+def test_stop_loss_no_symbol(sl_breakout):
+    ts = sl_breakout
+    sl = ts.stop_loss('SOME', 'BUY')
+    assert sl == 0
 
-
-
-
-
-
-
+def test_stop_loss_unknown_mode(sl_breakout):
+    ts = sl_breakout
+    sl = ts.stop_loss('AAPL','BUY', method='unknown')
+    assert sl == 98
+       

@@ -204,3 +204,54 @@ class BaseSystem(TradingSystem):
             # Run code to square off
            self.square_off() 
 
+    @staticmethod
+    def stop_loss_by_value(price:float,stop:float, side:str)->float:
+        """
+        Get stop loss by value
+        price
+            price from which stop is to be calculated
+        stop
+            fixed stop value in points
+        side
+            BUY/SELL
+        >>> base = BaseSystem()
+        >>> base.stop_loss_by_value(100,3,'BUY')
+        97.0
+        >>> base.stop_loss_by_value(100,3,'SELL')
+        103.0
+        >>> base.stop_loss_by_value(100,1,'SOME')
+        100.0
+        """
+        if side == 'BUY':
+            return float(price-stop)
+        elif side == 'SELL':
+            return float(price+stop)
+        else:
+            return float(price)
+        
+    @staticmethod
+    def stop_loss_by_percentage(price:float, stop:float, side:str)->float:
+        """
+        Get stop loss by percentage
+        Enter the actual percentage (not as decimals)
+        price
+            price from which stop is to be calculated
+        stop
+            stop value in percentage
+        side
+            BUY/SELL
+        >>> base = BaseSystem()
+        >>> base.stop_loss_by_percentage(100,2,'BUY')
+        98.0
+        >>> base.stop_loss_by_percentage(100,2,'SELL')
+        102.0
+        >>> base.stop_loss_by_percentage(100,2,'WHAT')
+        100.0
+        """
+        percent = stop*0.01
+        if side == 'BUY':
+            return float(price*(1-percent))
+        elif side == 'SELL':
+            return float(price*(1+percent))
+        else:
+            return float(price)
