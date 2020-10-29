@@ -255,3 +255,36 @@ class BaseSystem(TradingSystem):
             return float(price*(1+percent))
         else:
             return float(price)
+
+    def get_quantity(self, price:Optional[float]=None, 
+            stop:Optional[float]=None)->int:
+        """
+        Get quantity for the stock based on the
+        pre-defined risk weightage method
+        price
+            should be provided if weightage is capital
+        stop
+            should be provided if weightage is risk
+        >>> base = BaseSystem()
+        >>> base.get_quantity()
+        0
+        >>> base.get_quantity(price=1000)
+        100
+        >>> base = BaseSystem(WEIGHTAGE='risk')
+        >>> base.get_quantity(stop=50)
+        20
+        """
+        # Return 0 if both price and stop not provided
+        if not(price) and not(stop):
+            return 0
+        if self.WEIGHTAGE == 'risk':
+            if stop:
+                return int(self.RISK_PER_STOCK/stop)
+            else:
+                return 0
+        else:
+            if price:
+                return int(self.CAPITAL_PER_STOCK/price)
+            else:
+                return 0
+
