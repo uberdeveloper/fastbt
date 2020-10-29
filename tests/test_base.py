@@ -158,7 +158,6 @@ def test_intervals_periods():
         base = BaseSystem(INTERVAL=30)
         assert len(base.periods) == 721
 
-
 def test_cycle_count():
     base = BaseSystem()
     base.run()
@@ -166,5 +165,28 @@ def test_cycle_count():
     for i in range(10):
         base.run()
     assert base.cycle == 11
+
+def test_get_quantity_risk():
+    base = BaseSystem(RISK_PER_STOCK=2500,WEIGHTAGE='risk')
+    assert base.get_quantity(stop=25) == 100
+
+def test_get_quantity_capital():
+    base = BaseSystem(CAPITAL_PER_STOCK=2500)
+    assert base.get_quantity(price=100) == 25
+
+def test_get_quantity_unknown_method():
+    base = BaseSystem(CAPITAL_PER_STOCK=2500,WEIGHTAGE='rl')
+    assert base.get_quantity(price=100) == 25
+
+def test_get_quantity_risk_no_stop():
+    base = BaseSystem(WEIGHTAGE='risk')
+    assert base.get_quantity() == 0
+    assert base.get_quantity(price=100) == 0
+
+def test_get_quantity_capital_no_price():
+    base = BaseSystem()
+    assert base.get_quantity() == 0
+    assert base.get_quantity(stop=100) == 0
+    
 
 
