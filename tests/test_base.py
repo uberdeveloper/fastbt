@@ -18,6 +18,7 @@ class TestBaseParams:
         assert base.SYSTEM_START_TIME == tuple_to_time((9,15,0))
         assert base.SYSTEM_END_TIME == tuple_to_time((15,15,0))
         assert base.TRADE_START_TIME == tuple_to_time((9,16,0))
+        assert base.TRADE_END_TIME == tuple_to_time((15,0,0))
         assert base.SQUARE_OFF_TIME == tuple_to_time((15,15,0))
         
     def test_default_args(self):
@@ -42,9 +43,13 @@ class TestBaseParams:
         base = BaseSystem(SYSTEM_START_TIME=(10,0,0))
         assert base.SYSTEM_START_TIME == tuple_to_time((10,0,0))
         
-        base = BaseSystem(TRADE_START_TIME=(10,15,0),SQUARE_OFF_TIME=(14,0,0))
+        base = BaseSystem(TRADE_START_TIME=(10,15,0),
+                SQUARE_OFF_TIME=(14,0,0),
+                TRADE_END_TIME=(13,0,0))
         assert base.TRADE_START_TIME == tuple_to_time((10,15,0))
         assert base.SQUARE_OFF_TIME == tuple_to_time((14,0,0))
+        assert base.TRADE_END_TIME == tuple_to_time((13,0,0))
+
         
     def test_other_args(self):
         base = BaseSystem(env='live', name='new_strategy')

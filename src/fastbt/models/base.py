@@ -88,6 +88,7 @@ class BaseSystem(TradingSystem):
             'SYSTEM_START_TIME': (9,15,0),
             'SYSTEM_END_TIME': (15,15,0),
             'TRADE_START_TIME': (9,16,0),
+            'TRADE_END_TIME': (15,0,0),
             'SQUARE_OFF_TIME': (15,15,0),
             'TZ': 'Asia/Kolkata',
             'CAPITAL_PER_STOCK': 100000,
