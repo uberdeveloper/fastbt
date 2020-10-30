@@ -123,20 +123,21 @@ class Breakout(BaseSystem):
                 stop=3,method='percent')
         quantity = self.get_quantity(price=price, stop=stop)
         v.can_trade = False
-        v.positions = quantity
-        side_map = {'BUY':'SELL','SELL','BUY'} 
+        if side == 'SELL':
+            v.positions = 0-quantity
+        else:
+            v.positions = quantity
+        side_map = {'BUY':'SELL','SELL':'BUY'} 
         # Defaults for live order
-        defaults = dict(exchange='NSE', variety='regular',
-                product='MIS', validity='DAY', tag=self.name,
-                order_type='LIMIT',trigger_price=0, price=price,
-                quantity=quantity, side=side)
+        defaults = dict(symbol=symbol, order_type='LIMIT',
+                price=price, quantity=quantity, side=side)
         defaults.update(kwargs)
         if self.env == 'live':
-            self.broker.place_order(**defaults)
+            order_id = self.broker.place_order(**defaults)
             side2 = side_map.get(side)
             stop_args = dict(order_type='SL-M',trigger_price=stop,side=side2)
             defaults.update(stop_args)
-            self.broker.place_order(**stop_args)
+            stop_id = self.broker.place_order(**stop_args)
         else:
             order_id = random.randint(100000,999999)
             stop_id = random.randint(100000,999999)

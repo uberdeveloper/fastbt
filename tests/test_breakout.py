@@ -139,3 +139,53 @@ def test_fetch_no_symbol(base_breakout):
         ])
     assert ts.data['AAPL'].ltp == 218.4
     assert ts.data['GOOG'].ltp == 0 
+
+def test_entry_buy(sl_breakout):
+    ts = sl_breakout
+    ts._data['AAPL'].ltp = 101.5
+    ts.run()
+    assert ts.data['AAPL'].can_trade is False
+    assert ts.data['AAPL'].positions == 985
+    
+def test_entry_sell(sl_breakout):
+    ts = sl_breakout
+    ts._data['AAPL'].ltp = 97.9
+    ts.run()
+    assert ts.data['AAPL'].can_trade is False
+    assert ts.data['AAPL'].positions == -1021
+
+def test_dont_trade_when_can_trade_false(sl_breakout):
+    ts = sl_breakout
+    ts._data['AAPL'].ltp = 101.5
+    ts._data['AAPL'].can_trade = False
+    ts.run()
+    assert ts.data['AAPL'].positions == 0
+
+def test_dont_trade_when_positions_not_zero(sl_breakout):
+    ts = sl_breakout
+    ts._data['AAPL'].ltp = 101.5
+    ts._data['AAPL'].positions = 36
+    ts.run()
+    assert ts.data['AAPL'].positions == 36
+    assert ts.data['AAPL'].can_trade is True
+
+def test_entry_multiple_symbols(sl_breakout):
+    ts = sl_breakout
+    ts._data['AAPL'].ltp = 101.5
+    ts._data['GOOG'].ltp = 99.9
+    ts._data['INTL'].ltp = 302 
+    ts.run()
+    assert ts.data['AAPL'].positions == 985
+    assert ts.data['GOOG'].positions == -1001
+    # No trades since prices are equal
+    assert ts.data['INTL'].positions == 0 
+    
+    ts._data['INTL'].ltp = 302.0005
+    ts.run()
+    assert ts.data['INTL'].positions == 331
+
+
+
+
+
+
