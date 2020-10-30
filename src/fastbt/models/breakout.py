@@ -102,7 +102,7 @@ class Breakout(BaseSystem):
         else:
             return 0.0
 
-    def fetch(self, data):
+    def fetch(self, data:List[Dict])->None:
         """
         Update data
         """
@@ -115,4 +115,52 @@ class Breakout(BaseSystem):
                 if symbol:
                     self._data[symbol].ltp = ltp
 
+    def order(self, symbol:str, side:str, **kwargs):
+        order_id = stop_id = None
+        v = self.data[symbol]
+        price = v.ltp
+        stop = self.stop_loss(symbol=symbol,side=side,
+                stop=3,method='percent')
+        quantity = self.get_quantity(price=price, stop=stop)
+        v.can_trade = False
+        v.positions = quantity
+        side_map = {'BUY':'SELL','SELL','BUY'} 
+        # Defaults for live order
+        defaults = dict(exchange='NSE', variety='regular',
+                product='MIS', validity='DAY', tag=self.name,
+                order_type='LIMIT',trigger_price=0, price=price,
+                quantity=quantity, side=side)
+        defaults.update(kwargs)
+        if self.env == 'live':
+            self.broker.place_order(**defaults)
+            side2 = side_map.get(side)
+            stop_args = dict(order_type='SL-M',trigger_price=stop,side=side2)
+            defaults.update(stop_args)
+            self.broker.place_order(**stop_args)
+        else:
+            order_id = random.randint(100000,999999)
+            stop_id = random.randint(100000,999999)
+        v.order_id = order_id
+        v.stop_id = stop_id
+        return (order_id, stop_id)
 
+    def entry(self):
+        """
+        Positions entry
+        An order is entered if the ltp is greater than high or low
+        subject to the constraints and conditions
+        Override this method for your own entry logic
+        """
+        for k,v in self.data.items():
+            # The instrument can be traded and should have no 
+            #open positions
+            if v.can_trade:
+                if v.positions == 0:
+                    if v.ltp > v.high:
+                        # Place a BUY order
+                        self.order(symbol=k, side='BUY')
+                    elif v.ltp < v.low:
+                        # Place a SELL order
+                        self.order(symbol=k, side='SELL')
+
+            
