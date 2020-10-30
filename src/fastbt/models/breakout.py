@@ -101,3 +101,18 @@ class Breakout(BaseSystem):
                 return sl()
         else:
             return 0.0
+
+    def fetch(self, data):
+        """
+        Update data
+        """
+        # Using get since we may me missing tokens
+        for d in data:
+            token = d.get('instrument_token')
+            ltp = d.get('last_price')
+            if token and ltp:
+                symbol = self._rev_map.get(token)
+                if symbol:
+                    self._data[symbol].ltp = ltp
+
+

@@ -118,8 +118,24 @@ def test_stop_loss_no_symbol(sl_breakout):
     sl = ts.stop_loss('SOME', 'BUY')
     assert sl == 0
 
-def test_stop_loss_unknown_mode(sl_breakout):
+def test_stop_loss_unknown_method(sl_breakout):
     ts = sl_breakout
     sl = ts.stop_loss('AAPL','BUY', method='unknown')
     assert sl == 98
-       
+    
+def test_fetch(base_breakout):
+    ts = base_breakout
+    ts.fetch([
+        {'instrument_token':1010, 'last_price':118.4},
+        {'instrument_token':2100, 'last_price':218.4},
+        ])
+    assert ts.data['AAPL'].ltp == 218.4
+
+def test_fetch_no_symbol(base_breakout):
+    ts = base_breakout
+    ts.fetch([
+        {'instrument_token':1011, 'last_price':118.4},
+        {'instrument_token':2100, 'last_price':218.4},
+        ])
+    assert ts.data['AAPL'].ltp == 218.4
+    assert ts.data['GOOG'].ltp == 0 
