@@ -29,6 +29,7 @@ class TestBaseParams:
         assert base.CAPITAL_PER_STOCK == 100000
         assert base.RISK_PER_STOCK == 1000
         assert base.WEIGHTAGE == 'capital'
+        assert base.ORDER_DEFAULT_KWARGS == {}
         
     def test_properties(self):
         base = BaseSystem()
@@ -49,6 +50,11 @@ class TestBaseParams:
         assert base.TRADE_START_TIME == tuple_to_time((10,15,0))
         assert base.SQUARE_OFF_TIME == tuple_to_time((14,0,0))
         assert base.TRADE_END_TIME == tuple_to_time((13,0,0))
+
+        base = BaseSystem(ORDER_DEFAULT_KWARGS=
+                {'exchange':'NYSE','order_type':'LIMIT'})
+        assert base.ORDER_DEFAULT_KWARGS == \
+                {'exchange':'NYSE','order_type':'LIMIT'}
 
         
     def test_other_args(self):

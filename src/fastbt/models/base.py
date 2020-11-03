@@ -93,7 +93,9 @@ class BaseSystem(TradingSystem):
             'TZ': 'Asia/Kolkata',
             'CAPITAL_PER_STOCK': 100000,
             'RISK_PER_STOCK': 1000,
-            'WEIGHTAGE': 'capital' # either capital or risk
+            'WEIGHTAGE': 'capital', # either capital or risk
+            # default keyword arguments to be passed to order
+            'ORDER_DEFAULT_KWARGS': {}
             }
 
     def __init__(self, name:str='base_strategy', env:str='paper',
