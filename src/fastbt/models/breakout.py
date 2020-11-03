@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Tuple, Any
 from fastbt.models.base import BaseSystem
 from pydantic import BaseModel, ValidationError
 from logzero import logger
+from copy import deepcopy
 
 class StockData(BaseModel):
     name: str
@@ -129,8 +130,9 @@ class Breakout(BaseSystem):
             v.positions = quantity
         side_map = {'BUY':'SELL','SELL':'BUY'} 
         # Defaults for live order
-        defaults = dict(symbol=symbol, order_type='LIMIT',
-                price=price, quantity=quantity, side=side)
+        defaults = deepcopy(self.ORDER_DEFAULT_KWARGS)
+        defaults.update(dict(symbol=symbol, order_type='LIMIT',
+                price=price, quantity=quantity, side=side))
         defaults.update(kwargs)
         if self.env == 'live':
             order_id = self.broker.place_order(**defaults)
@@ -164,4 +166,11 @@ class Breakout(BaseSystem):
                         # Place a SELL order
                         self.order(symbol=k, side='SELL')
 
+    @property
+    def open_positions(self):
+        count = 0
+        for k,v in self.data.items():
+            if (v.positions != 0) or not(v.can_trade):
+                count+=1
+        return count
             

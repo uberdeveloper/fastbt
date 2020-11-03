@@ -184,8 +184,17 @@ def test_entry_multiple_symbols(sl_breakout):
     ts.run()
     assert ts.data['INTL'].positions == 331
 
+def test_open_positions(sl_breakout):
+    ts = sl_breakout
+    ts._data['AAPL'].ltp = 101.5
+    ts._data['GOOG'].ltp = 99.9
+    ts._data['INTL'].ltp = 302 
+    ts.run()
+    assert ts.open_positions == 2
 
-
-
-
-
+def test_open_positions_can_trade(sl_breakout):
+    ts = sl_breakout
+    ts._data['AAPL'].can_trade = False
+    ts._data['AAPL'].positions = 0
+    ts.run()
+    assert ts.open_positions == 1
