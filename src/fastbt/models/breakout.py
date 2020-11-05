@@ -136,10 +136,12 @@ class Breakout(BaseSystem):
         defaults.update(kwargs)
         if self.env == 'live':
             order_id = self.broker.place_order(**defaults)
+            print('Actual order placed for', symbol, side)
             side2 = side_map.get(side)
             stop_args = dict(order_type='SL-M',trigger_price=stop,side=side2)
             defaults.update(stop_args)
             stop_id = self.broker.place_order(**stop_args)
+            print('Stop order placed for', symbol, side2)
         else:
             order_id = random.randint(100000,999999)
             stop_id = random.randint(100000,999999)
@@ -154,17 +156,21 @@ class Breakout(BaseSystem):
         subject to the constraints and conditions
         Override this method for your own entry logic
         """
+        if self.open_positions >= self.MAX_POSITIONS:
+            return
         for k,v in self.data.items():
             # The instrument can be traded and should have no 
-            #open positions
-            if v.can_trade:
+            # open positions and ltp should be updated
+            if (v.can_trade) and (v.ltp > 0):
                 if v.positions == 0:
                     if v.ltp > v.high:
                         # Place a BUY order
+                        print('BUY', k, v.ltp, v.high, v.low)
                         self.order(symbol=k, side='BUY')
                     elif v.ltp < v.low:
                         # Place a SELL order
                         self.order(symbol=k, side='SELL')
+                        print('SELL', k, v.ltp, v.high, v.low)
 
     @property
     def open_positions(self):

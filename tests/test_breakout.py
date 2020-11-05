@@ -2,7 +2,9 @@ import pytest
 import pendulum
 import random
 from fastbt.models.breakout import Breakout, StockData, HighLow
+from fastbt.brokers.zerodha import Zerodha
 from pydantic import ValidationError
+from unittest.mock import Mock,patch,call
 
 @pytest.fixture
 def base_breakout():
@@ -22,6 +24,21 @@ def sl_breakout():
     ts._data['GOOG'].ltp = 104
     ts._data['INTL'].ltp = 300
     return ts
+
+@pytest.fixture
+def live_order():
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        ts = Breakout(symbols=['GOOG','AAPL','INTL'],
+                instrument_map={'GOOG':1010,'AAPL':2100, 'INTL':3000},
+                broker=broker, env='live')
+        ts.update_high_low([
+                HighLow(symbol='AAPL', high=101, low=98),
+                HighLow(symbol='GOOG', high=104, low=100),
+                HighLow(symbol='INTL', high=302, low=295),
+                ])
+        ts._data['AAPL'].ltp = 100
+        ts._data['INTL'].ltp = 300
+        return ts
 
 def test_breakout_parent_defaults(base_breakout):
     ts = base_breakout
@@ -198,3 +215,18 @@ def test_open_positions_can_trade(sl_breakout):
     ts._data['AAPL'].positions = 0
     ts.run()
     assert ts.open_positions == 1
+
+def test_order_live(live_order):
+    # TO DO: Have a fresh run or a new fixture
+    ts = live_order 
+    print(ts.env)
+    print(ts.broker)
+    ts._data['AAPL'].ltp = 101.5
+    ts.run()
+    assert ts.broker.place_order.call_count == 2
+    # TO DO: Check positions and can_trade
+
+def test_order_live_kwargs(sl_breakout):
+    pass
+
+
