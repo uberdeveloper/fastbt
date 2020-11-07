@@ -217,16 +217,41 @@ def test_open_positions_can_trade(sl_breakout):
     assert ts.open_positions == 1
 
 def test_order_live(live_order):
-    # TO DO: Have a fresh run or a new fixture
     ts = live_order 
-    print(ts.env)
-    print(ts.broker)
     ts._data['AAPL'].ltp = 101.5
     ts.run()
-    assert ts.broker.place_order.call_count == 2
-    # TO DO: Check positions and can_trade
+    assert ts.broker.order_place.call_count == 2
+    assert ts.data.get('AAPL').positions == 985
+    assert ts.data.get('AAPL').can_trade is False
 
-def test_order_live_kwargs(sl_breakout):
-    pass
+def test_order_live_multiple_runs(live_order):
+    ts = live_order 
+    ts._data['AAPL'].ltp = 101.5
+    ts.run()
+    for i in range(10):
+        ts.run()
+    assert ts.broker.order_place.call_count == 2
+
+def test_order_live_kwargs(live_order):
+    ts = live_order
+    ts._data['AAPL'].ltp = 101.5
+    ts.run()
+    kwargs = dict(symbol='AAPL', order_type='LIMIT',
+            side='BUY',price=101.5,quantity=985)
+    assert ts.broker.order_place.call_args_list[0] == call(**kwargs)
+    kwargs = dict(symbol='AAPL', order_type='SL-M',
+            side='SELL',trigger_price=98.45,
+            price=101.5, quantity=985)
+    assert ts.broker.order_place.call_args_list[-1] == call(**kwargs)
+    for i in range(10):
+        ts.run()
+    assert ts.broker.order_place.call_count == 2
 
 
+def test_order_update_order_id(live_order):
+    ts = live_order 
+    ts.broker.order_place.return_value = 111111
+    ts._data['AAPL'].ltp = 101.5
+    ts.run()
+    assert ts.data['AAPL'].order_id == 111111
+    assert ts.data['AAPL'].stop_id == 111111

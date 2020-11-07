@@ -3,6 +3,7 @@ import random
 from collections import defaultdict
 from typing import Optional, List, Dict, Tuple, Any
 from fastbt.models.base import BaseSystem
+from fastbt.utils import tick
 from pydantic import BaseModel, ValidationError
 from logzero import logger
 from copy import deepcopy
@@ -119,9 +120,9 @@ class Breakout(BaseSystem):
     def order(self, symbol:str, side:str, **kwargs):
         order_id = stop_id = None
         v = self.data[symbol]
-        price = v.ltp
-        stop = self.stop_loss(symbol=symbol,side=side,
-                stop=3,method='percent')
+        price = tick(v.ltp)
+        stop = tick(self.stop_loss(symbol=symbol,side=side,
+                stop=3,method='percent'))
         quantity = self.get_quantity(price=price, stop=stop)
         v.can_trade = False
         if side == 'SELL':
@@ -135,13 +136,11 @@ class Breakout(BaseSystem):
                 price=price, quantity=quantity, side=side))
         defaults.update(kwargs)
         if self.env == 'live':
-            order_id = self.broker.place_order(**defaults)
-            print('Actual order placed for', symbol, side)
+            order_id = self.broker.order_place(**defaults)
             side2 = side_map.get(side)
             stop_args = dict(order_type='SL-M',trigger_price=stop,side=side2)
             defaults.update(stop_args)
-            stop_id = self.broker.place_order(**stop_args)
-            print('Stop order placed for', symbol, side2)
+            stop_id = self.broker.order_place(**defaults)
         else:
             order_id = random.randint(100000,999999)
             stop_id = random.randint(100000,999999)
