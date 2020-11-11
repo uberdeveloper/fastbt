@@ -189,6 +189,11 @@ class BaseSystem(TradingSystem):
             if p < now:
                 to_remove.append(p)
             else:
+                for r in to_remove:
+                    self._periods.remove(r)
+                    return p
+
+    def run(self, data:List[Dict]=[]) -> None:
         now = pendulum.now(tz=self.TZ)
         if (now > self.SYSTEM_START_TIME):
             self.fetch(data)

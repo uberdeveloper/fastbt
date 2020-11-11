@@ -178,4 +178,3 @@ class Breakout(BaseSystem):
             if (v.positions != 0) or not(v.can_trade):
                 count+=1
         return count
-            

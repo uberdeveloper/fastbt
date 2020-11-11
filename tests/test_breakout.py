@@ -232,7 +232,7 @@ def test_order_live_multiple_runs(live_order):
         ts.run()
     assert ts.broker.order_place.call_count == 2
 
-def test_order_live_kwargs(live_order):
+def test_order_live_args(live_order):
     ts = live_order
     ts._data['AAPL'].ltp = 101.5
     ts.run()
@@ -247,11 +247,42 @@ def test_order_live_kwargs(live_order):
         ts.run()
     assert ts.broker.order_place.call_count == 2
 
-
-def test_order_update_order_id(live_order):
+def test_order_live_update_order_id(live_order):
     ts = live_order 
     ts.broker.order_place.return_value = 111111
     ts._data['AAPL'].ltp = 101.5
     ts.run()
     assert ts.data['AAPL'].order_id == 111111
     assert ts.data['AAPL'].stop_id == 111111
+
+def test_order_live_kwargs(live_order):
+    ts = live_order
+    ts._data['AAPL'].ltp = 101.5
+    ts.ORDER_DEFAULT_KWARGS = {
+            'exchange':'NYSE','validity':'DAY','product':'MIS'
+            }
+    ts.run()
+    kwargs = dict(symbol='AAPL', order_type='LIMIT',
+            side='BUY',price=101.5,quantity=985,
+            exchange='NYSE',validity='DAY',product='MIS')
+    assert ts.broker.order_place.call_args_list[0] == call(**kwargs)
+    kwargs = dict(symbol='AAPL', order_type='SL-M',
+            side='SELL',trigger_price=98.45,
+            price=101.5, quantity=985,
+            exchange='NYSE',validity='DAY',product='MIS')
+    assert ts.broker.order_place.call_args_list[-1] == call(**kwargs)
+
+def test_max_positions(sl_breakout):
+    ts = sl_breakout
+    ts.MAX_POSITIONS = 1
+    ts._data['AAPL'].ltp = 101.5
+    ts.run()
+    ts._data['GOOG'].ltp = 99.9
+    ts._data['INTL'].ltp = 303 
+    ts.run()
+    assert ts.open_positions == 1
+
+    ts.MAX_POSITIONS = 2
+    ts.run()
+    assert ts.open_positions == 3
+
