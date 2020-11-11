@@ -23,7 +23,6 @@ def tuple_to_time(tup:Tuple[int,int,int]=(0,0,0)) -> pendulum.DateTime:
     hour,minute,second = tup
     return pendulum.today(tz='Asia/Kolkata').add(hours=hour,minutes=minute,seconds=second)
 
-
 def tick(price:float, tick_size:float=0.05) -> float:
     """
     round the given price to the nearest tick
@@ -72,7 +71,6 @@ def smart_buffer(price:float, side:str) -> float:
         return round(price + (sign*0.10), 2)
     else:
         return round(tick(price + (sign*price*0.05*0.01)), 2)
-
 
 class BaseSystem(TradingSystem):
     """
@@ -191,11 +189,6 @@ class BaseSystem(TradingSystem):
             if p < now:
                 to_remove.append(p)
             else:
-                for r in to_remove:
-                    self._periods.remove(r)
-                return p
-
-    def run(self, data:List[Dict]=[]) -> None:
         now = pendulum.now(tz=self.TZ)
         if (now > self.SYSTEM_START_TIME):
             self.fetch(data)
@@ -290,4 +283,52 @@ class BaseSystem(TradingSystem):
                 return int(self.CAPITAL_PER_STOCK/price)
             else:
                 return 0
+
+class Candle(BaseModel):
+    """
+    A model representing a single candle
+    """
+    timestamp: pendulum.DateTime
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: Optional[int]
+    info: Optional[Any]
+
+class CandleStick(BaseModel):
+    """
+    Class to work on candlesticks
+    """
+    name: str
+    candles: List[Candle] = []
+    initial_price: float = 0
+    ltp: float = 0
+    high: float = 1e10 # Initialize to a impossible value
+    low: float = -1 # Initialize to a impossible value
+    bar_high: float = 1e10 # Initialize to a impossible value
+    bar_low: float = -1 # Initialize to a impossible value
+
+    def add_candle(self, candle:Candle) -> None:
+        """
+        Add a candle
+        """
+        self.candles.append(candle)
+
+    def update(self, ltp:float):
+        """
+        Update running candle
+        """
+        pass
+
+    def update_candle(self):
+        """
+        Update and close the existing candle
+        and create a new candle for update
+        """
+        pass
+
+
+
+
 
