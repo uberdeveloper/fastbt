@@ -21,5 +21,18 @@ def high_count(values):
         arr[i] = count
     return arr 
 
-
+@njit
+def low_count(values):
+    """
+    Given a list of values, return the number of 
+    times low is broken
+    """
+    length = len(values)
+    arr = np.zeros(length, dtype=np.int16)
+    count = 0
+    for i in np.arange(1, length):
+        if values[i] < values[i-1]:
+            count+=1
+        arr[i] = count
+    return arr 
 
