@@ -15,8 +15,10 @@ def high_count(values):
     length = len(values)
     arr = np.zeros(length, dtype=np.int16)
     count = 0
+    max_val = values[0]
     for i in np.arange(1, length):
-        if values[i] > values[i-1]:
+        if values[i] > max_val:
+            max_val = values[i]
             count+=1
         arr[i] = count
     return arr 
@@ -30,8 +32,10 @@ def low_count(values):
     length = len(values)
     arr = np.zeros(length, dtype=np.int16)
     count = 0
+    min_val = values[0]
     for i in np.arange(1, length):
-        if values[i] < values[i-1]:
+        if values[i] < min_val:
+            min_val = values[i]
             count+=1
         arr[i] = count
     return arr 

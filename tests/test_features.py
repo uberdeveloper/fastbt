@@ -17,3 +17,10 @@ def test_low_count():
 def test_low_count_reversed():
     arr = np.arange(6)
     assert np.array_equal(low_count(arr), np.zeros(6,dtype=int)) 
+
+def test_high_and_low_count():
+    arr = np.array([101,102,97.4,91,96,102,106])
+    result = np.array([0,1,1,1,1,1,2])
+    assert np.array_equal(high_count(arr), result)
+    result = np.array([0,0,1,2,2,2,2])
+    assert np.array_equal(low_count(arr), result)
