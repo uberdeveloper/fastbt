@@ -24,3 +24,8 @@ def test_high_and_low_count():
     assert np.array_equal(high_count(arr), result)
     result = np.array([0,0,1,2,2,2,2])
     assert np.array_equal(low_count(arr), result)
+
+def test_last_high():
+    arr = np.array([101,102,100,100,103,102])
+    result = np.array([0,1,1,1,4,4])
+    assert np.array_equal(last_high(arr), result)

@@ -40,3 +40,22 @@ def low_count(values):
         arr[i] = count
     return arr 
 
+@njit
+def last_high(values):
+    """
+    Given a list of values, return an array with
+    the index of the corresponding last highs 
+    Note
+    ----
+    index starts at zero
+    """
+    length = len(values)
+    arr = np.zeros(length, dtype=np.int32)
+    max_val = values[0]
+    counter = 0
+    for i in np.arange(1, length):
+        if values[i] > max_val:
+            max_val = values[i]
+            counter = i
+        arr[i] = counter
+    return arr 
