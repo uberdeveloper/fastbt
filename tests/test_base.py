@@ -192,5 +192,29 @@ def test_get_quantity_capital_no_price():
     assert base.get_quantity() == 0
     assert base.get_quantity(stop=100) == 0
     
-def test_candlestick():
-    assert 4==4
+def test_candlestick_initial_settings():
+    cdl = CandleStick(name='NIFTY')
+    assert cdl.name == 'NIFTY'
+    assert cdl.high == -1
+    assert cdl.bar_high == -1
+    assert cdl.low == 1e10
+    assert cdl.bar_low == 1e10
+    assert cdl.ltp == 0
+
+def test_candlestick_update():
+    cdl = CandleStick(name='NIFTY')
+    cdl.update(100)
+    assert cdl.high == cdl.low == 100
+    assert cdl.bar_high == cdl.low == 100
+    
+    cdl.update(102)
+    assert cdl.high == cdl.bar_high == 102
+
+    cdl.update(99)
+    assert cdl.low == cdl.bar_low == 99 
+
+    cdl.update(101)
+    assert cdl.high == cdl.bar_high == 102
+    assert cdl.low == cdl.bar_low == 99 
+
+
