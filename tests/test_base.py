@@ -67,7 +67,6 @@ class TestBaseParams:
         assert base.RISK_PER_STOCK == 100
         assert base.WEIGHTAGE == 'risk'
         
-
 class TestBaseTimeSpans:
     
     def test_timespan(self):
@@ -87,23 +86,17 @@ class TestBaseTimeSpans:
         periods.assert_called_once()
         assert base.periods == prds 
 
-
-@patch.object(BaseSystem, 'get_time_periods')
 @patch('pendulum.now')
-def test_next_scan_initial(mock_now, mock_get_time_periods):
-    mock_get_time_periods.return_value = get_test_period()
+def test_next_scan_initial(mock_now):
     mock_now.return_value = pendulum.datetime(2020,1,1,10,0,tz=tz)
     base = BaseSystem()
     assert base.get_next_scan() == pendulum.datetime(2020,1,1,10,0,tz=tz)
 
-@patch.object(BaseSystem, 'get_time_periods')
 @patch('pendulum.now')
-def test_next_scan_elapsed(mock_now, mock_get_time_periods):
-    mock_get_time_periods.return_value = get_test_period()
+def test_next_scan_elapsed(mock_now):
     mock_now.return_value = pendulum.datetime(2020,1,1,10,0,second=15,tz=tz)
     base = BaseSystem()
     assert base.get_next_scan() == pendulum.datetime(2020,1,1,10,1,tz=tz)
-    assert len(base.periods) == 10
 
 @patch.object(BaseSystem, 'get_time_periods')
 @patch('pendulum.now')
@@ -199,5 +192,5 @@ def test_get_quantity_capital_no_price():
     assert base.get_quantity() == 0
     assert base.get_quantity(stop=100) == 0
     
-
-
+def test_candlestick():
+    assert 4==4
