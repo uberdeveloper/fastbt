@@ -326,6 +326,8 @@ class CandleStick(BaseModel):
         Update running candle
         """
         self.ltp = ltp
+        if self.initial_price == 0:
+            self.initial_price = ltp 
         self.bar_high = max(self.bar_high, ltp)
         self.bar_low = min(self.bar_low, ltp)
         self.high = max(self.high, ltp)

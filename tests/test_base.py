@@ -218,3 +218,11 @@ def test_candlestick_update():
     assert cdl.low == cdl.bar_low == 99 
 
 
+def test_candlestick_update_initial_price():
+    cdl = CandleStick(name='NIFTY')
+    cdl.update(100)
+    assert cdl.initial_price == 100
+
+    cdl.update(101)
+    assert cdl.initial_price == 100
+    assert cdl.high == 101
