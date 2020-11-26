@@ -1,0 +1,13 @@
+orders:
+  BrokerOrderId: order_id
+  BrokerOrderTime: order_timestamp
+  ScripName: symbol
+  Rate: price
+  Qty: quantity
+  AtMarket: order_type
+  BuySell: side
+  TradedQty: filled_quantity
+  OrderStatus: status
+orderplace:
+  Qty: quantity
+  OrderType: side
