@@ -14,7 +14,8 @@ from kiteconnect.exceptions import (
     TokenException,
     NetworkException,
     GeneralException,
-    KiteException
+    KiteException,
+    InputException
 )
 
 def get_key(url, key='request_token'):
