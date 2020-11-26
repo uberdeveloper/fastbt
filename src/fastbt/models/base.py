@@ -7,7 +7,7 @@ from collections import defaultdict
 # Declare global variables
 TZ = 'Asia/Kolkata'
     
-def tuple_to_time(tup:Tuple[int,int,int]=(0,0,0)) -> pendulum.DateTime:
+def tuple_to_time(tup:Tuple[int,int,int]=(0,0,0),tz:str='Asia/Kolkata') -> pendulum.DateTime:
     """
     Convert a 3-tuple to a pendulum datetime instance.
     The 3-tuple is considered to be hour, minute and second
@@ -21,7 +21,7 @@ def tuple_to_time(tup:Tuple[int,int,int]=(0,0,0)) -> pendulum.DateTime:
     >>> assert dt2 == pendulum.datetime(yr,mon,day,3,4,5,tz='Asia/Kolkata')
     """
     hour,minute,second = tup
-    return pendulum.today(tz='Asia/Kolkata').add(hours=hour,minutes=minute,seconds=second)
+    return pendulum.today(tz=tz).add(hours=hour,minutes=minute,seconds=second)
 
 def tick(price:float, tick_size:float=0.05) -> float:
     """
@@ -189,9 +189,10 @@ class BaseSystem(TradingSystem):
             if p < now:
                 to_remove.append(p)
             else:
-                for r in to_remove:
-                    self._periods.remove(r)
-                    return p
+                break
+        for r in to_remove:
+            self._periods.remove(r)
+        return p
 
     def run(self, data:List[Dict]=[]) -> None:
         now = pendulum.now(tz=self.TZ)
@@ -309,10 +310,10 @@ class CandleStick(BaseModel):
     candles: List[Candle] = []
     initial_price: float = 0
     ltp: float = 0
-    high: float = 1e10 # Initialize to a impossible value
-    low: float = -1 # Initialize to a impossible value
-    bar_high: float = 1e10 # Initialize to a impossible value
-    bar_low: float = -1 # Initialize to a impossible value
+    high: float = -1 # Initialize to a impossible value
+    low: float = 1e10 # Initialize to a impossible value
+    bar_high: float = -1# Initialize to a impossible value
+    bar_low: float = 1e10 # Initialize to a impossible value
 
     def add_candle(self, candle:Candle) -> None:
         """
@@ -324,9 +325,13 @@ class CandleStick(BaseModel):
         """
         Update running candle
         """
-        pass
+        self.ltp = ltp
+        self.bar_high = max(self.bar_high, ltp)
+        self.bar_low = min(self.bar_low, ltp)
+        self.high = max(self.high, ltp)
+        self.low = min(self.low, ltp)
 
-    def update_candle(self):
+    def update_candle(self, timestamp:pendulum.DateTime=None):
         """
         Update and close the existing candle
         and create a new candle for update

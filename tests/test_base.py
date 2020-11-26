@@ -67,7 +67,6 @@ class TestBaseParams:
         assert base.RISK_PER_STOCK == 100
         assert base.WEIGHTAGE == 'risk'
         
-
 class TestBaseTimeSpans:
     
     def test_timespan(self):
@@ -87,23 +86,17 @@ class TestBaseTimeSpans:
         periods.assert_called_once()
         assert base.periods == prds 
 
-
-@patch.object(BaseSystem, 'get_time_periods')
 @patch('pendulum.now')
-def test_next_scan_initial(mock_now, mock_get_time_periods):
-    mock_get_time_periods.return_value = get_test_period()
+def test_next_scan_initial(mock_now):
     mock_now.return_value = pendulum.datetime(2020,1,1,10,0,tz=tz)
     base = BaseSystem()
     assert base.get_next_scan() == pendulum.datetime(2020,1,1,10,0,tz=tz)
 
-@patch.object(BaseSystem, 'get_time_periods')
 @patch('pendulum.now')
-def test_next_scan_elapsed(mock_now, mock_get_time_periods):
-    mock_get_time_periods.return_value = get_test_period()
+def test_next_scan_elapsed(mock_now):
     mock_now.return_value = pendulum.datetime(2020,1,1,10,0,second=15,tz=tz)
     base = BaseSystem()
     assert base.get_next_scan() == pendulum.datetime(2020,1,1,10,1,tz=tz)
-    assert len(base.periods) == 10
 
 @patch.object(BaseSystem, 'get_time_periods')
 @patch('pendulum.now')
@@ -199,5 +192,29 @@ def test_get_quantity_capital_no_price():
     assert base.get_quantity() == 0
     assert base.get_quantity(stop=100) == 0
     
+def test_candlestick_initial_settings():
+    cdl = CandleStick(name='NIFTY')
+    assert cdl.name == 'NIFTY'
+    assert cdl.high == -1
+    assert cdl.bar_high == -1
+    assert cdl.low == 1e10
+    assert cdl.bar_low == 1e10
+    assert cdl.ltp == 0
+
+def test_candlestick_update():
+    cdl = CandleStick(name='NIFTY')
+    cdl.update(100)
+    assert cdl.high == cdl.low == 100
+    assert cdl.bar_high == cdl.low == 100
+    
+    cdl.update(102)
+    assert cdl.high == cdl.bar_high == 102
+
+    cdl.update(99)
+    assert cdl.low == cdl.bar_low == 99 
+
+    cdl.update(101)
+    assert cdl.high == cdl.bar_high == 102
+    assert cdl.low == cdl.bar_low == 99 
 
 
