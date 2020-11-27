@@ -326,20 +326,27 @@ class CandleStick(BaseModel):
         """
         Update running candle
         """
+        if self.initial_price ==0 :
+            self.initial_price = self.ltp
         self.ltp = ltp
         self.bar_high = max(self.bar_high, ltp)
         self.bar_low = min(self.bar_low, ltp)
         self.high = max(self.high, ltp)
         self.low = min(self.low, ltp)
 
-    def update_candle(self, timestamp:pendulum.DateTime=None):
+    def update_candle(self, timestamp:pendulum.DateTime=pendulum.now())->Candle:
         """
-        Update and close the existing candle
-        and create a new candle for update
+        Update and append the existing candle
+        returns the updated candle
         """
-        pass
-
-
-
+        if len(self.candles) == 0:
+            open_price = self.initial_price
+        else:
+            open_price = self.candles[-1].close
+        candle = Candle(timestamp=timestamp, open=open_price,
+                high=self.bar_high,low=self.bar_low,close=self.ltp)
+        self.add_candle(candle)
+        self.bar_high = self.bar_low = self.ltp
+        return candle
 
 
