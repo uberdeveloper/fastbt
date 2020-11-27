@@ -217,4 +217,18 @@ def test_candlestick_update():
     assert cdl.high == cdl.bar_high == 102
     assert cdl.low == cdl.bar_low == 99 
 
-
+def test_add_candle():
+    cdl= CandleStick(name='SBIN')
+    candle = Candle(timestamp=pendulum.now(),open=100,high=110,low=96,close=105,volume=1e4)
+    cdl.add_candle(candle)
+    assert len(cdl.candles) == 1
+    assert cdl.candles[0] == candle
+    
+def test_add_candle_extra_info():
+    cdl = CandleStick(name='SBIN')
+    candle = Candle(timestamp=pendulum.now(),open=100,high=110,low=96,close=105,volume=1e4)
+    cdl.add_candle(candle)
+    candle.info = 'some extra info'
+    cdl.add_candle(candle)
+    assert cdl.candles[0].info is None
+    assert cdl.candles[1].info == 'some extra info'

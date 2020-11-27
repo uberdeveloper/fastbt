@@ -3,6 +3,7 @@ from typing import List, Tuple, Optional, Dict, Sequence, Any
 from fastbt.Meta import TradingSystem
 from pydantic import BaseModel, ValidationError, validator
 from collections import defaultdict
+from copy import deepcopy
 
 # Declare global variables
 TZ = 'Asia/Kolkata'
@@ -319,7 +320,7 @@ class CandleStick(BaseModel):
         """
         Add a candle
         """
-        self.candles.append(candle)
+        self.candles.append(deepcopy(candle))
 
     def update(self, ltp:float):
         """
