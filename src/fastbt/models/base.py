@@ -3,6 +3,7 @@ from typing import List, Tuple, Optional, Dict, Sequence, Any
 from fastbt.Meta import TradingSystem
 from pydantic import BaseModel, ValidationError, validator
 from collections import defaultdict
+from copy import deepcopy
 
 # Declare global variables
 TZ = 'Asia/Kolkata'
@@ -319,12 +320,14 @@ class CandleStick(BaseModel):
         """
         Add a candle
         """
-        self.candles.append(candle)
+        self.candles.append(deepcopy(candle))
 
     def update(self, ltp:float):
         """
         Update running candle
         """
+        if self.initial_price ==0 :
+            self.initial_price = self.ltp
         self.ltp = ltp
         if self.initial_price == 0:
             self.initial_price = ltp 
@@ -333,14 +336,19 @@ class CandleStick(BaseModel):
         self.high = max(self.high, ltp)
         self.low = min(self.low, ltp)
 
-    def update_candle(self, timestamp:pendulum.DateTime=None):
+    def update_candle(self, timestamp:pendulum.DateTime=pendulum.now())->Candle:
         """
-        Update and close the existing candle
-        and create a new candle for update
+        Update and append the existing candle
+        returns the updated candle
         """
-        pass
-
-
-
+        if len(self.candles) == 0:
+            open_price = self.initial_price
+        else:
+            open_price = self.candles[-1].close
+        candle = Candle(timestamp=timestamp, open=open_price,
+                high=self.bar_high,low=self.bar_low,close=self.ltp)
+        self.add_candle(candle)
+        self.bar_high = self.bar_low = self.ltp
+        return candle
 
 

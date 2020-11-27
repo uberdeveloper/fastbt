@@ -217,6 +217,21 @@ def test_candlestick_update():
     assert cdl.high == cdl.bar_high == 102
     assert cdl.low == cdl.bar_low == 99 
 
+def test_candlestick_add_candle():
+    cdl= CandleStick(name='SBIN')
+    candle = Candle(timestamp=pendulum.now(),open=100,high=110,low=96,close=105,volume=1e4)
+    cdl.add_candle(candle)
+    assert len(cdl.candles) == 1
+    assert cdl.candles[0] == candle
+    
+def test_candlestick_add_candle_extra_info():
+    cdl = CandleStick(name='SBIN')
+    candle = Candle(timestamp=pendulum.now(),open=100,high=110,low=96,close=105,volume=1e4)
+    cdl.add_candle(candle)
+    candle.info = 'some extra info'
+    cdl.add_candle(candle)
+    assert cdl.candles[0].info is None
+    assert cdl.candles[1].info == 'some extra info'
 
 def test_candlestick_update_initial_price():
     cdl = CandleStick(name='NIFTY')
@@ -226,3 +241,34 @@ def test_candlestick_update_initial_price():
     cdl.update(101)
     assert cdl.initial_price == 100
     assert cdl.high == 101
+
+def test_candlestick_update_candle():
+    cdl = CandleStick(name='AAPL')
+    for i in [100,101,102,101,103,101,99,102]:
+        cdl.update(i)
+    ts = pendulum.parse('2020-01-01T9:00:00')
+    cdl.update_candle(timestamp=ts)
+    candle = Candle(timestamp=ts,open=100,high=103,low=99,close=102)
+    assert len(cdl.candles) == 1
+    assert cdl.candles[0] == candle
+    assert cdl.bar_high == cdl.bar_low == cdl.ltp == 102
+    
+def test_candlestick_update_multiple_candles():
+    cdl = CandleStick(name='AAPL')
+    for i in [100,101,102,101,103,101,99,102]:
+        cdl.update(i)
+    ts = pendulum.parse('2020-01-01T9:00:00')
+    cdl.update_candle(timestamp=ts)
+    for i in [102.5,104,103,102,103]:
+        cdl.update(i)
+    ts = pendulum.parse('2020-01-01T9:30:00')
+    cdl.update_candle(timestamp=ts)
+    c1,c2 = cdl.candles[0], cdl.candles[1]
+    assert len(cdl.candles) == 2
+    assert c1.close == c2.open
+    assert c2.timestamp == ts
+    assert c2.open == 102
+    assert c2.high == 104
+    assert c2.low == 102
+    assert cdl.high == 104
+    assert cdl.low == 99
