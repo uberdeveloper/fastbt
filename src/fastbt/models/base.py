@@ -351,4 +351,27 @@ class CandleStick(BaseModel):
         self.bar_high = self.bar_low = self.ltp
         return candle
 
+    @property
+    def bullish_bars(self) -> int:
+        """
+        Returns the number of bullish bars
+        """
+        count = 0
+        for candle in self.candles:
+            if candle.close > candle.open:
+                count +=1 
+        return count
+    
+    @property
+    def bearish_bars(self) -> int:
+        """
+        Returns the number of bullish bars
+        """
+        count = 0
+        for candle in self.candles:
+            if candle.close < candle.open:
+                count +=1 
+        return count
+    
+
 

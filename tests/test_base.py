@@ -298,3 +298,8 @@ def test_bullish_bars(ohlc_data):
     cdl.candles = ohlc_data
     assert cdl.bullish_bars == 4
 
+def test_bearish_bars(ohlc_data):
+    cdl = CandleStick(name='sample')
+    #TODO: Change this into a mock
+    cdl.candles = ohlc_data
+    assert cdl.bearish_bars == 2
