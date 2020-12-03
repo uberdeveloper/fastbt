@@ -1,11 +1,30 @@
 import pytest
 import pendulum
-from unittest.mock import Mock,patch
+from unittest.mock import Mock,patch,PropertyMock
 import unittest
 from logzero import logger
 tz = 'Asia/Kolkata'
 
 from fastbt.models.base import *
+
+@pytest.fixture
+def ohlc_data():
+    ohlc = [
+        [1000,1025,974,1013],
+        [1013,1048,1029,1032],
+        [1033,1045,1024,1040],
+        [1040,1059,1037,1039],
+        [1038,1038,984,988 ],
+        [988,1031,970,1024],
+    ]
+    periods = pendulum.today() - pendulum.datetime(2020,1,1,0,0)
+    candles = []
+    for p,prices in zip(periods, ohlc):
+        candle = Candle(timestamp=p,open=prices[0],high=prices[1],
+                low=prices[2],close=prices[3])
+        candles.append(candle)
+    return candles 
+
 
 def get_test_period():
     periods = pendulum.datetime(2020,1,1,10,10,tz=tz) - pendulum.datetime(2020,1,1,10,0,tz=tz)
@@ -272,3 +291,10 @@ def test_candlestick_update_multiple_candles():
     assert c2.low == 102
     assert cdl.high == 104
     assert cdl.low == 99
+
+def test_bullish_bars(ohlc_data):
+    cdl = CandleStick(name='sample')
+    #TODO: Change this into a mock
+    cdl.candles = ohlc_data
+    assert cdl.bullish_bars == 4
+
