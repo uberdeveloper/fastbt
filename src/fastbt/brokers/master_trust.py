@@ -36,6 +36,12 @@ class MasterTrust(Broker):
         self.authorization_base_url = f"{self.base_url}/oauth2/auth"
         self.token_url = f"{self.base_url}/oauth2/token"
         super(MasterTrust, self).__init__()
+        try:
+            with open(self.token_file, 'r') as f:
+                access_token = f.read()
+            self._access_token = access_token
+        except Exception as e:
+            print('Token not found',e)
 
     def get_authorization_url(self, client_id='APIUSER', redirect_uri='http://127.0.0.1/',
             scope=['orders']):
