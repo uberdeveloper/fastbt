@@ -43,6 +43,24 @@ class MasterTrust(Broker):
         except Exception as e:
             print('Token not found',e)
 
+        self._headers = {
+            'Accept': 'application/json',
+            'Authorization': f'Bearer {access_token}',
+            'Cache-Control': 'no-cache'
+        }
+
+    @property
+    def headers(self):
+        return self._headers
+
+    @property
+    def access_token(self):
+        return self._access_token
+
+    @property
+    def client_id(self):
+        return self._client_id
+
     def get_authorization_url(self, client_id='APIUSER', redirect_uri='http://127.0.0.1/',
             scope=['orders']):
         oauth = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
