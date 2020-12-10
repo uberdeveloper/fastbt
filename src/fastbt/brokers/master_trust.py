@@ -1,5 +1,5 @@
-import pandas as pd
 import os
+import requests
 from fastbt.Meta import Broker,Status,pre,post
 from requests_oauthlib import OAuth2Session
 
@@ -130,3 +130,14 @@ class MasterTrust(Broker):
         current_url = driver.current_url
         driver.close()
         return current_url 
+
+
+    def profile(self):
+        """
+        Get the profile for the user
+        """
+        url = f"{self.base_url}/api/v1/user/profile"
+        payload = {'client_id': self.client_id} 
+        resp = requests.get(url, headers=self.headers, params=payload)
+        return resp.json()
+
