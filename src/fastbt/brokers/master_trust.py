@@ -14,7 +14,6 @@ from selenium.webdriver.support import expected_conditions as EC
 def get_authorization_url():
     oauth = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
     authorization_url, _state = oauth.authorization_url(authorization_base_url, access_type="authorization_code")
-    print(_state)
     return authorization_url
 
 class MasterTrust(Broker):
@@ -23,7 +22,7 @@ class MasterTrust(Broker):
     """
     def __init__(self, client_id, password,
                 PIN, secret, exchange='NSE',
-                product='MIS'):
+                product='MIS', token_file='token.tok'):
         self._client_id = client_id 
         self._password = password
         self._pin = PIN
@@ -32,6 +31,7 @@ class MasterTrust(Broker):
         self.product = product
         self._store_access_token = True        
         self._access_token = None
+        self.token_file = token_file
         self.base_url = 'https://masterswift-beta.mastertrust.co.in'
         self.authorization_base_url = f"{self.base_url}/oauth2/auth"
         self.token_url = f"{self.base_url}/oauth2/token"
@@ -51,8 +51,10 @@ class MasterTrust(Broker):
         oauth = OAuth2Session('APIUSER',redirect_uri=redirect_uri, scope=scope)
         token = oauth.fetch_token(self.token_url, authorization_response=url, client_secret=self._secret)
         access_token = token['access_token']
-        self._access_token = token
-        return token
+        self._access_token = access_token
+        with open(self.token_file, "w") as f:
+            f.write(access_token)
+        return access_token
             
     def _shortcuts(self):
         """
@@ -60,19 +62,27 @@ class MasterTrust(Broker):
         """
         pass
 
-    def authenticate(self):
+    def authenticate(self, force=False):
         """
         Authenticates a session if access token is already
         available by looking at the token.tok file.
         In case authentication fails, try a fresh login
+        force
+            Force an authentication even if tokens exists
         """
-        login_url = self._login() 
-        print('LOGIN URL')
-        print(login_url)
-        token = self.get_access_token(login_url)
-        print(token)
+        try:
+            if not(force):
+                with open(self.token_file, 'r') as f:
+                    access_token = f.read()
+                self._access_token = access_token
+            else:
+                login_url = self._login()
+                access_token = self.get_access_token(login_url)
+        except Exception as e:
+            print(e)
+            login_url = self._login()
+            access_token = self.get_access_token(login_url)
 
-    
     def _login(self):
         import time
         options = Options()
