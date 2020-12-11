@@ -132,14 +132,20 @@ class MasterTrust(Broker):
         return current_url 
 
 
-    def _response(self, response):
+    def _response(self, response, full=False):
         """
         response
             response is the raw response from broker
+        full
+            if True, the entire json response is returned
+            useful for debugging purposes and getting extra information
         """
         try:
             resp = response.json()
-            return resp['data']
+            if full:
+                return resp
+            else:
+                return resp['data']
         except:
             return {}
     
@@ -150,6 +156,44 @@ class MasterTrust(Broker):
         url = f"{self.base_url}/api/v1/user/profile"
         payload = {'client_id': self.client_id} 
         resp = requests.get(url, headers=self.headers, params=payload)
-        resp = self._response(resp)
-        return resp
+        return self._response(resp) 
+
+    @post
+    def positions(self):
+        """
+        Return only the positions for the day
+        """
+        url = f"{self.base_url}/api/v1/positions" 
+        payload = {'client_id': self.client_id, 'type':'live'}
+        resp = requests.get(url, headers=self.headers, params=payload)
+        return self._response(resp)
+
+    @post
+    def completed_orders(self):
+        """
+        Return the completed orders for the day
+        """
+        url = f"{self.base_url}/api/v1/orders" 
+        payload = {'client_id': self.client_id, 'type':'completed'}
+        resp = requests.get(url, headers=self.headers, params=payload)
+        return self._response(resp)['orders']
+
+    @post
+    def pending_orders(self):
+        """
+        Return the completed orders for the day
+        """
+        url = f"{self.base_url}/api/v1/orders" 
+        payload = {'client_id': self.client_id, 'type':'pending'}
+        resp = requests.get(url, headers=self.headers, params=payload)
+        return self._response(resp)['orders']
+
+    def orders(self):
+        pending = self.pending_orders()
+        completed = self.completed_orders()
+        pending.extend(completed) 
+        return pending 
+
+
+
 
