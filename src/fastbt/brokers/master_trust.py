@@ -132,6 +132,17 @@ class MasterTrust(Broker):
         return current_url 
 
 
+    def _response(self, response):
+        """
+        response
+            response is the raw response from broker
+        """
+        try:
+            resp = response.json()
+            return resp['data']
+        except:
+            return {}
+    
     def profile(self):
         """
         Get the profile for the user
@@ -139,5 +150,6 @@ class MasterTrust(Broker):
         url = f"{self.base_url}/api/v1/user/profile"
         payload = {'client_id': self.client_id} 
         resp = requests.get(url, headers=self.headers, params=payload)
-        return resp.json()
+        resp = self._response(resp)
+        return resp
 
