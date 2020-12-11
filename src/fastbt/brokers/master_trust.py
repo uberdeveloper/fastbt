@@ -16,6 +16,37 @@ def get_authorization_url():
     authorization_url, _state = oauth.authorization_url(authorization_base_url, access_type="authorization_code")
     return authorization_url
 
+def fetch_all_contracts(exchanges=['NSE','NFO']):
+    """
+    Fetch all contracts for the given list of exchanges
+    exchanges
+        exchanges as a list
+    """
+    url = 'https://masterswift.mastertrust.co.in/api/v2/contracts.json?exchanges={exc}'
+    # All contracts are stored as dictionary keys
+    contracts = {}
+    for e in exchanges:
+        url2 = url.format(exc=e)
+        req = requests.get(url2).json()
+        for k,v in req.items():
+            for c in v:
+                symbol = c['trading_symbol']
+                code = c['code']
+                contracts[f"{e}:{symbol}"] = code
+    return contracts
+
+def get_instrument_token(contracts, exchange, symbol):
+    """
+    Fetch the instrument token
+    contracts
+        the contracts master as a dictionary
+    exchange
+        exchange to look up for
+    symbol
+        symbol to look up for
+    """
+    return contracts.get(f"{exchange}:{symbol}") 
+
 class MasterTrust(Broker):
     """
     Automated Trading class
