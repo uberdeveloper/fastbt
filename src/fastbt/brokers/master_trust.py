@@ -176,7 +176,7 @@ class MasterTrust(Broker):
         url = f"{self.base_url}/api/v1/orders" 
         payload = {'client_id': self.client_id, 'type':'completed'}
         resp = requests.get(url, headers=self.headers, params=payload)
-        return self._response(resp)['orders']
+        return self._response(resp).get('orders', [])
 
     @post
     def pending_orders(self):
@@ -186,13 +186,27 @@ class MasterTrust(Broker):
         url = f"{self.base_url}/api/v1/orders" 
         payload = {'client_id': self.client_id, 'type':'pending'}
         resp = requests.get(url, headers=self.headers, params=payload)
-        return self._response(resp)['orders']
+        return self._response(resp).get('orders', [])
 
     def orders(self):
+        """
+        Return the entire orderbook for the day including
+        completed and pending orders
+        """
         pending = self.pending_orders()
         completed = self.completed_orders()
         pending.extend(completed) 
         return pending 
+
+    def trades(self):
+        """
+        Return the tradebook for the day
+        """
+        url = f"{self.base_url}/api/v1/trades" 
+        payload = {'client_id': self.client_id}
+        resp = requests.get(url, headers=self.headers, params=payload)
+        return self._response(resp).get('trades', [])
+
 
 
 
