@@ -239,6 +239,57 @@ class MasterTrust(Broker):
         return self._response(resp).get('trades', [])
 
 
+    def realized_mtm(self):
+        """
+        Get the realized MTM
+        """
+        positions = self.positions()
+        if len(positions)>0:
+            return sum([float(p['realized_mtm']) for p in positions])
+        else:
+            # Return 0 in case of no transactions
+            return 0
 
+    def unrealized_mtm(self):
+        """
+        Get the unrealized MTM
+        """
+        positions = self.positions()
+        if len(positions)==0:
+            collect = {p['symbol']:0 for p in positions}
+        else:
+            collect = {}
+            for p in positions:
+                if p['net_quantity'] > 0:
+                    collect[p['symbol']] = (p['ltp']-(-p['net_amount']/p['net_quantity']))*p['net_quantity']-p['realized_mtm']
+                elif p['net_quantity'] < 0:
+                    collect[p['symbol']] = (p['ltp']-(-p['net_amount']/p['net_quantity']))*p['net_quantity']-p['realized_mtm']
+                else:
+                    collect[p['symbol']] = 0
+        return sum(list(collect.values()))
+
+    def mtm(self, mode=None):
+        """
+        Get the mtm
+        """
+        if mode == 'realized':
+            return self.realized_mtm()
+        elif mode == 'unrealized':
+            return self.unrealized_mtm()
+        else:
+            return self.realized_mtm() + self.unrealized_mtm()
+
+    def net_qty(self, symbol):
+        """
+        Get the net quantity
+        """
+        positions = self.positions()
+        if symbol is None:
+            return {p['symbol']:p['net_quantity'] for p in positions}
+        else:
+            for p in positions:
+                if p['symbol'] == symbol:
+                    return p['net_quantity']
+            return 0
 
 
