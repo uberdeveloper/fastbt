@@ -45,7 +45,7 @@ class MasterTrust(Broker):
 
         self._headers = {
             'Accept': 'application/json',
-            'Authorization': f'Bearer {access_token}',
+            'Authorization': f'Bearer {self._access_token}',
             'Cache-Control': 'no-cache'
         }
 
@@ -110,7 +110,7 @@ class MasterTrust(Broker):
     def _login(self):
         import time
         options = Options()
-        #options.add_argument('--headless')
+        options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         driver = webdriver.Chrome(options=options)
         url = self.get_authorization_url()
