@@ -173,7 +173,7 @@ class MasterTrust(Broker):
         """
         try:
             resp = response.json()
-            if full:
+            if full or (resp.get('status') == 'error'):
                 return resp
             else:
                 return resp['data']
