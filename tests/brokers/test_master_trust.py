@@ -49,3 +49,12 @@ def test_get_instrument_token(mock_get):
     token = get_instrument_token(contracts, 'NFO', 'SBT-EQ')
     assert token == '5316'
 
+def test_broker_get_instrument_token():
+    broker = MasterTrust('a','b','c','d','e') # dummy arguments
+    broker.contracts = contracts_data
+    broker._get_instrument_token(symbol='SBIN-EQ') == '3045'
+
+def test_broker_get_instrument_token_override_contracts():
+    broker = MasterTrust('a','b','c','d','e') # dummy arguments
+    broker.contracts = {}
+    broker._get_instrument_token(symbol='SBIN-EQ', contracts=contracts_data) == '3045'

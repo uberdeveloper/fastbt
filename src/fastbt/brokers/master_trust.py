@@ -180,6 +180,12 @@ class MasterTrust(Broker):
         except:
             return {}
     
+    def _get_instrument_token(self, symbol, exchange='NSE', contracts=None):
+        if not(contracts):
+            contracts = self.contracts
+        return get_instrument_token(contracts=contracts, exchange=exchange, symbol=symbol)
+
+
     def profile(self):
         """
         Get the profile for the user
@@ -297,7 +303,10 @@ class MasterTrust(Broker):
         Place an order
         """
         url = f"{self.base_url}/api/v1/orders" 
+        symbol = kwargs.pop('symbol')
+        print(symbol)
         payload = kwargs.copy() 
+
         resp = requests.post(url, headers=self.headers, params=payload)
         return self._response(resp)
 
