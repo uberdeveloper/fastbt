@@ -96,7 +96,6 @@ def test_broker_get_instrument_token_override_contracts():
 def test_broker_order_place(mock_broker):
     kwargs = order_args()['normal']
     # To maintain order
-    kwargs = dict(sorted(kwargs.items()))
     with patch('requests.post') as mock_post:
         broker = mock_broker
         broker.order_place(**kwargs)
@@ -109,6 +108,34 @@ def test_broker_order_place(mock_broker):
                 'validity': 'DAY',
                 'product': 'MIS',
                 'quantity': 1,
+                'instrument_token': '3045',
+                'order_side': 'BUY',
+                'client_id': 'XYZ',
+                'user_order_id': 1000
+                }
+        url = 'https://masterswift-beta.mastertrust.co.in/api/v1/orders'
+        mock_post.assert_called_with(url,
+                headers=broker._headers,params=params)
+
+def test_broker_order_place_other_args(mock_broker):
+    kwargs = order_args()['normal']
+    kwargs.update({
+        'trigger_price': 218,
+        'order_type': 'SLM'
+        })
+    with patch('requests.post') as mock_post:
+        broker = mock_broker
+        broker.order_place(**kwargs)
+        mock_post.assert_called()
+        mock_post.assert_called_once()
+        params = {
+                'exchange': 'NSE',
+                'order_type': 'SLM',
+                'price': 220,
+                'validity': 'DAY',
+                'product': 'MIS',
+                'quantity': 1,
+                'trigger_price': 218,
                 'instrument_token': '3045',
                 'order_side': 'BUY',
                 'client_id': 'XYZ',
