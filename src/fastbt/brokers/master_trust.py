@@ -321,6 +321,12 @@ class MasterTrust(Broker):
         Place an order
         """
         url = f"{self.base_url}/api/v1/orders" 
+        symbol = kwargs.pop('symbol')
+        exchange = kwargs.get('exchange', self.exchange)
+        token = self._get_instrument_token(exchange=self.exchange,
+                symbol=symbol)
+        kwargs['instrument_token'] = token
+        kwargs['client_id'] = self.client_id
         payload = kwargs.copy() 
         resp = requests.put(url, headers=self.headers, params=payload)
         return self._response(resp)
@@ -362,9 +368,4 @@ class MasterTrust(Broker):
         payload = kwargs.copy() 
         resp = requests.delete(url, headers=self.headers, params=payload)
         return resp.json()
-
-
-
-
-
 

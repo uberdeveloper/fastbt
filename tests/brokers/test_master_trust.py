@@ -144,3 +144,27 @@ def test_broker_order_place_other_args(mock_broker):
         url = 'https://masterswift-beta.mastertrust.co.in/api/v1/orders'
         mock_post.assert_called_with(url,
                 headers=broker._headers,params=params)
+
+def test_broker_order_modify(mock_broker):
+    kwargs = order_args()['normal']
+    kwargs.pop('side')
+    kwargs.update({'oms_order_id':11111})
+    with patch('requests.put') as mock_put:
+        broker = mock_broker
+        broker.order_modify(**kwargs)
+        mock_put.assert_called()
+        mock_put.assert_called_once()
+        params = {
+                'exchange': 'NSE',
+                'order_type': 'LIMIT',
+                'price': 220,
+                'validity': 'DAY',
+                'product': 'MIS',
+                'quantity': 1,
+                'oms_order_id': 11111,
+                'instrument_token': '3045',
+                'client_id': 'XYZ',
+                }
+        url = 'https://masterswift-beta.mastertrust.co.in/api/v1/orders'
+        mock_put.assert_called_with(url,
+                headers=broker._headers,params=params)
