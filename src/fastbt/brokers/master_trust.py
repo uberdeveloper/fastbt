@@ -304,9 +304,15 @@ class MasterTrust(Broker):
         """
         url = f"{self.base_url}/api/v1/orders" 
         symbol = kwargs.pop('symbol')
-        print(symbol)
+        side = kwargs.pop('side')
+        exchange = kwargs.get('exchange', self.exchange)
+        token = self._get_instrument_token(exchange=self.exchange,
+                symbol=symbol)
+        kwargs['instrument_token'] = token
+        kwargs['order_side'] = side
+        kwargs['client_id'] = self.client_id
+        kwargs['user_order_id'] = 1000
         payload = kwargs.copy() 
-
         resp = requests.post(url, headers=self.headers, params=payload)
         return self._response(resp)
 
