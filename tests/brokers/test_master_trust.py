@@ -24,7 +24,22 @@ def order_args():
                 'product': 'MIS',
                 'quantity': 1
                 }
-    return dict(normal=normal)
+    bracket = {
+              "exchange": "NSE",
+              "symbol": "SBT-EQ",
+              "quantity": 1, 
+              "validity": "DAY", 
+              "square_off_value": 1301,
+              "stop_loss_value": 1290, 
+              "price": 1299, 
+              "trigger_price":1299,
+              "trailing_stop_loss": 1,
+              "order_type": "SL",
+              "product": "BO",
+              "side": "BUY", 
+              "is_trailing":False,
+            }
+    return dict(normal=normal, bracket=bracket)
 
 @pytest.fixture
 def mock_broker():
@@ -167,4 +182,33 @@ def test_broker_order_modify(mock_broker):
                 }
         url = 'https://masterswift-beta.mastertrust.co.in/api/v1/orders'
         mock_put.assert_called_with(url,
+                headers=broker._headers,params=params)
+
+def test_broker_place_bracket_order(mock_broker):
+    kwargs = order_args()['bracket']
+    # To maintain order
+    with patch('requests.post') as mock_post:
+        broker = mock_broker
+        broker.place_bracket_order(**kwargs)
+        mock_post.assert_called()
+        mock_post.assert_called_once()
+        params = {
+              "exchange": "NSE",
+              "quantity": 1, 
+              "validity": "DAY", 
+              "square_off_value": 1301,
+              "stop_loss_value": 1290, 
+              "price": 1299, 
+              "trigger_price":1299,
+              "trailing_stop_loss": 1,
+              "order_type": "SL",
+              "product": "BO",
+              "is_trailing": False,
+              "instrument_token": "5316",
+              "order_side": "BUY",
+              "client_id": "XYZ",
+              "user_order_id": 1000
+                }
+        url = 'https://masterswift-beta.mastertrust.co.in/api/v1/orders/bracket'
+        mock_post.assert_called_with(url,
                 headers=broker._headers,params=params)
