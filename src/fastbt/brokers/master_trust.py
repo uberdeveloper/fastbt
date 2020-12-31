@@ -54,6 +54,7 @@ class MasterTrust(Broker):
     def __init__(self, client_id, password,
                 PIN, secret, exchange='NSE',
                 product='MIS', token_file='token.tok'):
+        self.filter = self.dict_filter
         self._client_id = client_id 
         self._password = password
         self._pin = PIN
@@ -378,3 +379,17 @@ class MasterTrust(Broker):
         resp = requests.delete(url, headers=self.headers, params=payload)
         return resp.json()
 
+    def modify_all_by_symbol(self, symbol, **kwargs):
+        """
+        Modify all pending orders for the given symbol
+        symbol
+            symbol for which orders to be changed
+        kwargs
+            provide modifications in the form of arguments
+        Note
+        ----
+        1) Not all order arguments are accepted and this could result
+        in an error from broker
+        2) oms_order_id is mandatory for modifying orders
+        """
+        orders = self.pending_orders
