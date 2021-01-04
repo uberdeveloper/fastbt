@@ -392,4 +392,16 @@ class MasterTrust(Broker):
         in an error from broker
         2) oms_order_id is mandatory for modifying orders
         """
-        orders = self.pending_orders
+        orders = self.pending_orders()
+        orders = self.filter(orders, trading_symbol=symbol) 
+        responses = []
+        if len(orders) == 0:
+            # Return in case of no matching orders
+            return responses
+        for order in orders:
+            order_id = order['oms_order_id']
+            symbol = order['trading_symbol']
+            resp = self.order_modify(oms_order_id=order_id, 
+                    symbol=symbol, **kwargs)
+            responses.append(resp)
+        return responses

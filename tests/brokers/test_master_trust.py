@@ -13,6 +13,12 @@ contracts_data = {
         [{"trading_symbol":"1018GS2026-GS","symbol":"1018GS2026 GS","exchange_code":1,"exchange":"NSE","company":"GOI LOAN 10.18% 2026","code":"6833"}]
         }
 
+sample_order_list = [
+        {"trading_symbol": "SBT-EQ", "product": "MIS", "order_status":"open", "quantity":10, "price":200, "oms_order_id": 10001},
+        {"trading_symbol": "SBT-EQ", "product": "MIS", "order_status":"open", "quantity":10, "price":199, "oms_order_id": 10002},
+        {"trading_symbol": "SBIN-EQ", "product": "MIS", "order_status":"open", "quantity":10, "price":400, "oms_order_id": 10003},
+        {"trading_symbol": "SBIN-EQ", "product": "MIS", "order_status":"open", "quantity":5, "price":400, "oms_order_id": 10004},
+        ]
 def order_args():
     normal = {
                 'exchange': 'NSE',
@@ -45,6 +51,11 @@ def order_args():
 def mock_broker():
     broker = MasterTrust(client_id='XYZ', password='password',
             PIN=123456,secret='secret')
+
+    def pending_orders():
+        return sample_order_list
+    broker.pending_orders = pending_orders
+
     #forcefully set some variables
     broker.contracts = {
             'NSE:SBIN-EQ': '3045',
@@ -213,10 +224,18 @@ def test_broker_place_bracket_order(mock_broker):
         mock_post.assert_called_with(url,
                 headers=broker._headers,params=params)
 
-
 def test_broker_dict_filter(mock_broker):
     broker = mock_broker
     some_array = [{'a':i,'b':i**2} for i in range(10)]
     result = broker.filter(some_array, b=4)
     expected = [{'a':2, 'b':4}]
     assert result == expected
+
+def test_broker_modify_all_orders(mock_broker):
+    with patch('requests.put') as mock_put:
+        broker = mock_broker
+        broker.modify_all_by_symbol(symbol='SBIN-EQ', price=399)
+        assert mock_put.call_count == 2
+        #TODO: Check keyword arguments
+
+
