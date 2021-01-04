@@ -395,13 +395,17 @@ class MasterTrust(Broker):
             responses.append(resp)
         return responses
 
-    def modify_bracket_stop(self, symbol, stop):
+    def modify_bracket_stop(self, symbol, stop, first=False):
         """
         Modify stop loss value for bracket order
         symbol
             symbol to modify
         stop
             stop loss price to modify - actual stop loss
+        first
+            whether to modify the first order or all orders
+            By default, all orders are modified
+            If first=True, only the first order is modified
         Note
         ----
         1) This implementation is exclusive to this broker - master trust
@@ -432,9 +436,11 @@ class MasterTrust(Broker):
             payload = kwargs.copy() 
             resp = requests.put(url, headers=self.headers, params=payload)
             responses.append(self._response(resp))
+            if first:
+                return responses
         return responses
 
-    def modify_bracket_target(self, symbol, target):
+    def modify_bracket_target(self, symbol, target, first=False):
         """
         Modify target value for bracket order
         symbol
@@ -446,6 +452,10 @@ class MasterTrust(Broker):
         1) This implementation is exclusive to this broker - master trust
         2) target is the actual target price
         3) stop, target is identified by order_status
+        first
+            whether to modify the first order or all orders
+            By default, all orders are modified
+            If first=True, only the first order is modified
         """
         orders = self.pending_orders()
         orders = self.filter(orders, trading_symbol=symbol, product='BO', order_status='open')
@@ -470,4 +480,6 @@ class MasterTrust(Broker):
             payload = kwargs.copy() 
             resp = requests.put(url, headers=self.headers, params=payload)
             responses.append(self._response(resp))
+            if first:
+                return responses
         return responses
