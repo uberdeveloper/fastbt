@@ -433,3 +433,41 @@ class MasterTrust(Broker):
             resp = requests.put(url, headers=self.headers, params=payload)
             responses.append(self._response(resp))
         return responses
+
+    def modify_bracket_target(self, symbol, target):
+        """
+        Modify target value for bracket order
+        symbol
+            symbol to modify
+        stop
+            target price to modify - actual stop loss
+        Note
+        ----
+        1) This implementation is exclusive to this broker - master trust
+        2) target is the actual target price
+        3) stop, target is identified by order_status
+        """
+        orders = self.pending_orders()
+        orders = self.filter(orders, trading_symbol=symbol, product='BO', order_status='open')
+        responses = []
+        url = f"{self.base_url}/api/v1/orders" 
+        if len(orders) == 0:
+            # Return in case of no matching orders
+            return responses
+        for order in orders:
+            kwargs = {
+                    'oms_order_id': order['oms_order_id'],
+                    'trading_symbol': order['trading_symbol'],
+                    'order_type': order['order_type'],
+                    'exchange': order['exchange'],
+                    'quantity': order['quantity'],
+                    'product': order['product'],
+                    'validity': order['validity'],
+                    'instrument_token': order['instrument_token'],
+                    'price': target,
+                    'client_id': self.client_id
+                    }
+            payload = kwargs.copy() 
+            resp = requests.put(url, headers=self.headers, params=payload)
+            responses.append(self._response(resp))
+        return responses
