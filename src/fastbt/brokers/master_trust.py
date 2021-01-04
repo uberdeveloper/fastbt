@@ -359,17 +359,6 @@ class MasterTrust(Broker):
         resp = requests.post(url, headers=self.headers, params=payload)
         return self._response(resp)
 
-    def modify_bracket_order(self,**kwargs):
-        """
-        Modify an existing bracket order
-        """
-        url = f"{self.base_url}/api/v1/orders/bracket/"
-        print(url)
-        payload = kwargs.copy() 
-        resp = requests.post(url, headers=self.headers, params=payload)
-        print('resp', resp)
-        return resp.json()
-    
     def exit_bracket_order(self, **kwargs):
         """
         Exit at existing bracket order
