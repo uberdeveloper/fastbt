@@ -332,13 +332,15 @@ class MasterTrust(Broker):
         resp = requests.put(url, headers=self.headers, params=payload)
         return self._response(resp)
 
-    def order_cancel(self, **kwargs):
+    def order_cancel(self, oms_order_id):
         """
         Place an order
         """
-        url = f"{self.base_url}/api/v1/orders" 
-        payload = kwargs.copy() 
+        url = f"{self.base_url}/api/v1/orders/{oms_order_id}" 
+        payload = {'client_id': self.client_id} 
         resp = requests.delete(url, headers=self.headers, params=payload)
+        print(payload)
+        return resp.json()
         return self._response(resp)
 
     def place_bracket_order(self, **kwargs):
