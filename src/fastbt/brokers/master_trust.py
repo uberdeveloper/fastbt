@@ -339,7 +339,6 @@ class MasterTrust(Broker):
         url = f"{self.base_url}/api/v1/orders/{oms_order_id}" 
         payload = {'client_id': self.client_id} 
         resp = requests.delete(url, headers=self.headers, params=payload)
-        print(payload)
         return resp.json()
         return self._response(resp)
 
@@ -482,6 +481,41 @@ class MasterTrust(Broker):
             payload = kwargs.copy() 
             resp = requests.put(url, headers=self.headers, params=payload)
             responses.append(self._response(resp))
+            if first:
+                return responses
+        return responses
+
+    def exit_bracket_by_symbol(self, symbol, first=False):
+        """
+        Exit bracket order by symbol
+        symbol
+            symbol to exit bracket order
+        first
+            whether to modify the first order or all orders
+            By default, all orders are modified
+            If first=True, only the first order is modified
+            
+        """
+        orders = self.pending_orders()
+        orders = self.filter(orders, trading_symbol=symbol, product='BO', order_status='open')
+        responses = []
+        if len(orders) == 0:
+            # Return in case of no matching orders
+            return responses
+        for order in orders:
+            oms_order_id = order['oms_order_id']
+            leg_order_indicator = order['leg_order_indicator']
+            kwargs = {
+                    'oms_order_id': oms_order_id,
+                    'leg_order_indicator': leg_order_indicator,
+                    'status': 'open',
+                    'client_id': self.client_id
+                    }
+            if leg_order_indicator:
+                response = self.exit_bracket_order(**kwargs)
+            else:
+                response = self.order_cancel(oms_order_id)
+            responses.append(response)
             if first:
                 return responses
         return responses
