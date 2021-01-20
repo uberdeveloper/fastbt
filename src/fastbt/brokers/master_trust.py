@@ -246,22 +246,24 @@ class MasterTrust(Broker):
         return self._response(resp).get('trades', [])
 
 
-    def realized_mtm(self):
+    def realized_mtm(self, positions=None):
         """
         Get the realized MTM
         """
-        positions = self.positions()
+        if not(positions):
+            positions = self.positions()
         if len(positions)>0:
             return sum([float(p['realized_mtm']) for p in positions])
         else:
             # Return 0 in case of no transactions
             return 0
 
-    def unrealized_mtm(self):
+    def unrealized_mtm(self, positions=None):
         """
         Get the unrealized MTM
         """
-        positions = self.positions()
+        if not(positions):
+            positions = self.positions()
         if len(positions)==0:
             collect = {p['symbol']:0 for p in positions}
         else:
@@ -275,16 +277,15 @@ class MasterTrust(Broker):
                     collect[p['symbol']] = 0
         return sum(list(collect.values()))
 
-    def mtm(self, mode=None):
+    def mtm(self, positions=None):
         """
         Get the mtm
         """
-        if mode == 'realized':
-            return self.realized_mtm()
-        elif mode == 'unrealized':
-            return self.unrealized_mtm()
-        else:
-            return self.realized_mtm() + self.unrealized_mtm()
+        if not(positions):
+            positions = self.positions()
+        realized_mtm = self.realized_mtm(positions=positions)
+        unrealized_mtm = self.unrealized_mtm(positions=positions)
+        return realized_mtm + unrealized_mtm
 
     def net_qty(self, symbol):
         """
