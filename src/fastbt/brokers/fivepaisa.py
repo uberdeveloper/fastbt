@@ -2,6 +2,18 @@ from fastbt.Meta import Broker,Status,pre,post
 from py5paisa import FivePaisaClient
 from py5paisa.order import Order,Exchange,ExchangeSegment,OrderFor,OrderType,OrderValidity,AHPlaced 
 
+def get_instrument_token(contracts, exchange, symbol):
+    """
+    Fetch the instrument token
+    contracts
+        the contracts master as a dictionary
+    exchange
+        exchange to look up for
+    symbol
+        symbol to look up for
+    """
+    return contracts.get(f"{exchange}:{symbol}") 
+
 class FivePaisa(Broker):
     """
     Automated trading class for five paisa
@@ -29,10 +41,8 @@ class FivePaisa(Broker):
         self._email = email
         self._password = password
         self._dob = dob
-        self._master = {
-                'SBIN': 3045
-                }
         super(FivePaisa, self).__init__()
+        self.contracts = {}
         print('Hi Five paisa')
 
     def _shortcuts(self):
@@ -45,13 +55,6 @@ class FivePaisa(Broker):
         self.margins = self.fivepaisa.margin
         self.positions = self.fivepaisa.positions
 
-    @property
-    def master(self):
-        """
-        return instrument master
-        """
-        return self._master
-
     def authenticate(self):
         client = FivePaisaClient(email=self._email, passwd=self._password,
                 dob=self._dob)
@@ -59,6 +62,11 @@ class FivePaisa(Broker):
         self.fivepaisa = client
         self._shortcuts()
         
+    def _get_instrument_token(self, symbol, exchange='NSE', contracts=None):
+        if not(contracts):
+            contracts = self.contracts
+        return get_instrument_token(contracts=contracts, exchange=exchange, symbol=symbol)
+
     @post
     def orders(self):
         return self.fivepaisa.order_book()
