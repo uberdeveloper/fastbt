@@ -27,3 +27,26 @@ def test_broker_get_instrument_token_override_contracts():
     broker = FivePaisa('a','b','c')
     assert broker._get_instrument_token(symbol='SBIN', contracts=contracts) == 3045
 
+def test_broker_order_place():
+    pass
+
+def test_broker_order_place_side():
+    pass
+
+def test_broker_order_place_price():
+    pass
+
+def test_broker_order_place_quantity():
+    pass
+
+def test_broker_order_place_order_type():
+    pass
+
+def test_broker_order_place_stop():
+    pass
+
+def test_broker_cancel_order():
+    pass
+
+def test_broker_modify_order():
+    pass
