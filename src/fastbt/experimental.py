@@ -1377,3 +1377,50 @@ def clean_ticks(price, threshold=10):
             if nobs > 10:
                 s = price[i]
     return arr[arr>0]
+
+
+class WalkForward:
+
+    def __init__(self,data,lb=120,rb=30,factor=None,
+            column=None):
+        self.data = data
+        self.lb = lb
+        self.rb = rb
+        self._split = []
+        self._factor = factor
+        self._column = column
+        
+    def get_splits(self):
+        return self._split
+
+    def _generate_splits(self):
+        lb, rb = self.lb, self.rb
+        indexes = range(lb, len(self.data), rb)
+        for index in indexes:
+            train = self.data.iloc[index-lb:index]
+            test = self.data.iloc[index:index+rb]
+            self._split.append({'train':train, 'test':test})
+
+    def set_factor(self, factor):
+        """
+        The factor should be a categorical column in data
+        You can also provide a list of category columns
+        """
+        if factor in self.data.columns:
+            self._factor = factor
+            return self._factor
+        else:
+            return 'Factor not found'
+
+    def set_column(self, column):
+        """
+        The column to test
+        """
+        if column in self.data.columns:
+            self._column = column
+            return self._column
+        else:
+            return 'Column not found'
+
+
+    
