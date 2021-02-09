@@ -19,6 +19,7 @@ sample_order_list = [
         {"trading_symbol": "SBIN-EQ", "product": "MIS", "order_status":"open", "quantity":10, "price":400, "oms_order_id": 10003},
         {"trading_symbol": "SBIN-EQ", "product": "MIS", "order_status":"open", "quantity":5, "price":400, "oms_order_id": 10004},
         ]
+
 def order_args():
     normal = {
                 'exchange': 'NSE',
@@ -112,12 +113,12 @@ def test_get_instrument_token(mock_get):
 def test_broker_get_instrument_token():
     broker = MasterTrust('a','b','c','d','e') # dummy arguments
     broker.contracts = contracts_data
-    broker._get_instrument_token(symbol='SBIN-EQ') == '3045'
+    assert broker._get_instrument_token(symbol='SBIN-EQ') == '3045'
 
 def test_broker_get_instrument_token_override_contracts():
     broker = MasterTrust('a','b','c','d','e') # dummy arguments
     broker.contracts = {}
-    broker._get_instrument_token(symbol='SBIN-EQ', contracts=contracts_data) == '3045'
+    assert broker._get_instrument_token(symbol='SBIN-EQ', contracts=contracts_data) == '3045'
 
 def test_broker_order_place(mock_broker):
     kwargs = order_args()['normal']
