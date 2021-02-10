@@ -1383,15 +1383,27 @@ class WalkForward:
 
     def __init__(self,data,lb=120,rb=30,factor=None,
             column=None):
+        from collections import defaultdict, namedtuple
         self.data = data
         self.lb = lb
         self.rb = rb
-        self._split = []
+        self._splits = defaultdict(list) 
         self._factor = factor
         self._column = column
+        self._results = []
+        self.conf = []
+        self.forward = []
+
+    @property
+    def factor(self):
+        return self._factor
+
+    @property
+    def column(self):
+        return self._column
         
     def get_splits(self):
-        return self._split
+        return self._splits
 
     def _generate_splits(self):
         lb, rb = self.lb, self.rb
@@ -1399,7 +1411,8 @@ class WalkForward:
         for index in indexes:
             train = self.data.iloc[index-lb:index]
             test = self.data.iloc[index:index+rb]
-            self._split.append({'train':train, 'test':test})
+            self._splits['train'].append(train)
+            self._splits['test'].append(test)
 
     def set_factor(self, factor):
         """
@@ -1422,5 +1435,37 @@ class WalkForward:
         else:
             return 'Column not found'
 
+    def run(self):
+        """
+        Run all tests
+        """
+        fac = self.factor
+        col = self.column
+        self._generate_splits()
+        splits = self.get_splits()
+        for train in splits['train']:
+            t1 = train.groupby(fac)[col].agg(['size', 'mean']).to_dict('index')
+            self._results.append(t1)
+        for test in splits['test']:
+            t2 = test.groupby(fac)[col].agg(['size', 'mean']).to_dict('index')
+            self.forward.append(t2)
 
-    
+
+    def run_conf(self):
+        """
+        Run confidence test
+        """
+        print('Running conf')
+        train = self.get_splits()['train']
+        results = self._results
+        for data,res in zip(train, results):
+            tup = []
+            for k,v in res.items():
+                s = run_simulation(data, size=v['size'], column=self.column)
+                conf = len(s[s>v['mean']])/1000
+                tup.append((k, v['mean'], conf))
+            self.conf.append(tup)
+
+
+
+
