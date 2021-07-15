@@ -10,7 +10,7 @@ orders:
   status: order_status
 positions:
    trading_symbol: symbol
-   quantity: net_quantity
+   net_quantity: quantity 
    average_price: average_price
 order_place:
   symbol: tradingsymbol

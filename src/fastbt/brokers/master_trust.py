@@ -134,11 +134,12 @@ class MasterTrust(Broker):
             else:
                 login_url = self._login()
                 access_token = self.get_access_token(login_url)
+                self._access_token = access_token
         except Exception as e:
             print(e)
             login_url = self._login()
             access_token = self.get_access_token(login_url)
-
+            self._access_token = access_token
     def _login(self):
         import time
         options = Options()
