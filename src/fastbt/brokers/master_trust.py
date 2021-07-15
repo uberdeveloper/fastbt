@@ -140,6 +140,7 @@ class MasterTrust(Broker):
             login_url = self._login()
             access_token = self.get_access_token(login_url)
             self._access_token = access_token
+
     def _login(self):
         import time
         options = Options()
@@ -205,7 +206,10 @@ class MasterTrust(Broker):
         url = f"{self.base_url}/api/v1/positions" 
         payload = {'client_id': self.client_id, 'type':'live'}
         resp = requests.get(url, headers=self.headers, params=payload)
-        return self._response(resp)
+        resp = self._response(resp)
+        for r in resp:
+            r['side'] = 'BUY' if r.get('net_quantity', 0) > 0 else 'SELL'
+        return resp
 
     @post
     def completed_orders(self):
