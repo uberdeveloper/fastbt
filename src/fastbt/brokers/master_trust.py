@@ -80,6 +80,7 @@ class MasterTrust(Broker):
             'Authorization': f'Bearer {self._access_token}',
             'Cache-Control': 'no-cache'
         }
+        self._sides = {'BUY': 'SELL', 'SELL': 'BUY'}
 
     @property
     def headers(self):
@@ -525,3 +526,23 @@ class MasterTrust(Broker):
             if first:
                 return responses
         return responses
+    
+    def close_all_positions(self, **kwargs):
+            """
+            Close all existing positions by placing
+            market orders.
+            To close a particular class of orders, include 
+            them in kwargs
+            """
+            positions = self.positions()
+            if kwargs:
+                positions = self.dict_filter(positions, **kwargs)
+            if len(positions) > 0:
+                for position in positions:
+                    qty = abs(position['quantity'])
+                    symbol = position['symbol']
+                    side = self._sides[position['side']]
+                    if qty > 0:
+                        self.order_place(symbol=symbol, quantity=qty,
+                            order_type='MARKET', side=side, exchange=self.exchange,
+                            product='MIS', validity='DAY')
