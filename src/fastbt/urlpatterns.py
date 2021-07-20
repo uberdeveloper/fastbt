@@ -36,6 +36,14 @@ file_patterns = {
         lambda x: {
             'date': x.strftime('%d%m%Y')
         }
+        ),
+    
+    'derivatives_zip': (
+        'https://www1.nseindia.com/archives/fo/bhav/fo{date}.zip',
+        lambda x:{
+            'date': x.strftime('%d%m%y')
+            }
+
         )
 }
 
