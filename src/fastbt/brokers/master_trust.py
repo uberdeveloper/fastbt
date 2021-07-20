@@ -75,11 +75,7 @@ class MasterTrust(Broker):
         except Exception as e:
             print('Token not found',e)
 
-        self._headers = {
-            'Accept': 'application/json',
-            'Authorization': f'Bearer {self._access_token}',
-            'Cache-Control': 'no-cache'
-        }
+        self._set_headers()
         self._sides = {'BUY': 'SELL', 'SELL': 'BUY'}
 
     @property
@@ -93,6 +89,13 @@ class MasterTrust(Broker):
     @property
     def client_id(self):
         return self._client_id
+
+    def _set_headers(self):
+        self._headers = {
+            'Accept': 'application/json',
+            'Authorization': f'Bearer {self._access_token}',
+            'Cache-Control': 'no-cache'
+        }
 
     def get_authorization_url(self, client_id='APIUSER', redirect_uri='http://127.0.0.1/',
             scope=['orders']):
@@ -132,15 +135,18 @@ class MasterTrust(Broker):
                 with open(self.token_file, 'r') as f:
                     access_token = f.read()
                 self._access_token = access_token
+                self._set_headers()
             else:
                 login_url = self._login()
                 access_token = self.get_access_token(login_url)
                 self._access_token = access_token
+                self._set_headers()
         except Exception as e:
             print(e)
             login_url = self._login()
             access_token = self.get_access_token(login_url)
             self._access_token = access_token
+            self._set_headers()
 
     def _login(self):
         import time
