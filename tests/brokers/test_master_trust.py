@@ -110,15 +110,22 @@ def test_get_instrument_token(mock_get):
     token = get_instrument_token(contracts, 'NFO', 'SBT-EQ')
     assert token == '5316'
 
-def test_broker_get_instrument_token():
-    broker = MasterTrust('a','b','c','d','e') # dummy arguments
-    broker.contracts = contracts_data
+def test_broker_get_instrument_token(mock_broker):
+    broker = mock_broker
+    print(broker.contracts)
     assert broker._get_instrument_token(symbol='SBIN-EQ') == '3045'
 
 def test_broker_get_instrument_token_override_contracts():
     broker = MasterTrust('a','b','c','d','e') # dummy arguments
-    broker.contracts = {}
-    assert broker._get_instrument_token(symbol='SBIN-EQ', contracts=contracts_data) == '3045'
+    contracts = {
+            'NSE:SBIN-EQ': '3045',
+            'NSE:SBT-EQ': '5316',
+            'NSE:1018GS2026-GS': '6833',
+            'NFO:SBIN-EQ': '3045',
+            'NFO:SBT-EQ': '5316',
+            'NFO:1018GS2026-GS': '6833'
+    }
+    assert broker._get_instrument_token(symbol='SBIN-EQ', contracts=contracts) == '3045'
 
 def test_broker_order_place(mock_broker):
     kwargs = order_args()['normal']
