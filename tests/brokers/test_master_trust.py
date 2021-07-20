@@ -246,4 +246,29 @@ def test_broker_modify_all_orders(mock_broker):
         assert mock_put.call_count == 2
         #TODO: Check keyword arguments
 
+def test_broker_set_headers():
+    broker = MasterTrust('a','b','c','d','e') # dummy arguments
+    broker._access_token = 'xyz123'
+    headers = {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer xyz123',
+            'Cache-Control': 'no-cache'
+            }
+    broker._set_headers()
+    assert broker.headers == headers
+
+def test_broker_set_headers_authenticate(mock_broker):
+    with patch('fastbt.brokers.master_trust.MasterTrust._login')as login:
+        with patch('fastbt.brokers.master_trust.MasterTrust.get_access_token') as acc_token:
+            acc_token.return_value = 'xyz123'
+            broker = mock_broker
+            assert broker._access_token == 'abcd1234'
+            broker.authenticate(force=True)
+            headers = {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer xyz123',
+                'Cache-Control': 'no-cache'
+                }
+            assert broker._access_token == 'xyz123'
+            assert broker.headers == headers
 
