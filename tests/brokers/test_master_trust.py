@@ -18,6 +18,7 @@ sample_order_list = [
         {"trading_symbol": "SBT-EQ", "product": "MIS", "order_status":"open", "quantity":10, "price":199, "oms_order_id": 10002},
         {"trading_symbol": "SBIN-EQ", "product": "MIS", "order_status":"open", "quantity":10, "price":400, "oms_order_id": 10003},
         {"trading_symbol": "SBIN-EQ", "product": "MIS", "order_status":"open", "quantity":5, "price":400, "oms_order_id": 10004},
+        {"trading_symbol": "SBIN-EQ", "product": "BO", "order_status":"open", "quantity":5, "price":400, "oms_order_id": 10004},
         ]
 
 def order_args():
@@ -249,9 +250,8 @@ def test_broker_dict_filter(mock_broker):
 def test_broker_modify_all_orders(mock_broker):
     with patch('requests.put') as mock_put:
         broker = mock_broker
-        broker.modify_all_by_symbol(symbol='SBIN-EQ', price=399)
-        assert mock_put.call_count == 2
-        #TODO: Check keyword arguments
+        broker.modify_all_by_symbol(symbol='SBIN-EQ', price=400)
+        assert mock_put.call_count == 3
 
 def test_broker_set_headers():
     broker = MasterTrust('a','b','c','d','e') # dummy arguments
@@ -304,4 +304,11 @@ def test_broker_modify_bracket_stop_n(test_input, expected ,mock_broker):
         # Replace the pending orders function
         broker.pending_orders = lambda : pending
         broker.modify_bracket_stop(symbol='SBT-EQ', stop=90, n=test_input)
+        assert mock_put.call_count == expected
+
+@pytest.mark.parametrize("test_input,expected", [('MIS',2), ('BO',1)])
+def test_modify_all_orders_filter(test_input, expected, mock_broker):
+    with patch('requests.put') as mock_put:
+        broker = mock_broker
+        broker.modify_all_by_symbol(symbol='SBIN-EQ', product=test_input)
         assert mock_put.call_count == expected
