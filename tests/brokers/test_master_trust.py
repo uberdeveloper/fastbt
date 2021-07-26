@@ -54,7 +54,14 @@ def mock_broker():
             PIN=123456,secret='secret')
 
     def pending_orders():
-        return sample_order_list
+        # Adjustment to add bracket orders
+        bracket_orders = [order_args()['bracket']] * 4
+        for bo in bracket_orders:
+            bo['order_status'] = 'open'
+            bo['trading_symbol'] = bo['symbol']
+            bo['oms_order_id'] = 10007
+            bo['instrument_token'] = 5316 
+        return sample_order_list + bracket_orders
     broker.pending_orders = pending_orders
 
     #forcefully set some variables
@@ -272,3 +279,16 @@ def test_broker_set_headers_authenticate(mock_broker):
             assert broker._access_token == 'xyz123'
             assert broker.headers == headers
 
+@pytest.mark.parametrize("test_input,expected", [(2,2), (3,3), (None,4)])
+def test_broker_modify_bracket_target_n(test_input, expected ,mock_broker):
+    print(test_input, expected)
+    with patch('requests.put') as mock_put:
+        broker = mock_broker
+        broker.modify_bracket_target(symbol='SBT-EQ', target=110, n=test_input)
+        assert mock_put.call_count == expected
+
+def test_broker_modify_bracket_target_first(mock_broker):
+    with patch('requests.put') as mock_put:
+        broker = mock_broker
+        broker.modify_bracket_target(symbol='SBT-EQ', target=110, first=True)
+        assert mock_put.call_count == 1

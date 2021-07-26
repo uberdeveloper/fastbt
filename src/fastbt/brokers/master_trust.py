@@ -454,13 +454,17 @@ class MasterTrust(Broker):
                 return responses
         return responses
 
-    def modify_bracket_target(self, symbol, target, first=False):
+    def modify_bracket_target(self, symbol, target, first=False, n=None):
         """
         Modify target value for bracket order
         symbol
             symbol to modify
         stop
             target price to modify - actual stop loss
+        first
+            If True, close only the first order
+        n
+            number of orders to close
         Note
         ----
         1) This implementation is exclusive to this broker - master trust
@@ -478,7 +482,13 @@ class MasterTrust(Broker):
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
-        for order in orders:
+        if n is None:
+            n = len(orders)
+        for i,order in enumerate(orders):
+            if i >= n:
+                # Since the number of orders to be squared off is met,
+                # we exit the program
+                return responses
             kwargs = {
                     'oms_order_id': order['oms_order_id'],
                     'trading_symbol': order['trading_symbol'],
