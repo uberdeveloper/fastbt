@@ -279,9 +279,8 @@ def test_broker_set_headers_authenticate(mock_broker):
             assert broker._access_token == 'xyz123'
             assert broker.headers == headers
 
-@pytest.mark.parametrize("test_input,expected", [(2,2), (3,3), (None,4)])
+@pytest.mark.parametrize("test_input,expected", [(2,2), (3,3), (None,4), (10,4)])
 def test_broker_modify_bracket_target_n(test_input, expected ,mock_broker):
-    print(test_input, expected)
     with patch('requests.put') as mock_put:
         broker = mock_broker
         broker.modify_bracket_target(symbol='SBT-EQ', target=110, n=test_input)
@@ -292,3 +291,17 @@ def test_broker_modify_bracket_target_first(mock_broker):
         broker = mock_broker
         broker.modify_bracket_target(symbol='SBT-EQ', target=110, first=True)
         assert mock_put.call_count == 1
+
+@pytest.mark.parametrize("test_input,expected", [(2,2), (3,3), (None,4), (10,4)])
+def test_broker_modify_bracket_stop_n(test_input, expected ,mock_broker):
+    with patch('requests.put') as mock_put:
+        broker = mock_broker
+        # This adjustment is done to change order status
+        pending = []
+        for order in broker.pending_orders():
+            order['order_status'] = 'trigger pending'
+            pending.append(order)
+        # Replace the pending orders function
+        broker.pending_orders = lambda : pending
+        broker.modify_bracket_stop(symbol='SBT-EQ', stop=90, n=test_input)
+        assert mock_put.call_count == expected

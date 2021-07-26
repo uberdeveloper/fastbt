@@ -409,7 +409,7 @@ class MasterTrust(Broker):
             responses.append(resp)
         return responses
 
-    def modify_bracket_stop(self, symbol, stop, first=False):
+    def modify_bracket_stop(self, symbol, stop, first=False, n=None):
         """
         Modify stop loss value for bracket order
         symbol
@@ -420,6 +420,8 @@ class MasterTrust(Broker):
             whether to modify the first order or all orders
             By default, all orders are modified
             If first=True, only the first order is modified
+        n
+            number of orders to be closed
         Note
         ----
         1) This implementation is exclusive to this broker - master trust
@@ -427,13 +429,20 @@ class MasterTrust(Broker):
         3) stop, target is identified by order_status
         """
         orders = self.pending_orders()
+        print(orders)
         orders = self.filter(orders, trading_symbol=symbol, product='BO', order_status='trigger pending')
         responses = []
         url = f"{self.base_url}/api/v1/orders" 
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
-        for order in orders:
+        if n is None:
+            n = len(orders)
+        for i,order in enumerate(orders):
+            if i >= n:
+                # Since the number of orders to be squared off is met,
+                # we exit the program
+                return responses
             kwargs = {
                     'oms_order_id': order['oms_order_id'],
                     'trading_symbol': order['trading_symbol'],
