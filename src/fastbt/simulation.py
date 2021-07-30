@@ -22,7 +22,13 @@ def walk_forward(data:pd.DataFrame, period:str, parameters:List[str], column:str
         The number of results to be used for walk forward
     ascending
         Whether the top or bottom results to be taken
-        
     """
-    pass
+    data['_period'] = data.index.to_period(period)
+    columns = ['_period'] + parameters
+    df = data.groupby(columns).agg({column:function}).reset_index()
+    df2 = df.sort_values(by=column, ascending=ascending).groupby('_period').head(num)
+    df2 = df2.set_index('_period').sort_index().shift(1)
+    idx = df2.reset_index().drop(columns=column).dropna()
+    return data.reset_index().merge(idx, on=columns)
+
 
