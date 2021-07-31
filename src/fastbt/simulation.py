@@ -27,7 +27,7 @@ def walk_forward(data:pd.DataFrame, period:str, parameters:List[str], column:str
     columns = ['_period'] + parameters
     df = data.groupby(columns).agg({column:function}).reset_index()
     df2 = df.sort_values(by=column, ascending=ascending).groupby('_period').head(num)
-    df2 = df2.set_index('_period').sort_index().shift(1)
+    df2 = df2.set_index('_period').sort_index().shift(num)
     idx = df2.reset_index().drop(columns=column).dropna()
     return data.reset_index().merge(idx, on=columns)
 
