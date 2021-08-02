@@ -604,4 +604,26 @@ class MasterTrust(Broker):
             payload = kwargs.copy() 
             resp = requests.put(url, headers=self.headers, params=payload)
             responses.append(self._response(resp))
+        return 
+        
+    def cancel_all_orders_by_conditions(self, n:int=0,**kwargs)->List:
+        """
+        Modify all orders by the given condition
+        """
+        responses = []
+        url = f"{self.base_url}/api/v1/orders" 
+        orders = self.pending_orders()
+        orders = self.filter(orders, **kwargs)
+        if len(orders) == 0:
+            return responses
+        if n <= 0:
+            n = len(orders)
+        for i,order in enumerate(orders):
+            if i >= n:
+                # Since the number of orders to be squared off is met,
+                # we exit the program
+                return responses
+            oms_order_id = order['oms_order_id']
+            resp = self.order_cancel(oms_order_id)
+            responses.append(resp)
         return responses
