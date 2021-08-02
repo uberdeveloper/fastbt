@@ -9,6 +9,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from typing import Dict, List
 
 
 def get_authorization_url():
@@ -352,7 +353,6 @@ class MasterTrust(Broker):
         url = f"{self.base_url}/api/v1/orders/{oms_order_id}" 
         payload = {'client_id': self.client_id} 
         resp = requests.delete(url, headers=self.headers, params=payload)
-        return resp.json()
         return self._response(resp)
 
     def place_bracket_order(self, **kwargs):
@@ -396,7 +396,6 @@ class MasterTrust(Broker):
         2) oms_order_id is mandatory for modifying orders
         """
         orders = self.pending_orders()
-        print(kwargs)
         orders = self.filter(orders, trading_symbol=symbol, **kwargs)
         responses = []
         if len(orders) == 0:
@@ -430,7 +429,6 @@ class MasterTrust(Broker):
         3) stop, target is identified by order_status
         """
         orders = self.pending_orders()
-        print(orders)
         orders = self.filter(orders, trading_symbol=symbol, product='BO', order_status='trigger pending')
         responses = []
         url = f"{self.base_url}/api/v1/orders" 
@@ -572,3 +570,38 @@ class MasterTrust(Broker):
                         self.order_place(symbol=symbol, quantity=qty,
                             order_type='MARKET', side=side, exchange=self.exchange,
                             product='MIS', validity='DAY')
+
+    def modify_all_orders_by_conditions(self,modifications:Dict=None, n:int=0,**kwargs)->List:
+        """
+        Modify all orders by the given condition
+        """
+        responses = []
+        url = f"{self.base_url}/api/v1/orders" 
+        if not(modifications):
+            return responses
+        orders = self.pending_orders()
+        orders = self.filter(orders, **kwargs)
+        if len(orders) == 0:
+            return responses
+        if n <= 0:
+            n = len(orders)
+        for i,order in enumerate(orders):
+            if i >= n:
+                # Since the number of orders to be squared off is met,
+                # we exit the program
+                return responses
+            kwargs = {
+                    'oms_order_id': order['oms_order_id'],
+                    'instrument_token': order['instrument_token'],
+                    'exchange': order['exchange'],
+                    'product': order['product'],
+                    'validity': order['validity'],
+                    'order_type': order['order_type'],
+                    'quantity': order['quantity'],
+                    'client_id': self.client_id
+                    }
+            kwargs.update(modifications)
+            payload = kwargs.copy() 
+            resp = requests.put(url, headers=self.headers, params=payload)
+            responses.append(self._response(resp))
+        return responses
