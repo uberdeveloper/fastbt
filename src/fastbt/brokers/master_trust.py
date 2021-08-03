@@ -216,7 +216,7 @@ class MasterTrust(Broker):
         resp = requests.get(url, headers=self.headers, params=payload)
         resp = self._response(resp)
         for r in resp:
-            r['side'] = 'BUY' if r.get('net_quantity', 0) > 0 else 'SELL'
+            r['side'] = 'BUY' if r.get('quantity', 0) > 0 else 'SELL'
         return resp
 
     @post
@@ -282,10 +282,10 @@ class MasterTrust(Broker):
         else:
             collect = {}
             for p in positions:
-                if p['net_quantity'] > 0:
-                    collect[p['symbol']] = (p['ltp']-(-p['net_amount']/p['net_quantity']))*p['net_quantity']-p['realized_mtm']
-                elif p['net_quantity'] < 0:
-                    collect[p['symbol']] = (p['ltp']-(-p['net_amount']/p['net_quantity']))*p['net_quantity']-p['realized_mtm']
+                if p['quantity'] > 0:
+                    collect[p['symbol']] = (p['ltp']-(-p['net_amount']/p['quantity']))*p['quantity']-p['realized_mtm']
+                elif p['quantity'] < 0:
+                    collect[p['symbol']] = (p['ltp']-(-p['net_amount']/p['quantity']))*p['quantity']-p['realized_mtm']
                 else:
                     collect[p['symbol']] = 0
         return sum(list(collect.values()))
@@ -306,11 +306,11 @@ class MasterTrust(Broker):
         """
         positions = self.positions()
         if symbol is None:
-            return {p['symbol']:p['net_quantity'] for p in positions}
+            return {p['symbol']:p['quantity'] for p in positions}
         else:
             for p in positions:
                 if p['symbol'] == symbol:
-                    return p['net_quantity']
+                    return p['quantity']
             return 0
 
     def order_place(self, **kwargs):
