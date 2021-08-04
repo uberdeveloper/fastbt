@@ -321,7 +321,7 @@ class MasterTrust(Broker):
         symbol = kwargs.pop('symbol')
         side = kwargs.pop('side')
         exchange = kwargs.get('exchange', self.exchange)
-        token = self._get_instrument_token(exchange=self.exchange,
+        token = self._get_instrument_token(exchange=exchange,
                 symbol=symbol)
         kwargs['instrument_token'] = token
         kwargs['order_side'] = side
@@ -338,7 +338,7 @@ class MasterTrust(Broker):
         url = f"{self.base_url}/api/v1/orders" 
         symbol = kwargs.pop('symbol')
         exchange = kwargs.get('exchange', self.exchange)
-        token = self._get_instrument_token(exchange=self.exchange,
+        token = self._get_instrument_token(exchange=exchange,
                 symbol=symbol)
         kwargs['instrument_token'] = token
         kwargs['client_id'] = self.client_id
@@ -604,7 +604,7 @@ class MasterTrust(Broker):
             payload = kwargs.copy() 
             resp = requests.put(url, headers=self.headers, params=payload)
             responses.append(self._response(resp))
-        return 
+        return responses 
         
     def cancel_all_orders_by_conditions(self, n:int=0,**kwargs)->List:
         """
