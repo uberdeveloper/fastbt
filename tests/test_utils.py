@@ -7,6 +7,7 @@ import sys
 import context
 
 from fastbt.utils import *
+
 def equation(a,b,c,x,y):
     return a*x**2 + b*y + c
 
@@ -355,7 +356,11 @@ class TestFunctionStreak(unittest.TestCase):
             ((123.3,'B',0.45,2),121.45),
             ((123.3,'B',0.55,5),119.55),
             ((123.3,'B',0.55,-5),119.55),
-            ((1074.85,'B',0.11,100),999.11)
+            ((1074.85,'B',0.11,100),999.11),
+            ((123.3,'S',0.45,2),124.55),
+            ((123.3,'S',0.55,5),125.45),
+            ((123.3,'S',0.55,-5),125.45),
+            ((1074.85,'S',0.11,100),1100.89),
             ]
         )
 def test_stop_loss_step_decimal(test_input,expected):
