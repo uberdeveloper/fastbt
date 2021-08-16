@@ -500,3 +500,27 @@ def generate_weights(n=2, size=1):
     distribution to generate weights
     """
     return np.random.dirichlet(np.ones(n), size)
+
+def stop_loss_step_decimal(price:float, side:str='B', dec:float=0.45, step:int=2) -> float:
+    """
+    Truncates down the stop loss value to the desired step
+    and adds the given decimal
+    price
+        stop loss price
+    side
+        side to place order, the actual stop loss side
+    dec
+        fixed decimal to be added
+    step
+        step size to determine stop
+    Note
+    ----
+    1. Step object is always coerced to negative
+    """
+    sign = 1 if side == 'B' else -1
+    step = abs(step)
+    val = int(price/step)*step
+    val = (val-1+dec)
+    print(sign, val)
+    return val
+

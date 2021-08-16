@@ -7,7 +7,6 @@ import sys
 import context
 
 from fastbt.utils import *
-
 def equation(a,b,c,x,y):
     return a*x**2 + b*y + c
 
@@ -351,15 +350,14 @@ class TestFunctionStreak(unittest.TestCase):
         result = [1] * 10000
         assert all(streak(arr)==result)
 
-
-
-
-
-
-
-
-
-
-
-
+@pytest.mark.parametrize("test_input,expected",
+        [
+            ((123.3,'B',0.45,2),121.45),
+            ((123.3,'B',0.55,5),119.55),
+            ((123.3,'B',0.55,-5),119.55),
+            ((1074.85,'B',0.11,100),999.11)
+            ]
+        )
+def test_stop_loss_step_decimal(test_input,expected):
+    assert stop_loss_step_decimal(*test_input)==expected
         
