@@ -365,4 +365,33 @@ class TestFunctionStreak(unittest.TestCase):
         )
 def test_stop_loss_step_decimal(test_input,expected):
     assert stop_loss_step_decimal(*test_input)==expected
-        
+
+def test_get_nearest_premium():
+    instrument_map = [
+            {'symbol': 'aaa', 'last_price':154},
+            {'symbol': 'bbb', 'last_price':171},
+            {'symbol': 'ccc', 'last_price':139},
+            {'symbol': 'ddd', 'last_price':158},
+            {'symbol': 'eee', 'last_price':178},
+            {'symbol': 'fff', 'last_price':202},
+            {'symbol': 'ggg', 'last_price':115}
+            ]
+    assert get_nearest_premium(150, instrument_map) == 'aaa'
+    assert get_nearest_premium(156, instrument_map) == 'aaa'
+    assert get_nearest_premium(156.9, instrument_map) == 'ddd'
+    assert get_nearest_premium(125, instrument_map) == 'ggg'
+
+def test_get_nearest_premium_different_keys():
+    instrument_map = [
+            {'tradingsymbol': 'aaa', 'ltp':154},
+            {'tradingsymbol': 'bbb', 'ltp':171},
+            {'tradingsymbol': 'ccc', 'ltp':139},
+            {'tradingsymbol': 'ddd', 'ltp':158},
+            {'tradingsymbol': 'eee', 'ltp':178},
+            {'tradingsymbol': 'fff', 'ltp':202},
+            {'tradingsymbol': 'ggg', 'ltp':115}
+            ]
+    assert get_nearest_premium(200, instrument_map,
+    symbol='tradingsymbol', last_price='ltp') == 'fff'
+    assert get_nearest_premium(165, instrument_map,
+    symbol='tradingsymbol', last_price='ltp') == 'bbb'

@@ -4,6 +4,7 @@ import itertools as it
 import functools as ft
 from numpy import zeros, arange
 from collections import defaultdict
+from typing import List,Dict
 try:
     from numba import jit, njit
 except ImportError:
@@ -525,3 +526,27 @@ def stop_loss_step_decimal(price:float, side:str='B', dec:float=0.45, step:int=2
     val = val+1-dec if side =='S' else val+dec
     return val
 
+def get_nearest_premium(premium:float, instrument_map:List[Dict], symbol:str='symbol', last_price:str='last_price')->str:
+    """
+    Get the symbol with the nearest premium from the given list of instruments
+    premium
+        premium to search
+    instrument map
+        instrument map as a list with data as dictionaries
+    symbol
+        symbol key in instrument map
+    last_price
+        last_price key in instrument map
+    Note
+    ----
+    1. nearest premium is calculated on the basis of absolute difference
+    """
+    diff = 1e10
+    latest_symbol = None
+    for inst in instrument_map:
+        price = inst.get(last_price)
+        d = abs(premium-price)
+        if d < diff:
+            diff = d
+            latest_symbol = inst.get(symbol)
+    return latest_symbol
