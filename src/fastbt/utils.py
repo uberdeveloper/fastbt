@@ -4,7 +4,8 @@ import itertools as it
 import functools as ft
 from numpy import zeros, arange
 from collections import defaultdict
-from typing import List,Dict
+from typing import List,Dict,Any
+import urllib.parse as parse
 try:
     from numba import jit, njit
 except ImportError:
@@ -550,3 +551,51 @@ def get_nearest_premium(premium:float, instrument_map:List[Dict], symbol:str='sy
             diff = d
             latest_symbol = inst.get(symbol)
     return latest_symbol
+
+def stockmock_parser(url:str)->Dict[str,Any]:
+    """
+    A parser for stock mock url strategies
+    """
+    def parse_positions(position):
+        mapper = {
+                'SLP': 'stop_loss',
+                'TPP': 'target',
+                'CW': 'expiry',
+                'TSLP': 'trailing_stop',
+                'WP': 'wait_premium'
+                }
+        pos = []
+        dct = {}
+        args = [p.split('_') for p in position]
+        dct['instrument'] = args[0][0]
+        dct['atm'] = int(args[1][0])
+        dct['side'] = args[1][1]
+        dct['opt']  = args[1][2]
+        dct['quantity'] = int(args[1][3])
+        for arg in args[2:]:
+            key = arg[0]
+            if key == 'SLP':
+                dct['stop_loss'] = arg[1]
+            elif key == 'TPP':
+                dct['target'] = arg[1]
+            elif key == 'CW':
+                dct['expiry'] = 'weekly'
+            elif key == 'CM':
+                dct['expiry'] = 'monthly'
+            elif key == 'TSLP':
+                dct['trailing_stop'] = arg[1]
+                dct['trailing_profit'] = arg[1]
+            elif key == 'WP':
+                dct['wait_premium'] = arg[1]
+        # Force conversion of numbers
+        for k,v in dct.items():
+            try:
+                dct[k] = float(v)
+            except:
+                pass
+        return dct
+            
+    params = parse.parse_qsl(url)
+    positions = params[0][1].split(',')
+    positions = [x.split('::') for x in positions]
+    return [parse_positions(p) for p in positions]
