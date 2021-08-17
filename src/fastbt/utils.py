@@ -595,7 +595,18 @@ def stockmock_parser(url:str)->Dict[str,Any]:
                 pass
         return dct
             
-    params = parse.parse_qsl(url)
-    positions = params[0][1].split(',')
+    url_params = parse.parse_qsl(url)
+    params = {}
+    for k,v in url_params:
+        if k == 'et':
+            s,e = v.split(',')
+            params['start_time'] = s 
+            params['end_time'] = e
+        elif k == 's':
+            params['strategy'] = v
+
+    positions = url_params[0][1].split(',')
     positions = [x.split('::') for x in positions]
-    return [parse_positions(p) for p in positions]
+    pos = [parse_positions(p) for p in positions]
+    params['positions'] = pos
+    return params

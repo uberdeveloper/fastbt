@@ -395,3 +395,46 @@ def test_get_nearest_premium_different_keys():
     symbol='tradingsymbol', last_price='ltp') == 'fff'
     assert get_nearest_premium(165, instrument_map,
     symbol='tradingsymbol', last_price='ltp') == 'bbb'
+
+class TestStockMockParser(unittest.TestCase):
+    def setUp(self):
+        self.url = "https://www.stockmock.in/#!/home/share?p=N::-150_B_CE_225::SLP_20::TPP_15::CW::TSLP_10_10::WP_1.5,N::-150_B_PE_225::SLP_25::null::CM::null::null&et=09:30:00,14:30:00&s=intraday&ed=1,0&sfd=1627756200000&std=1629138600000&so=leg&rollover=false&wat=true&set=atm"
+
+        first = {
+            'instrument': 'N',
+            'atm': -150,
+            'side': 'B',
+            'opt': 'CE',
+            'quantity': 225,
+            'stop_loss': 20,
+            'target': 15,
+            'expiry': 'weekly',
+            'trailing_stop': 10,
+            'trailing_profit': 10,
+            'wait_premium': 1.5
+            }
+        second = {
+            'instrument': 'N',
+            'atm': -150,
+            'side': 'B',
+            'opt': 'PE',
+            'quantity': 225,
+            'stop_loss': 25,
+            'expiry': 'monthly'
+        }
+        self.positions = [first, second]
+        self.result = {
+            'start_time': '09:30:00',
+            'end_time': '14:30:00',
+            'strategy': 'intraday',
+            'positions': self.positions
+            }
+
+    def test_parser_positions(self):
+        args = stockmock_parser(self.url)['positions']
+        assert args[0] == self.positions[0]
+        assert args[1] == self.positions[1]
+
+    def test_parser_result(self):
+        args = stockmock_parser(self.url)
+        assert args == self.result
