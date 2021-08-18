@@ -20,3 +20,16 @@ def test_is_complete_other_cases():
     assert order.is_complete is False
     order.cancelled_quantity = 4
     assert order.is_complete is True
+
+
+def test_is_pending():
+    order = Order(symbol='aapl', side='buy', quantity=10)
+    assert order.is_pending is True
+    order.filled_quantity = 10
+    assert order.is_pending is False
+    order.filled_quantity, order.cancelled_quantity = 5,5
+    assert order.is_pending is False
+    order.filled_quantity, order.cancelled_quantity = 5,4
+    assert order.is_pending is True
+    order.status = 'COMPLETE'
+    assert order.is_pending is False

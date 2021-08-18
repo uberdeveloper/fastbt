@@ -40,6 +40,16 @@ class Order:
         else:
             return False
 
+    @property
+    def is_pending(self)->bool:
+        quantity = self.filled_quantity + self.cancelled_quantity
+        if self.status == 'COMPLETE':
+            return False
+        elif quantity < self.quantity:
+            return True
+        else:
+            return False
+
 
 
 
