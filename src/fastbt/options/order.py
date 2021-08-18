@@ -19,15 +19,32 @@ class Order:
     trigger_price:float = 0.0
     average_price:Optional[float] = None
     pending_quantity:Optional[int] = None
-    filled_quantity:Optional[int] = None
-    cancelled_quantity:Optional[int] = None
-    disclosed_quantity:Optional[int] = None
+    filled_quantity:int = 0 
+    cancelled_quantity:int = 0 
+    disclosed_quantity:int = 0 
     validity:str = 'DAY'
     status:Optional [str] = None
 
-    def __post_init__(self):
+    def __post_init__(self)->None:
         self.internal_id = uuid.uuid4().hex
         self.timestamp = pendulum.now()
+
+    @property
+    def is_complete(self)->bool:
+        if self.quantity == self.filled_quantity:
+            return True
+        elif self.status == 'COMPLETE':
+            return True
+        elif (self.filled_quantity+self.cancelled_quantity) == self.quantity:
+            return True
+        else:
+            return False
+
+
+
+
+
+
 
 
     
