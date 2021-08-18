@@ -21,7 +21,6 @@ def test_is_complete_other_cases():
     order.cancelled_quantity = 4
     assert order.is_complete is True
 
-
 def test_is_pending():
     order = Order(symbol='aapl', side='buy', quantity=10)
     assert order.is_pending is True
@@ -33,3 +32,17 @@ def test_is_pending():
     assert order.is_pending is True
     order.status = 'COMPLETE'
     assert order.is_pending is False
+
+
+@pytest.mark.parametrize(
+    "test_input,expected",[
+        ((15134,), 15100),
+        ((15134,'P'), 15100),
+        ((15134,'P',0,50), 15150),
+        ((15174,'C',0,50), 15150),
+
+    ]
+)
+def test_get_option(test_input, expected):
+    print(test_input)
+    assert get_option(*test_input) == expected
