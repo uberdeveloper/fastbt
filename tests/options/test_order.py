@@ -1,6 +1,19 @@
 import pytest
 from fastbt.options.order import *
+from fastbt.Meta import Broker
+from collections import Counter
 import pendulum
+
+@pytest.fixture
+def simple_compound_order():
+    com = CompoundOrder(broker=Broker())
+    com.add_order(symbol='aapl', quantity=20, side='buy',
+    filled_quantity=20, status='COMPLETE')
+    com.add_order(symbol='goog', quantity=10, side='sell',
+    filled_quantity=10, status='COMPLETE')
+    com.add_order(symbol='aapl', quantity=12, side='sell',
+    filled_quantity=9)
+    return com
 
 def test_order_simple():
     order = Order(symbol='aapl', side='buy', quantity=10)
@@ -82,6 +95,24 @@ def test_update_order_do_not_update_when_complete():
     assert order.average_price == 0
     assert order.filled_quantity == 7
 
+def test_compound_order_count(simple_compound_order):
+    order = simple_compound_order
+    assert order.count == 3
 
+def test_compound_order_positions(simple_compound_order):
+    order = simple_compound_order
+    assert order.positions == Counter({'aapl':11, 'goog':-10})
+    order.add_order(symbol='boe', side='buy',
+    quantity=5, filled_quantity=5)
+    assert order.positions == Counter({'aapl':11, 'goog':-10, 'boe':5})
+
+def test_compound_order_add_order():
+    order = CompoundOrder(broker=Broker())
+    order.add_order(symbol='aapl', quantity=5, side='buy',
+    filled_quantity=5)
+    order.add_order(symbol='aapl', quantity=4, side='buy',
+    filled_quantity=4)
+    assert order.count == 2
+    assert order.positions == Counter({'aapl': 9})
 
 

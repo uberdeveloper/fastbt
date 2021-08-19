@@ -123,12 +123,17 @@ class CompoundOrder:
         """
         c = Counter()
         for order in self.orders:
-            symbol = order['symbol']
-            qty = order['filled_quantity']
-            side = str(order['side']).lower()
+            symbol = order.symbol
+            qty = order.filled_quantity
+            side = str(order.side).lower()
             sign = -1 if side == 'sell' else 1
-            qty = side*sign
+            qty = qty*sign
             c.update({symbol:qty})
         return c
+
+    def add_order(self,**kwargs)->str:
+        order = Order(**kwargs)
+        self._orders.append(order)
+        return order.internal_id
 
 
