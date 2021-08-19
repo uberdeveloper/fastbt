@@ -3,13 +3,11 @@ from typing import Optional
 import uuid
 import pendulum
 
-def get_option(spot:float,opt:str='C',num:int=0,step:float=100.0)->float:
+def get_option(spot:float,num:int=0,step:float=100.0)->float:
     """
     Get the option price given number of strikes
     spot
 	    spot price of the instrument
-    opt
-        call or put option
     num
         number of strikes farther
     step
@@ -20,8 +18,6 @@ def get_option(spot:float,opt:str='C',num:int=0,step:float=100.0)->float:
     """
     print("spot is ", spot)
     v = round(spot/step)
-    if opt == 'P':
-        v=v+0
     return v*(step+num)
 
 @dataclass
