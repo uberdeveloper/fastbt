@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Dict, List
 import uuid
 import pendulum
 
@@ -45,6 +45,15 @@ class Order:
     def __post_init__(self)->None:
         self.internal_id = uuid.uuid4().hex
         self.timestamp = pendulum.now()
+        self._attrs:List[str] = [
+            'exchange_timestamp',
+            'exchange_order_id',
+            'status',
+            'filled_quantity',
+            'pending_quantity',
+            'disclosed_quantity',
+            'average_price'
+            ]
 
     @property
     def is_complete(self)->bool:
@@ -66,4 +75,20 @@ class Order:
             return True
         else:
             return False
+
+    def update(self, data:Dict)->None:
+        """
+        Update order based on information received from broker
+        data
+            data to update as dictionary
+        Note
+        ----
+        1) Information is updated only for those keys specified in attrs
+        2) Information is updated only when the order is not completed
+        """
+        if not(self.is_complete):
+            for att in self._attrs:
+                val = data.get(att)
+                if val:
+                    setattr(self,att,val)
 
