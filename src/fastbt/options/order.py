@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Type
+from fastbt.Meta import Broker
 import uuid
 import pendulum
 
@@ -91,4 +92,26 @@ class Order:
                 val = data.get(att)
                 if val:
                     setattr(self,att,val)
+
+
+
+class CompoundOrder:
+    def __init__(self, broker:Type[Broker]):
+        self._orders:List[Order] = []
+        self._broker = broker
+
+    @property
+    def orders(self):
+        return self._orders
+
+    @property
+    def broker(self):
+        return self._broker
+
+    @property
+    def count(self):
+        """
+        return the number of orders
+        """
+        return len(self.orders)
 
