@@ -3,6 +3,7 @@ from typing import Optional, Dict, List, Type
 from fastbt.Meta import Broker
 import uuid
 import pendulum
+from collections import Counter
 
 def get_option(spot:float,num:int=0,step:float=100.0)->float:
     """
@@ -114,4 +115,20 @@ class CompoundOrder:
         return the number of orders
         """
         return len(self.orders)
+
+    @property
+    def positions(self)->Counter:
+        """
+        return the positions as a dictionary
+        """
+        c = Counter()
+        for order in self.orders:
+            symbol = order['symbol']
+            qty = order['filled_quantity']
+            side = str(order['side']).lower()
+            sign = -1 if side == 'sell' else 1
+            qty = side*sign
+            c.update({symbol:qty})
+        return c
+
 
