@@ -45,3 +45,43 @@ def test_is_pending():
 def test_get_option(test_input, expected):
     print(test_input)
     assert get_option(*test_input) == expected
+
+
+def test_update_order_simple():
+    order = Order(symbol='aapl', side='buy', quantity=10)
+    order.update({
+        'filled_quantity': 7,
+        'average_price': 912,
+        'exchange_order_id': 'abcd'
+    })
+    assert order.filled_quantity == 7
+    assert order.average_price == 912
+    assert order.exchange_order_id == 'abcd'
+
+def test_update_order_non_attribute():
+    order = Order(symbol='aapl', side='buy', quantity=10)
+    order.update({
+        'filled_quantity': 7,
+        'average_price': 912,
+        'message': 'not in attributes'
+    })
+    assert order.filled_quantity == 7
+    assert hasattr(order, 'message') is False
+
+def test_update_order_do_not_update_when_complete():
+    order = Order(symbol='aapl', side='buy', quantity=10)
+    order.filled_quantity = 10
+    order.update({'average_price': 912})
+    assert order.average_price is None
+    order.filled_quantity = 7
+    order.update({'average_price': 912})
+    assert order.average_price  == 912
+    order.average_price = 0
+    # This is wrong; this should never be updated directly
+    order.status = 'COMPLETE'
+    assert order.average_price == 0
+    assert order.filled_quantity == 7
+
+
+
+
