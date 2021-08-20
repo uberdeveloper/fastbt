@@ -3,7 +3,7 @@ from typing import Optional, Dict, List, Type
 from fastbt.Meta import Broker
 import uuid
 import pendulum
-from collections import Counter
+from collections import Counter, defaultdict
 
 def get_option(spot:float,num:int=0,step:float=100.0)->float:
     """
@@ -18,7 +18,6 @@ def get_option(spot:float,num:int=0,step:float=100.0)->float:
     ----
     1. By default, the ATM option is fetched
     """
-    print("spot is ", spot)
     v = round(spot/step)
     return v*(step+num)
 
@@ -136,4 +135,22 @@ class CompoundOrder:
         self._orders.append(order)
         return order.internal_id
 
+    @property
+    def average_buy_price(self)->Dict[str,float]:
+        value_counter = Counter()
+        quantity_counter = Counter()
+        for order in self.orders:
+            side = str(order.side).lower()
+            if side == 'buy':
+                symbol = order.symbol
+                price = order.average_price
+                quantity = order.filled_quantity
+                value = price*quantity
+                value_counter.update({symbol: value})
+                quantity_counter.update({symbol: quantity})
+        
+        dct = defaultdict()
+        for v in value_counter:
+            dct[v] = value_counter.get(v)/quantity_counter.get(v)
+        return dct 
 

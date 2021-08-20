@@ -15,6 +15,16 @@ def simple_compound_order():
     filled_quantity=9)
     return com
 
+@pytest.fixture
+def compound_order_average_prices():
+    com = CompoundOrder(broker=Broker())
+    com.add_order(symbol='aapl', quantity=20,side='buy',
+    filled_quantity=20, average_price=1000)
+    com.add_order(symbol='aapl', quantity=20,side='buy',
+    filled_quantity=20, average_price=900)
+    return com
+
+
 def test_order_simple():
     order = Order(symbol='aapl', side='buy', quantity=10)
     assert order.quantity == 10
@@ -115,4 +125,6 @@ def test_compound_order_add_order():
     assert order.count == 2
     assert order.positions == Counter({'aapl': 9})
 
-
+def test_compound_average_buy_price(compound_order_average_prices):
+    order = compound_order_average_prices
+    assert order.average_buy_price == dict(aapl=950)
