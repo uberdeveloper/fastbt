@@ -22,6 +22,10 @@ def compound_order_average_prices():
     filled_quantity=20, average_price=1000)
     com.add_order(symbol='aapl', quantity=20,side='buy',
     filled_quantity=20, average_price=900)
+    com.add_order(symbol='goog', quantity=20,side='sell',
+    filled_quantity=20, average_price=700)
+    com.add_order(symbol='goog', quantity=15,side='sell',
+    filled_quantity=15, average_price=600)
     return com
 
 
@@ -128,3 +132,11 @@ def test_compound_order_add_order():
 def test_compound_average_buy_price(compound_order_average_prices):
     order = compound_order_average_prices
     assert order.average_buy_price == dict(aapl=950)
+
+def test_compound_average_sell_price(compound_order_average_prices):
+    order = compound_order_average_prices
+    # Rounding to match significane
+    dct = order.average_sell_price
+    for k,v in dct.items():
+        dct[k] = round(v,2)
+    assert dct == dict(goog=657.14)

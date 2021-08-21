@@ -135,22 +135,35 @@ class CompoundOrder:
         self._orders.append(order)
         return order.internal_id
 
-    @property
-    def average_buy_price(self)->Dict[str,float]:
+    def _average_price(self, side='buy')->Dict[str,float]:
+        """
+        Get the average price for all the instruments
+        side
+            side to calculate average price - buy or sel    
+        """
+        side = str(side).lower()
         value_counter = Counter()
         quantity_counter = Counter()
         for order in self.orders:
-            side = str(order.side).lower()
-            if side == 'buy':
+            order_side = str(order.side).lower()
+            if side == order_side:
                 symbol = order.symbol
                 price = order.average_price
                 quantity = order.filled_quantity
                 value = price*quantity
                 value_counter.update({symbol: value})
                 quantity_counter.update({symbol: quantity})
-        
         dct = defaultdict()
         for v in value_counter:
             dct[v] = value_counter.get(v)/quantity_counter.get(v)
         return dct 
+
+    @property
+    def average_buy_price(self)->Dict[str,float]:
+        return self._average_price(side='buy')
+
+    @property
+    def average_sell_price(self)->Dict[str,float]:
+        return self._average_price(side='sell')
+
 
