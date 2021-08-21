@@ -32,6 +32,8 @@ def compound_order_average_prices():
 def test_order_simple():
     order = Order(symbol='aapl', side='buy', quantity=10)
     assert order.quantity == 10
+    assert order.pending_quantity == 10
+    assert order.filled_quantity == 0
     assert order.timestamp is not None
     assert order.internal_id is not None
 

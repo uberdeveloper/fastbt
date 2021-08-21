@@ -46,6 +46,7 @@ class Order:
     def __post_init__(self)->None:
         self.internal_id = uuid.uuid4().hex
         self.timestamp = pendulum.now()
+        self.pending_quantity = self.quantity
         self._attrs:List[str] = [
             'exchange_timestamp',
             'exchange_order_id',
