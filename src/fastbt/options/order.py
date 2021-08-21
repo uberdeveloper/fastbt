@@ -78,11 +78,12 @@ class Order:
         else:
             return False
 
-    def update(self, data:Dict)->None:
+    def update(self, data:Dict)->bool:
         """
         Update order based on information received from broker
         data
             data to update as dictionary
+        returns True if update is done
         Note
         ----
         1) Information is updated only for those keys specified in attrs
@@ -93,6 +94,9 @@ class Order:
                 val = data.get(att)
                 if val:
                     setattr(self,att,val)
+            return True
+        else:
+            return False
 
 
 
@@ -177,7 +181,8 @@ class CompoundOrder:
         dct = {}
         for order in self.orders:
             order_id = order.order_id
-            if order_id in data:
+            status = order.status
+            if (order_id in data) and (status!='COMPLETE'):
                 d = data.get(order_id)
                 order.update(d)
                 dct[order_id] = True
