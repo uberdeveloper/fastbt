@@ -8,11 +8,11 @@ import pendulum
 def simple_compound_order():
     com = CompoundOrder(broker=Broker())
     com.add_order(symbol='aapl', quantity=20, side='buy',
-    filled_quantity=20, status='COMPLETE')
+    filled_quantity=20, status='COMPLETE', order_id='aaaaaa')
     com.add_order(symbol='goog', quantity=10, side='sell',
-    filled_quantity=10, status='COMPLETE')
+    filled_quantity=10, status='COMPLETE', order_id='bbbbbb')
     com.add_order(symbol='aapl', quantity=12, side='sell',
-    filled_quantity=9)
+    filled_quantity=9, order_id='cccccc')
     return com
 
 @pytest.fixture
@@ -142,3 +142,26 @@ def test_compound_order_average_sell_price(compound_order_average_prices):
     for k,v in dct.items():
         dct[k] = round(v,2)
     assert dct == dict(goog=657.14)
+
+def test_compound_order_update_orders(simple_compound_order):
+    order = simple_compound_order
+    order_data = {
+        'aaaaaa':{
+            'order_id': 'aaaaaa',
+            'exchange_order_id': 'hexstring',
+            'price': 134,
+            'average_price': 134
+        },
+        'cccccc':{
+            'order_id': 'cccccc',
+            'filled_quantity': 12,
+            'status': 'COMPLETE',
+            'average_price': 180
+
+        }
+    }
+    updates = order.update_orders(order_data)
+    assert updates == {'aaaaaa': False, 'bbbbbb': False, 'cccccc': True}
+    assert order.orders[-1].filled_quantity ==  12
+    assert order.orders[-1].status == 'COMPLETE'
+    assert order.orders[-1].average_price == 180

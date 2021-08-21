@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, List, Type
+from typing import Optional, Dict, List, Type, Any
 from fastbt.Meta import Broker
 import uuid
 import pendulum
@@ -167,4 +167,20 @@ class CompoundOrder:
     def average_sell_price(self)->Dict[str,float]:
         return self._average_price(side='sell')
 
-
+    def update_orders(self, data:Dict[str,Dict[str,Any]])->Dict[str,bool]:
+        """
+        Update all orders
+        data
+            data as dictionary with key as broker order_id
+        returns a dictionary with order_id and update status as boolean
+        """
+        dct = {}
+        for order in self.orders:
+            order_id = order.order_id
+            if order_id in data:
+                d = data.get(order_id)
+                order.update(d)
+                dct[order_id] = True
+            else:
+                dct[order_id] = False
+        return dct
