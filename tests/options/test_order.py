@@ -37,20 +37,20 @@ def test_order_simple():
     assert order.timestamp is not None
     assert order.internal_id is not None
 
-def test_is_complete():
+def test_order_is_complete():
     order = Order(symbol='aapl', side='buy', quantity=10)
     assert order.is_complete is False
     order.filled_quantity = 10
     assert order.is_complete is True
 
-def test_is_complete_other_cases():
+def test_order_is_complete_other_cases():
     order = Order(symbol='aapl', side='buy', quantity=10)
     order.filled_quantity = 6
     assert order.is_complete is False
     order.cancelled_quantity = 4
     assert order.is_complete is True
 
-def test_is_pending():
+def test_order_is_pending():
     order = Order(symbol='aapl', side='buy', quantity=10)
     assert order.is_pending is True
     order.filled_quantity = 10
@@ -76,7 +76,7 @@ def test_get_option(test_input, expected):
     assert get_option(*test_input) == expected
 
 
-def test_update_order_simple():
+def test_order_update_simple():
     order = Order(symbol='aapl', side='buy', quantity=10)
     order.update({
         'filled_quantity': 7,
@@ -87,7 +87,7 @@ def test_update_order_simple():
     assert order.average_price == 912
     assert order.exchange_order_id == 'abcd'
 
-def test_update_order_non_attribute():
+def test_order_update_non_attribute():
     order = Order(symbol='aapl', side='buy', quantity=10)
     order.update({
         'filled_quantity': 7,
@@ -97,7 +97,7 @@ def test_update_order_non_attribute():
     assert order.filled_quantity == 7
     assert hasattr(order, 'message') is False
 
-def test_update_order_do_not_update_when_complete():
+def test_order_update_do_not_update_when_complete():
     order = Order(symbol='aapl', side='buy', quantity=10)
     order.filled_quantity = 10
     order.update({'average_price': 912})
@@ -131,11 +131,11 @@ def test_compound_order_add_order():
     assert order.count == 2
     assert order.positions == Counter({'aapl': 9})
 
-def test_compound_average_buy_price(compound_order_average_prices):
+def test_compound_order_average_buy_price(compound_order_average_prices):
     order = compound_order_average_prices
     assert order.average_buy_price == dict(aapl=950)
 
-def test_compound_average_sell_price(compound_order_average_prices):
+def test_compound_order_average_sell_price(compound_order_average_prices):
     order = compound_order_average_prices
     # Rounding to match significane
     dct = order.average_sell_price
