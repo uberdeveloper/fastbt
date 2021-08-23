@@ -396,14 +396,14 @@ class MasterTrust(Broker):
         2) oms_order_id is mandatory for modifying orders
         """
         orders = self.pending_orders()
-        orders = self.filter(orders, trading_symbol=symbol, **kwargs)
+        orders = self.filter(orders, symbol=symbol, **kwargs)
         responses = []
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
         for order in orders:
             order_id = order['oms_order_id']
-            symbol = order['trading_symbol']
+            symbol = order['symbol']
             resp = self.order_modify(oms_order_id=order_id, 
                     symbol=symbol, **kwargs)
             responses.append(resp)
@@ -429,7 +429,7 @@ class MasterTrust(Broker):
         3) stop, target is identified by status 
         """
         orders = self.pending_orders()
-        orders = self.filter(orders, trading_symbol=symbol, product='BO', status='trigger pending')
+        orders = self.filter(orders, symbol=symbol, product='BO', status='trigger pending')
         responses = []
         url = f"{self.base_url}/api/v1/orders" 
         if len(orders) == 0:
@@ -444,7 +444,7 @@ class MasterTrust(Broker):
                 return responses
             kwargs = {
                     'oms_order_id': order['oms_order_id'],
-                    'trading_symbol': order['trading_symbol'],
+                    'trading_symbol': order['symbol'],
                     'order_type': order['order_type'],
                     'exchange': order['exchange'],
                     'quantity': order['quantity'],
@@ -484,7 +484,7 @@ class MasterTrust(Broker):
             If first=True, only the first order is modified
         """
         orders = self.pending_orders()
-        orders = self.filter(orders, trading_symbol=symbol, product='BO', status='open')
+        orders = self.filter(orders, symbol=symbol, product='BO', status='open')
         responses = []
         url = f"{self.base_url}/api/v1/orders" 
         if len(orders) == 0:
@@ -499,7 +499,7 @@ class MasterTrust(Broker):
                 return responses
             kwargs = {
                     'oms_order_id': order['oms_order_id'],
-                    'trading_symbol': order['trading_symbol'],
+                    'trading_symbol': order['symbol'],
                     'order_type': order['order_type'],
                     'exchange': order['exchange'],
                     'quantity': order['quantity'],
@@ -528,7 +528,7 @@ class MasterTrust(Broker):
             
         """
         orders = self.pending_orders()
-        orders = self.filter(orders, trading_symbol=symbol, product='BO', status='open')
+        orders = self.filter(orders, symbol=symbol, product='BO', status='open')
         responses = []
         if len(orders) == 0:
             # Return in case of no matching orders
