@@ -426,10 +426,10 @@ class MasterTrust(Broker):
         ----
         1) This implementation is exclusive to this broker - master trust
         2) stop is the actual stop loss price
-        3) stop, target is identified by order_status
+        3) stop, target is identified by status 
         """
         orders = self.pending_orders()
-        orders = self.filter(orders, trading_symbol=symbol, product='BO', order_status='trigger pending')
+        orders = self.filter(orders, trading_symbol=symbol, product='BO', status='trigger pending')
         responses = []
         url = f"{self.base_url}/api/v1/orders" 
         if len(orders) == 0:
@@ -477,14 +477,14 @@ class MasterTrust(Broker):
         ----
         1) This implementation is exclusive to this broker - master trust
         2) target is the actual target price
-        3) stop, target is identified by order_status
+        3) stop, target is identified by status 
         first
             whether to modify the first order or all orders
             By default, all orders are modified
             If first=True, only the first order is modified
         """
         orders = self.pending_orders()
-        orders = self.filter(orders, trading_symbol=symbol, product='BO', order_status='open')
+        orders = self.filter(orders, trading_symbol=symbol, product='BO', status='open')
         responses = []
         url = f"{self.base_url}/api/v1/orders" 
         if len(orders) == 0:
@@ -528,7 +528,7 @@ class MasterTrust(Broker):
             
         """
         orders = self.pending_orders()
-        orders = self.filter(orders, trading_symbol=symbol, product='BO', order_status='open')
+        orders = self.filter(orders, trading_symbol=symbol, product='BO', status='open')
         responses = []
         if len(orders) == 0:
             # Return in case of no matching orders
