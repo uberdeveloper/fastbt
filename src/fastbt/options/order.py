@@ -103,7 +103,8 @@ class Order:
 class CompoundOrder:
     def __init__(self, broker:Type[Broker]):
         self._orders:List[Order] = []
-        self._broker = broker
+        self._broker:Type[Broker] = broker
+        self._ltp:defaultdict = defaultdict()
 
     @property
     def orders(self):
@@ -119,6 +120,10 @@ class CompoundOrder:
         return the number of orders
         """
         return len(self.orders)
+
+    @property
+    def ltp(self):
+        return self._ltp
 
     @property
     def positions(self)->Counter:
@@ -213,3 +218,18 @@ class CompoundOrder:
     @property
     def sell_quantity(self):
         return self._total_quantity()['sell']
+
+    def update_ltp(self, last_price:Dict[str,float]):
+        """
+        Update ltp for the given symbols
+        last_price
+            dictionary with symbol as key and last price as value
+        returns the ltp for all the symbols
+        Note
+        ----
+        1. Last price is updated for all given symbols irrespective of 
+        orders placed
+        """
+        for symbol, ltp in last_price.items():
+            self._ltp[symbol] = ltp
+        return self.ltp

@@ -173,3 +173,11 @@ def test_compound_order_buy_quantity(simple_compound_order):
 def test_compound_order_sell_quantity(simple_compound_order):
     order = simple_compound_order
     assert order.sell_quantity == {'goog':10, 'aapl': 9}
+
+def test_update_ltp(simple_compound_order):
+    order = simple_compound_order
+    assert order.ltp == {}
+    assert order.update_ltp({'amzn':300, 'goog': 350}) == {'amzn': 300, 'goog': 350}
+    order.update_ltp({'aapl': 600})
+    assert order.ltp == {'amzn': 300, 'goog':350, 'aapl': 600}
+    assert order.update_ltp({'goog':365}) ==  {'amzn': 300, 'goog':365, 'aapl': 600}
