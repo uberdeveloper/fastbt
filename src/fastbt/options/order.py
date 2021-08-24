@@ -189,3 +189,27 @@ class CompoundOrder:
             else:
                 dct[order_id] = False
         return dct
+
+    def _total_quantity(self)->Dict[str,Counter]:
+        """
+        Get the total buy and sell quantity by symbol
+        """
+        buy_counter = Counter()
+        sell_counter = Counter()
+        for order in self.orders:
+            side = order.side.lower()
+            symbol = order.symbol
+            quantity = abs(order.filled_quantity)
+            if side == 'buy':
+                buy_counter.update({symbol: quantity})
+            elif side == 'sell':
+                sell_counter.update({symbol: quantity})
+        return {'buy': buy_counter, 'sell': sell_counter}
+
+    @property
+    def buy_quantity(self):
+        return self._total_quantity()['buy']
+
+    @property
+    def sell_quantity(self):
+        return self._total_quantity()['sell']

@@ -165,3 +165,11 @@ def test_compound_order_update_orders(simple_compound_order):
     assert order.orders[-1].filled_quantity ==  12
     assert order.orders[-1].status == 'COMPLETE'
     assert order.orders[-1].average_price == 180
+
+def test_compound_order_buy_quantity(simple_compound_order):
+    order = simple_compound_order
+    assert order.buy_quantity == {'aapl': 20}
+
+def test_compound_order_sell_quantity(simple_compound_order):
+    order = simple_compound_order
+    assert order.sell_quantity == {'goog':10, 'aapl': 9}
