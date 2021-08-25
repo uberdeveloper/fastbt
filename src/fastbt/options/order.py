@@ -35,7 +35,7 @@ class Order:
     exchange_order_id:Optional[str] = None
     price:Optional[float] = None
     trigger_price:float = 0.0
-    average_price:Optional[float] = None
+    average_price:float = 0.0
     pending_quantity:Optional[int] = None
     filled_quantity:int = 0 
     cancelled_quantity:int = 0 
@@ -233,3 +233,18 @@ class CompoundOrder:
         for symbol, ltp in last_price.items():
             self._ltp[symbol] = ltp
         return self.ltp
+
+    @property
+    def net_value(self)->Counter:
+        """
+        Return the net value by symbol
+        """    
+        c = Counter()
+        for order in self.orders:
+            symbol = order.symbol
+            side = str(order.side).lower()
+            sign = -1 if side == 'sell' else 1
+            value = order.filled_quantity * order.average_price * sign
+            print(symbol, value)
+            c.update({symbol:value})
+        return c  

@@ -8,11 +8,11 @@ import pendulum
 def simple_compound_order():
     com = CompoundOrder(broker=Broker())
     com.add_order(symbol='aapl', quantity=20, side='buy',
-    filled_quantity=20, status='COMPLETE', order_id='aaaaaa')
+    filled_quantity=20, average_price=920, status='COMPLETE', order_id='aaaaaa')
     com.add_order(symbol='goog', quantity=10, side='sell',
-    filled_quantity=10, status='COMPLETE', order_id='bbbbbb')
+    filled_quantity=10, average_price=338, status='COMPLETE', order_id='bbbbbb')
     com.add_order(symbol='aapl', quantity=12, side='sell',
-    filled_quantity=9, order_id='cccccc')
+    filled_quantity=9, average_price=975, order_id='cccccc')
     return com
 
 @pytest.fixture
@@ -101,7 +101,7 @@ def test_order_update_do_not_update_when_complete():
     order = Order(symbol='aapl', side='buy', quantity=10)
     order.filled_quantity = 10
     order.update({'average_price': 912})
-    assert order.average_price is None
+    assert order.average_price == 0
     order.filled_quantity = 7
     order.update({'average_price': 912})
     assert order.average_price  == 912
@@ -174,10 +174,16 @@ def test_compound_order_sell_quantity(simple_compound_order):
     order = simple_compound_order
     assert order.sell_quantity == {'goog':10, 'aapl': 9}
 
-def test_update_ltp(simple_compound_order):
+def test_compound_order_update_ltp(simple_compound_order):
     order = simple_compound_order
     assert order.ltp == {}
     assert order.update_ltp({'amzn':300, 'goog': 350}) == {'amzn': 300, 'goog': 350}
     order.update_ltp({'aapl': 600})
     assert order.ltp == {'amzn': 300, 'goog':350, 'aapl': 600}
     assert order.update_ltp({'goog':365}) ==  {'amzn': 300, 'goog':365, 'aapl': 600}
+
+def test_compound_order_net_value(simple_compound_order, compound_order_average_prices):
+    order = simple_compound_order
+    order2 = compound_order_average_prices
+    order._orders.extend(order2.orders)
+    assert order.net_value == Counter({'aapl': 47625, 'goog': -26380})
