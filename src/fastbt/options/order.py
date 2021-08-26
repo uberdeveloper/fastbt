@@ -245,6 +245,20 @@ class CompoundOrder:
             side = str(order.side).lower()
             sign = -1 if side == 'sell' else 1
             value = order.filled_quantity * order.average_price * sign
-            print(symbol, value)
             c.update({symbol:value})
         return c  
+
+    @property
+    def mtm(self)->Counter:
+        c = Counter()
+        net_value = self.net_value
+        positions = self.positions
+        ltp = self.ltp
+        print("positions are ", positions)
+        for symbol,value in net_value.items():
+            c.update({symbol:-value})
+        for symbol,quantity in positions.items():
+            v = quantity * ltp.get(symbol, 0)
+            print('ltp is ', symbol, v)
+            c.update({symbol:v})
+        return c

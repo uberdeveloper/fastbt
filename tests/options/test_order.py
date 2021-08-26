@@ -187,3 +187,11 @@ def test_compound_order_net_value(simple_compound_order, compound_order_average_
     order2 = compound_order_average_prices
     order._orders.extend(order2.orders)
     assert order.net_value == Counter({'aapl': 47625, 'goog': -26380})
+
+def test_compound_order_mtm(simple_compound_order):
+    order = simple_compound_order
+    order.update_ltp({'aapl': 900, 'goog': 300})
+    assert order.mtm == {'aapl': 275, 'goog': 380}
+    order.update_ltp({'aapl': 885, 'goog': 350})
+    assert order.mtm == {'aapl': 110, 'goog': -120}
+
