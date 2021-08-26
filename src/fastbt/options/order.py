@@ -262,3 +262,7 @@ class CompoundOrder:
             print('ltp is ', symbol, v)
             c.update({symbol:v})
         return c
+
+    @property
+    def total_mtm(self)->float:
+        return sum(self.mtm.values())

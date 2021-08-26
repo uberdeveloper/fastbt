@@ -195,3 +195,10 @@ def test_compound_order_mtm(simple_compound_order):
     order.update_ltp({'aapl': 885, 'goog': 350})
     assert order.mtm == {'aapl': 110, 'goog': -120}
 
+def test_compound_order_total_mtm(simple_compound_order):
+    order = simple_compound_order
+    order.update_ltp({'aapl': 900, 'goog': 300})
+    assert order.total_mtm == 655
+    order.update_ltp({'aapl': 885, 'goog': 350})
+    assert order.total_mtm == -10
+
