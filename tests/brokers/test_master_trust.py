@@ -14,11 +14,11 @@ contracts_data = {
         }
 
 sample_order_list = [
-        {"trading_symbol": "SBT-EQ", "product": "MIS", "order_status":"open", "quantity":10, "price":200, "oms_order_id": 10001},
-        {"trading_symbol": "SBT-EQ", "product": "MIS", "order_status":"open", "quantity":10, "price":199, "oms_order_id": 10002},
-        {"trading_symbol": "SBIN-EQ", "product": "MIS", "order_status":"open", "quantity":10, "price":400, "oms_order_id": 10003},
-        {"trading_symbol": "SBIN-EQ", "product": "MIS", "order_status":"open", "quantity":5, "price":400, "oms_order_id": 10004},
-        {"trading_symbol": "SBIN-EQ", "product": "BO", "order_status":"open", "quantity":5, "price":400, "oms_order_id": 10004},
+        {"symbol": "SBT-EQ", "product": "MIS", "status":"open", "quantity":10, "price":200, "oms_order_id": 10001},
+        {"symbol": "SBT-EQ", "product": "MIS", "status":"open", "quantity":10, "price":199, "oms_order_id": 10002},
+        {"symbol": "SBIN-EQ", "product": "MIS", "status":"open", "quantity":10, "price":400, "oms_order_id": 10003},
+        {"symbol": "SBIN-EQ", "product": "MIS", "status":"open", "quantity":5, "price":400, "oms_order_id": 10004},
+        {"symbol": "SBIN-EQ", "product": "BO", "status":"open", "quantity":5, "price":400, "oms_order_id": 10004},
         ]
 
 def order_args():
@@ -58,8 +58,8 @@ def mock_broker():
         # Adjustment to add bracket orders
         bracket_orders = [order_args()['bracket']] * 4
         for bo in bracket_orders:
-            bo['order_status'] = 'open'
-            bo['trading_symbol'] = bo['symbol']
+            bo['status'] = 'open'
+            bo['symbol'] = bo['symbol']
             bo['oms_order_id'] = 10007
             bo['instrument_token'] = 5316 
         return sample_order_list + bracket_orders
@@ -299,7 +299,7 @@ def test_broker_modify_bracket_stop_n(test_input, expected ,mock_broker):
         # This adjustment is done to change order status
         pending = []
         for order in broker.pending_orders():
-            order['order_status'] = 'trigger pending'
+            order['status'] = 'trigger pending'
             pending.append(order)
         # Replace the pending orders function
         broker.pending_orders = lambda : pending
