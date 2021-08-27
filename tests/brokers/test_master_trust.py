@@ -57,11 +57,13 @@ def mock_broker():
     def pending_orders():
         # Adjustment to add bracket orders
         bracket_orders = [order_args()['bracket']] * 4
-        for bo in bracket_orders:
+        for i,bo in enumerate(bracket_orders):
             bo['status'] = 'open'
             bo['symbol'] = bo['symbol']
             bo['oms_order_id'] = 10007
             bo['instrument_token'] = 5316 
+            bo['quantity'] = i*10
+            bo["leg_order_indicator"] = 'some_hex'
         return sample_order_list + bracket_orders
     broker.pending_orders = pending_orders
 
@@ -311,4 +313,11 @@ def test_modify_all_orders_filter(test_input, expected, mock_broker):
     with patch('requests.put') as mock_put:
         broker = mock_broker
         broker.modify_all_by_symbol(symbol='SBIN-EQ', product=test_input)
+        assert mock_put.call_count == expected
+
+@pytest.mark.parametrize("test_input,expected", [(25 ,2)])
+def test_exit_bracket_by_symbol_p(test_input, expected, mock_broker):
+    with patch('requests.delete') as mock_put:
+        broker = mock_broker
+        broker.exit_bracket_by_symbol(symbol='SBT-EQ', p=test_input)
         assert mock_put.call_count == expected
