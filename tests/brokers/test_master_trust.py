@@ -315,7 +315,7 @@ def test_modify_all_orders_filter(test_input, expected, mock_broker):
         broker.modify_all_by_symbol(symbol='SBIN-EQ', product=test_input)
         assert mock_put.call_count == expected
 
-@pytest.mark.parametrize("test_input,expected", [(25 ,2)])
+@pytest.mark.parametrize("test_input,expected", [(25 ,2), (0,4), (5,1), (60,3)])
 def test_exit_bracket_by_symbol_p(test_input, expected, mock_broker):
     with patch('requests.delete') as mock_put:
         broker = mock_broker

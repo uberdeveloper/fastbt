@@ -432,6 +432,7 @@ class MasterTrust(Broker):
         orders = self.filter(orders, symbol=symbol, product='BO', status='trigger pending')
         responses = []
         url = f"{self.base_url}/api/v1/orders" 
+        total_quantity = sum([o.get('quantity', 0) for o in orders])
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
@@ -516,7 +517,7 @@ class MasterTrust(Broker):
                 return responses
         return responses
 
-    def exit_bracket_by_symbol(self, symbol, first=False):
+    def exit_bracket_by_symbol(self, symbol, first=False, p=0):
         """
         Exit bracket order by symbol
         symbol
@@ -525,16 +526,25 @@ class MasterTrust(Broker):
             whether to modify the first order or all orders
             By default, all orders are modified
             If first=True, only the first order is modified
-            
         """
         orders = self.pending_orders()
         orders = self.filter(orders, symbol=symbol, product='BO', status='open')
         responses = []
+        print("p is ", p)
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
+        total_quantity = sum([o.get('quantity', 0) for o in orders])
+        threshold_to_exit = total_quantity
+        p = min(p, 100)
+        if p > 0:
+            threshold_to_exit = int(total_quantity * p *0.01)
+            print(f"Exit threshold = {total_quantity}, {p}, {threshold_to_exit}")
+        qty = 0
         for order in orders:
             oms_order_id = order['oms_order_id']
+            q = order.get('quantity', 0)
+            qty += q
             leg_order_indicator = order['leg_order_indicator']
             kwargs = {
                     'oms_order_id': oms_order_id,
@@ -547,6 +557,8 @@ class MasterTrust(Broker):
             else:
                 response = self.order_cancel(oms_order_id)
             responses.append(response)
+            if qty > threshold_to_exit:
+                return responses
             if first:
                 return responses
         return responses
