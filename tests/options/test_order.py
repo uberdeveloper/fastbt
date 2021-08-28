@@ -1,8 +1,10 @@
 import pytest
+from unittest.mock import patch,call
 from fastbt.options.order import *
 from fastbt.Meta import Broker
 from collections import Counter
 import pendulum
+from fastbt.brokers.zerodha import Zerodha
 
 @pytest.fixture
 def simple_compound_order():
@@ -27,7 +29,6 @@ def compound_order_average_prices():
     com.add_order(symbol='goog', quantity=15,side='sell',
     filled_quantity=15, average_price=600)
     return com
-
 
 def test_order_simple():
     order = Order(symbol='aapl', side='buy', quantity=10)
@@ -202,3 +203,27 @@ def test_compound_order_total_mtm(simple_compound_order):
     order.update_ltp({'aapl': 885, 'goog': 350})
     assert order.total_mtm == -10
 
+def test_simple_order_execute():
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        order = Order(symbol='aapl', side='buy', quantity=10, order_type='LIMIT',
+        price=650)
+        order.execute(broker=broker)
+        broker.order_place.assert_called_once()
+        kwargs = dict(symbol='AAPL',side='BUY',quantity=10,
+        order_type='LIMIT', price=650, trigger_price=0.0,
+        disclosed_quantity=0)
+        assert broker.order_place.call_args_list[0] == call(**kwargs)
+
+def test_simple_order_execute_kwargs():
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        order = Order(symbol='aapl', side='buy', quantity=10, order_type='LIMIT',
+        price=650)
+        order.execute(broker=broker, exchange='NSE', variety='regular')
+        broker.order_place.assert_called_once()
+        kwargs = dict(symbol='AAPL',side='BUY',quantity=10,
+        order_type='LIMIT', price=650, trigger_price=0.0,
+        disclosed_quantity=0, exchange='NSE', variety='regular')
+        print(call(kwargs))
+        print('call args')
+        print(broker.order_place.call_args_list[-1])
+        assert broker.order_place.call_args_list[0] == call(**kwargs)

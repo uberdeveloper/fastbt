@@ -194,8 +194,32 @@ class Order:
             return True
         else:
             return False
-
-
+    
+    def execute(self, broker:Broker, **kwargs):
+        """
+        Execute an order on a broker, place a new order
+        kwargs
+            Additional arguments to the order
+        Note
+        ----
+        Only new arguments added to the order in keyword arguments
+        """
+        order_args = {
+            'symbol': self.symbol.upper(),
+            'side': self.side.upper(),
+            'order_type': self.order_type.upper(),
+            'quantity': self.quantity,
+            'price': self.price,
+            'trigger_price': self.trigger_price,
+            'disclosed_quantity': self.disclosed_quantity
+        }
+        for k,v in kwargs.items():
+            if k in order_args:
+                kwargs.pop(k)
+        order_args.update(kwargs)
+        order_id = broker.order_place(**order_args)
+        self.order_id = order_id
+        return order_id
 
 class CompoundOrder:
     def __init__(self, broker:Type[Broker]):
