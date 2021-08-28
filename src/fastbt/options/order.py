@@ -213,10 +213,8 @@ class Order:
             'trigger_price': self.trigger_price,
             'disclosed_quantity': self.disclosed_quantity
         }
-        for k,v in kwargs.items():
-            if k in order_args:
-                kwargs.pop(k)
-        order_args.update(kwargs)
+        dct = {k:v for k,v in kwargs.items() if k not in order_args.keys()}
+        order_args.update(dct)
         order_id = broker.order_place(**order_args)
         self.order_id = order_id
         return order_id

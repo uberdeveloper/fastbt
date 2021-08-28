@@ -223,7 +223,16 @@ def test_simple_order_execute_kwargs():
         kwargs = dict(symbol='AAPL',side='BUY',quantity=10,
         order_type='LIMIT', price=650, trigger_price=0.0,
         disclosed_quantity=0, exchange='NSE', variety='regular')
-        print(call(kwargs))
-        print('call args')
-        print(broker.order_place.call_args_list[-1])
+        assert broker.order_place.call_args_list[0] == call(**kwargs)
+
+def test_simple_order_execute_do_not_update_existing_kwargs():
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        order = Order(symbol='aapl', side='buy', quantity=10, order_type='LIMIT',
+        price=650)
+        order.execute(broker=broker, exchange='NSE', 
+        variety='regular', quantity=20, order_type='MARKET')
+        broker.order_place.assert_called_once()
+        kwargs = dict(symbol='AAPL',side='BUY',quantity=10,
+        order_type='LIMIT', price=650, trigger_price=0.0,
+        disclosed_quantity=0, exchange='NSE', variety='regular')
         assert broker.order_place.call_args_list[0] == call(**kwargs)
