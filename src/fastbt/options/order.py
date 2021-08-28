@@ -219,6 +219,28 @@ class Order:
         self.order_id = order_id
         return order_id
 
+    def modify(self, broker:Broker, **kwargs):
+        """
+        Modify an existing order
+        """
+        order_args = {
+            'order_id': self.order_id,
+            'quantity': self.quantity,
+            'price': self.price,
+            'trigger_price': self.trigger_price,
+            'order_type': self.order_type.upper(),
+            'disclosed_quantity': self.disclosed_quantity
+        }
+        dct = {k:v for k,v in kwargs.items() if k not in order_args.keys()}
+        order_args.update(dct)
+        broker.order_modify(**order_args)
+
+    def cancel(self, broker:Broker):
+        """
+        Cancel an existing order
+        """
+        broker.order_cancel(order_id=self.order_id)
+
 class CompoundOrder:
     def __init__(self, broker:Type[Broker]):
         self._orders:List[Order] = []

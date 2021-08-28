@@ -235,4 +235,25 @@ def test_simple_order_execute_do_not_update_existing_kwargs():
         kwargs = dict(symbol='AAPL',side='BUY',quantity=10,
         order_type='LIMIT', price=650, trigger_price=0.0,
         disclosed_quantity=0, exchange='NSE', variety='regular')
-        assert broker.order_place.call_args_list[0] == call(**kwargs)
+
+def test_simple_order_modify():
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        order = Order(symbol='aapl', side='buy', quantity=10, order_type='LIMIT',
+        price=650, order_id='abcdef')
+        order.price = 630
+        order.modify(broker=broker)
+        broker.order_modify.assert_called_once()
+        kwargs = dict(order_id='abcdef',quantity=10,
+        order_type='LIMIT', price=630, trigger_price=0.0,
+        disclosed_quantity=0)
+        assert broker.order_modify.call_args_list[0] == call(**kwargs)
+
+def test_simple_order_cancel():
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        order = Order(symbol='aapl', side='buy', quantity=10, order_type='LIMIT',
+        price=650, order_id='abcdef')
+        order.cancel(broker=broker)
+        broker.order_cancel.assert_called_once()
+        kwargs = dict(order_id='abcdef')
+        print(call(**kwargs))
+        assert broker.order_cancel.call_args_list[0] == call(**kwargs)
