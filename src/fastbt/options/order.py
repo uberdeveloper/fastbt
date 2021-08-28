@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, Dict, List, Type, Any
+from typing import Optional, Dict, List, Type, Any, Union
 from fastbt.Meta import Broker
 import uuid
 import pendulum
@@ -36,15 +36,15 @@ class OptionPayoff:
     doesn't have any time value
     """
     def __init__(self):
-        self._spot = 0
-        self._options = []
+        self._spot:float = 0.00
+        self._options:List[Dict] = []
 
-    def _payoff(self, strike, option, position, **kwargs):
+    def _payoff(self, strike:float, option:str, position:str, **kwargs)->float:
         """
         calculate the payoff for the option
         """
         comb = (option, position)
-        spot = self._spot
+        spot = kwargs.get('spot', self.spot)
         if comb == ('C', 'B'):
             return max(spot-strike, 0)
         elif comb == ('P', 'B'):
@@ -54,7 +54,7 @@ class OptionPayoff:
         elif comb == ('P', 'S'):
             return min(0, spot-strike)
 
-    def add(self, strike, opt_type='C', position='B', premium=0, qty=1):
+    def add(self, strike:float, opt_type:str='C', position:str='B', premium:float=0.0, qty:int=1)->None:
         """
         Add an option
         strike
@@ -82,25 +82,30 @@ class OptionPayoff:
             })
 
     @property
-    def options(self):
+    def options(self)->List[Dict]:
         """
         return the list of options
         """
         return self._options
 
-    def clear(self):
+    def clear(self)->None:
         """
         Clear all options
         """
         self._options = []
 
-    def spot(self, price):
+    @property
+    def spot(self)->float:
+        return self._spot
+
+    @spot.setter
+    def spot(self, value):
         """
         Set the spot price
         """
-        self._spot = price
+        self._spot = value 
 
-    def calc(self):
+    def calc(self)->Union[List, None]:
         """
         Calculate the payoff
         """
