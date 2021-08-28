@@ -109,8 +109,8 @@ class OptionPayoff:
             return
         else:
             payoffs = []
-            for p in self.options:
-                profit = (self._payoff(**p) * abs(p['qty'])) + (p['premium'])
+            for opt in self.options:
+                profit = (self._payoff(**opt) + opt['premium']) * abs(opt['qty'])
                 payoffs.append(profit)
             return payoffs
 
