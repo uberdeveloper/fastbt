@@ -21,6 +21,100 @@ def get_option(spot:float,num:int=0,step:float=100.0)->float:
     v = round(spot/step)
     return v*(step+num)
 
+class OptionPayoff:
+    """
+    A simple class for calculating option payoffs
+    given spot prices and options
+    1) Add your options with the add method
+    2) Provide a spot price
+    3) Call calculate to get the payoff for this spot price
+    Note
+    -----
+    This class only does a simple arithmetic for the option and
+    doesn't include any calculations for volatility or duration.
+    It's assumed that the option is exercised at expiry and it
+    doesn't have any time value
+    """
+    def __init__(self):
+        self._spot = 0
+        self._options = []
+
+    def _payoff(self, strike, option, position, **kwargs):
+        """
+        calculate the payoff for the option
+        """
+        comb = (option, position)
+        spot = self._spot
+        if comb == ('C', 'B'):
+            return max(spot-strike, 0)
+        elif comb == ('P', 'B'):
+            return max(strike-spot, 0)
+        elif comb == ('C', 'S'):
+            return min(0, strike-spot)
+        elif comb == ('P', 'S'):
+            return min(0, spot-strike)
+
+    def add(self, strike, opt_type='C', position='B', premium=0, qty=1):
+        """
+        Add an option
+        strike
+            strike price of the options
+        opt_type
+            option type - C for call and P for put
+        position
+            whether you are Buying or Selling the option
+            B for buy and S for sell
+        premium
+            option premium
+        qty
+            quantity of options contract
+        """
+        if position == 'B':
+            premium = 0-abs(premium)
+        elif position == 'S':
+            qty = 0-abs(qty)
+        self._options.append({
+            'strike': strike,
+            'option': opt_type,
+            'position': position,
+            'premium': premium,
+            'qty': qty
+            })
+
+    @property
+    def options(self):
+        """
+        return the list of options
+        """
+        return self._options
+
+    def clear(self):
+        """
+        Clear all options
+        """
+        self._options = []
+
+    def spot(self, price):
+        """
+        Set the spot price
+        """
+        self._spot = price
+
+    def calc(self):
+        """
+        Calculate the payoff
+        """
+        if self._spot <= 0:
+            print('Spot price incorrect.\nSet the price with the spot method')
+            return
+        else:
+            payoffs = []
+            for p in self.options:
+                profit = (self._payoff(**p) * abs(p['qty'])) + (p['premium'])
+                payoffs.append(profit)
+            return payoffs
+
+
 @dataclass
 class Order:
     symbol:str
