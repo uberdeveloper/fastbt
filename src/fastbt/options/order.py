@@ -105,19 +105,17 @@ class OptionPayoff:
         """
         self._spot = value 
 
-    def calc(self)->Union[List, None]:
+    def calc(self, spot:Optional[float]=None)->Union[List, None]:
         """
         Calculate the payoff
         """
-        if self._spot <= 0:
-            print('Spot price incorrect.\nSet the price with the spot method')
-            return
-        else:
-            payoffs = []
-            for opt in self.options:
-                profit = (self._payoff(**opt) + opt['premium']) * abs(opt['qty'])
-                payoffs.append(profit)
-            return payoffs
+        if not(spot):
+            spot = self.spot
+        payoffs = []
+        for opt in self.options:
+            profit = (self._payoff(**opt, spot=spot) + opt['premium']) * abs(opt['qty'])
+            payoffs.append(profit)
+        return payoffs
 
 
 @dataclass

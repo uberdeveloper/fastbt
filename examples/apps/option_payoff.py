@@ -37,9 +37,8 @@ for opt in st.session_state.options:
 st.write(pd.DataFrame(st.session_state.options))
 
 collect = {}
-for i in range(int(spot)-500, int(spot)+500):
-    payoff.spot = i
-    val = sum(payoff.calc())
+for i in range(int(spot)-1000, int(spot)+1000):
+    val = sum(payoff.calc(spot=i))
     collect[i] = val
 
 s = pd.Series(collect)
