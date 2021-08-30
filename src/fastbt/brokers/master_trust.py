@@ -450,7 +450,6 @@ class MasterTrust(Broker):
             for order in orders:
                 q = order.get('quantity', 0)
                 qty += q
-                print(q, qty, threshold_to_exit)
                 kwargs = {
                         'oms_order_id': order['oms_order_id'],
                         'trading_symbol': order['symbol'],
@@ -497,7 +496,7 @@ class MasterTrust(Broker):
                 return responses
         return responses
 
-    def modify_bracket_target(self, symbol, target, first=False, n=None):
+    def modify_bracket_target(self, symbol, target, first=False, n=None, p=0):
         """
         Modify target value for bracket order
         symbol
@@ -525,8 +524,37 @@ class MasterTrust(Broker):
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
+        total_quantity = sum([o.get('quantity', 0) for o in orders])
+        threshold_to_exit = total_quantity
+        p = min(p, 100)
+        if p > 0:
+            threshold_to_exit = int(total_quantity * p *0.01)
+        qty = 0
         if n is None:
             n = len(orders)
+
+        if p > 0:
+            for order in orders:
+                q = order.get('quantity', 0)
+                qty += q
+                kwargs = {
+                    'oms_order_id': order['oms_order_id'],
+                    'trading_symbol': order['symbol'],
+                    'order_type': order['order_type'],
+                    'exchange': order['exchange'],
+                    'quantity': order['quantity'],
+                    'product': order['product'],
+                    'validity': order['validity'],
+                    'instrument_token': order['instrument_token'],
+                    'price': target,
+                    'client_id': self.client_id
+                    }
+                payload = kwargs.copy() 
+                resp = requests.put(url, headers=self.headers, params=payload)
+                responses.append(self._response(resp))
+                if qty > threshold_to_exit:
+                    return responses
+            return responses
         for i,order in enumerate(orders):
             if i >= n:
                 # Since the number of orders to be squared off is met,
