@@ -257,3 +257,12 @@ def test_simple_order_cancel():
         kwargs = dict(order_id='abcdef')
         print(call(**kwargs))
         assert broker.order_cancel.call_args_list[0] == call(**kwargs)
+
+def test_simple_order_do_not_execute_more_than_once():
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        broker.order_place.return_value = 'aaabbb'
+        order = Order(symbol='aapl', side='buy', quantity=10, order_type='LIMIT',
+        price=650)
+        for i in range(10):
+            order.execute(broker=broker, exchange='NSE', variety='regular')
+        broker.order_place.assert_called_once()

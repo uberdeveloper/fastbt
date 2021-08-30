@@ -204,20 +204,24 @@ class Order:
         ----
         Only new arguments added to the order in keyword arguments
         """
-        order_args = {
-            'symbol': self.symbol.upper(),
-            'side': self.side.upper(),
-            'order_type': self.order_type.upper(),
-            'quantity': self.quantity,
-            'price': self.price,
-            'trigger_price': self.trigger_price,
-            'disclosed_quantity': self.disclosed_quantity
-        }
-        dct = {k:v for k,v in kwargs.items() if k not in order_args.keys()}
-        order_args.update(dct)
-        order_id = broker.order_place(**order_args)
-        self.order_id = order_id
-        return order_id
+        # Do not place a new order if this order is complete or has order_id
+        if not(self.is_complete) and not(self.order_id):
+            order_args = {
+                'symbol': self.symbol.upper(),
+                'side': self.side.upper(),
+                'order_type': self.order_type.upper(),
+                'quantity': self.quantity,
+                'price': self.price,
+                'trigger_price': self.trigger_price,
+                'disclosed_quantity': self.disclosed_quantity
+            }
+            dct = {k:v for k,v in kwargs.items() if k not in order_args.keys()}
+            order_args.update(dct)
+            order_id = broker.order_place(**order_args)
+            self.order_id = order_id
+            return order_id
+        else:
+            return self.order_id
 
     def modify(self, broker:Broker, **kwargs):
         """
