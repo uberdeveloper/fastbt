@@ -409,7 +409,7 @@ class MasterTrust(Broker):
             responses.append(resp)
         return responses
 
-    def modify_bracket_stop(self, symbol, stop, first=False, n=None):
+    def modify_bracket_stop(self, symbol, stop, first=False, p=0, n=None):
         """
         Modify stop loss value for bracket order
         symbol
@@ -420,6 +420,8 @@ class MasterTrust(Broker):
             whether to modify the first order or all orders
             By default, all orders are modified
             If first=True, only the first order is modified
+        p
+            percentage of total open quantity to modify stop price
         n
             number of orders to be closed
         Note
@@ -427,17 +429,49 @@ class MasterTrust(Broker):
         1) This implementation is exclusive to this broker - master trust
         2) stop is the actual stop loss price
         3) stop, target is identified by status 
+        4) if both p and n, percentage takes precedence
         """
         orders = self.pending_orders()
         orders = self.filter(orders, symbol=symbol, product='BO', status='trigger pending')
         responses = []
         url = f"{self.base_url}/api/v1/orders" 
-        total_quantity = sum([o.get('quantity', 0) for o in orders])
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
+        total_quantity = sum([o.get('quantity', 0) for o in orders])
+        threshold_to_exit = total_quantity
+        p = min(p, 100)
+        if p > 0:
+            threshold_to_exit = int(total_quantity * p *0.01)
+        qty = 0
         if n is None:
             n = len(orders)
+        if p > 0:
+            for order in orders:
+                q = order.get('quantity', 0)
+                qty += q
+                print(q, qty, threshold_to_exit)
+                kwargs = {
+                        'oms_order_id': order['oms_order_id'],
+                        'trading_symbol': order['symbol'],
+                        'order_type': order['order_type'],
+                        'exchange': order['exchange'],
+                        'quantity': order['quantity'],
+                        'product': order['product'],
+                        'validity': order['validity'],
+                        'instrument_token': order['instrument_token'],
+                        'trigger_price': stop,
+                        'price': stop,
+                        'client_id': self.client_id
+                }
+                payload = kwargs.copy() 
+                resp = requests.put(url, headers=self.headers, params=payload)
+                responses.append(self._response(resp))
+                if qty > threshold_to_exit:
+                    return responses
+            return responses
+
+        # This code is run only when ou need to modify by number of orders
         for i,order in enumerate(orders):
             if i >= n:
                 # Since the number of orders to be squared off is met,
@@ -530,7 +564,6 @@ class MasterTrust(Broker):
         orders = self.pending_orders()
         orders = self.filter(orders, symbol=symbol, product='BO', status='open')
         responses = []
-        print("p is ", p)
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
