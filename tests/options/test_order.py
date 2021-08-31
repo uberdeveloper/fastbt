@@ -292,4 +292,13 @@ def test_stop_order(stop_order):
     order.timestamp = stop_order.orders[-1].timestamp
     assert stop_order.orders[-1] == order
 
-
+def test_stop_order_execute_all(stop_order):
+    broker = stop_order.broker
+    stop_order.broker.order_place.side_effect = ['aaaaaa', 'bbbbbb']
+    stop_order.execute_all()
+    assert broker.order_place.call_count == 2
+    assert stop_order.orders[0].order_id == 'aaaaaa'
+    assert stop_order.orders[1].order_id == 'bbbbbb'
+    for i in range(10):
+        stop_order.execute_all()
+    assert broker.order_place.call_count == 2

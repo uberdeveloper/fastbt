@@ -425,6 +425,10 @@ class StopOrder(CompoundOrder):
         trigger_price=trigger_price, quantity=quantity, order_type='SL-M',
         disclosed_quantity=disclosed_quantity)
 
+    def execute_all(self):
+        for order in self.orders:
+            order.execute(broker=self.broker)
+
 class BracketOrder(StopOrder):
     def __init__(self, target:float, **kwargs):
         super(BracketOrder, self).__init__(**kwargs)
