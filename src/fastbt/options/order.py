@@ -401,15 +401,39 @@ class CompoundOrder:
         net_value = self.net_value
         positions = self.positions
         ltp = self.ltp
-        print("positions are ", positions)
         for symbol,value in net_value.items():
             c.update({symbol:-value})
         for symbol,quantity in positions.items():
             v = quantity * ltp.get(symbol, 0)
-            print('ltp is ', symbol, v)
             c.update({symbol:v})
         return c
 
     @property
     def total_mtm(self)->float:
         return sum(self.mtm.values())
+
+class StopOrder(CompoundOrder):
+    def __init__(self, symbol:str, side:str, trigger_price:float,
+        price:float=0.0, quantity:int=1, order_type='MARKET',
+        disclosed_quantity:int=0, order_args:Optional[Dict]=None, **kwargs):        
+        super(StopOrder, self).__init__(**kwargs)
+        side2 = 'sell' if side.lower() == 'buy' else 'buy'
+        self.add_order(symbol=symbol, side=side, price=price,
+        quantity=quantity, order_type=order_type,
+        disclosed_quantity=disclosed_quantity)
+        self.add_order(symbol=symbol, side=side2, price=0,
+        trigger_price=trigger_price, quantity=quantity, order_type='SL-M',
+        disclosed_quantity=disclosed_quantity)
+
+class BracketOrder(StopOrder):
+    def __init__(self, target:float, **kwargs):
+        super(BracketOrder, self).__init__(**kwargs)
+        self._target = target
+
+    @property
+    def target(self):
+        return self.target
+
+    
+
+    

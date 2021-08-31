@@ -30,6 +30,13 @@ def compound_order_average_prices():
     filled_quantity=15, average_price=600)
     return com
 
+@pytest.fixture
+def stop_order():
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        stop_order = StopOrder(symbol='aapl', side='buy', quantity=100, 
+        price=930, order_type='LIMIT', trigger_price=850,broker=broker)
+        return stop_order
+
 def test_order_simple():
     order = Order(symbol='aapl', side='buy', quantity=10)
     assert order.quantity == 10
@@ -266,3 +273,23 @@ def test_simple_order_do_not_execute_more_than_once():
         for i in range(10):
             order.execute(broker=broker, exchange='NSE', variety='regular')
         broker.order_place.assert_called_once()
+
+def test_simple_order_do_not_execute_completed_order():
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        order = Order(symbol='aapl', side='buy', quantity=10, order_type='LIMIT',
+        price=650,filled_quantity=10)
+        for i in range(10):
+            order.execute(broker=broker, exchange='NSE', variety='regular')
+        broker.order_place.call_count == 0
+
+def test_stop_order(stop_order):
+    assert stop_order.count == 2
+    assert stop_order.orders[0].order_type == 'LIMIT'
+    order = Order(symbol='aapl', side='sell', quantity=100,
+    trigger_price=850, price=0, order_type='SL-M')
+    # Copy over from existing order as these are system attributes
+    order.internal_id = stop_order.orders[-1].internal_id
+    order.timestamp = stop_order.orders[-1].timestamp
+    assert stop_order.orders[-1] == order
+
+
