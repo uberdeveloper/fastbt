@@ -53,6 +53,8 @@ class OptionPayoff:
             return min(0, strike-spot)
         elif comb == ('P', 'S'):
             return min(0, spot-strike)
+        else:
+            return 0
 
     def add(self, strike:float, opt_type:str='C', position:str='B', premium:float=0.0, qty:int=1)->None:
         """
@@ -124,10 +126,10 @@ class Order:
     side:str
     quantity:int=1
     internal_id:Optional[str] = None
-    timestamp:Optional[pendulum.datetime] = None
+    timestamp:Optional[pendulum.DateTime] = None
     order_type:str = 'MARKET' 
-    broker_timestamp:Optional[pendulum.datetime] = None
-    exchange_timestamp:Optional[pendulum.datetime] = None
+    broker_timestamp:Optional[pendulum.DateTime] = None
+    exchange_timestamp:Optional[pendulum.DateTime] = None
     order_id:Optional[str] = None
     exchange_order_id:Optional[str] = None
     price:Optional[float] = None
@@ -275,7 +277,7 @@ class CompoundOrder:
         """
         return the positions as a dictionary
         """
-        c = Counter()
+        c:Counter = Counter()
         for order in self.orders:
             symbol = order.symbol
             qty = order.filled_quantity
@@ -290,15 +292,15 @@ class CompoundOrder:
         self._orders.append(order)
         return order.internal_id
 
-    def _average_price(self, side='buy')->Dict[str,float]:
+    def _average_price(self, side:str='buy')->Dict[str,float]:
         """
         Get the average price for all the instruments
         side
             side to calculate average price - buy or sel    
         """
         side = str(side).lower()
-        value_counter = Counter()
-        quantity_counter = Counter()
+        value_counter:Counter = Counter()
+        quantity_counter:Counter = Counter()
         for order in self.orders:
             order_side = str(order.side).lower()
             if side == order_side:
@@ -308,7 +310,7 @@ class CompoundOrder:
                 value = price*quantity
                 value_counter.update({symbol: value})
                 quantity_counter.update({symbol: quantity})
-        dct = defaultdict()
+        dct:defaultdict = defaultdict()
         for v in value_counter:
             dct[v] = value_counter.get(v)/quantity_counter.get(v)
         return dct 
@@ -344,8 +346,8 @@ class CompoundOrder:
         """
         Get the total buy and sell quantity by symbol
         """
-        buy_counter = Counter()
-        sell_counter = Counter()
+        buy_counter:Counter = Counter()
+        sell_counter:Counter = Counter()
         for order in self.orders:
             side = order.side.lower()
             symbol = order.symbol
@@ -384,7 +386,7 @@ class CompoundOrder:
         """
         Return the net value by symbol
         """    
-        c = Counter()
+        c:Counter = Counter()
         for order in self.orders:
             symbol = order.symbol
             side = str(order.side).lower()
@@ -395,7 +397,7 @@ class CompoundOrder:
 
     @property
     def mtm(self)->Counter:
-        c = Counter()
+        c:Counter = Counter()
         net_value = self.net_value
         positions = self.positions
         ltp = self.ltp
