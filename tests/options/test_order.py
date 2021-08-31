@@ -37,6 +37,13 @@ def stop_order():
         price=930, order_type='LIMIT', trigger_price=850,broker=broker)
         return stop_order
 
+@pytest.fixture
+def bracket_order():
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        bracket_order = BracketOrder(symbol='aapl', side='buy', quantity=100, 
+        price=930, order_type='LIMIT', trigger_price=850,broker=broker, target=960)
+    return bracket_order
+
 def test_order_simple():
     order = Order(symbol='aapl', side='buy', quantity=10)
     assert order.quantity == 10
@@ -302,3 +309,23 @@ def test_stop_order_execute_all(stop_order):
     for i in range(10):
         stop_order.execute_all()
     assert broker.order_place.call_count == 2
+
+def test_bracket_order_is_target_hit(bracket_order):
+    broker = bracket_order.broker
+    bracket_order.broker.order_place.side_effect = ['aaaaaa', 'bbbbbb']
+    bracket_order.execute_all()
+    assert broker.order_place.call_count == 2
+    bracket_order.update_orders({
+        'aaaaaa': {
+            'average_price': 930,
+            'filled_quantity': 100,
+            'status': 'COMPLETE'
+        }
+    })
+    bracket_order.update_ltp({'aapl': 944})
+    assert bracket_order.is_target_hit is False
+    bracket_order.update_ltp({'aapl': 961})
+    assert bracket_order.is_target_hit is True
+
+
+

@@ -436,8 +436,16 @@ class BracketOrder(StopOrder):
 
     @property
     def target(self):
-        return self.target
+        return self._target
 
-    
-
-    
+    @property
+    def is_target_hit(self)->bool:
+        """
+        Check whether the given target is hit
+        """
+        for k,v in self.ltp.items():
+            # We assume a single symbol only so breaking
+            # TO DO: A better way is appreciated
+            ltp = v
+            break
+        return True if ltp > self.target else False
