@@ -449,3 +449,17 @@ class BracketOrder(StopOrder):
             ltp = v
             break
         return True if ltp > self.target else False
+
+    def do_target(self)->None:
+        """
+        Execute target order if target is hit
+        Note
+        -----
+        This checks
+         1. whether the target is hit
+         2. if target is hit, modify the existing stop and exit the order
+        """
+        if self.is_target_hit:
+            order = self.orders[-1]
+            order.order_type = 'MARKET'
+            order.modify(broker=self.broker)

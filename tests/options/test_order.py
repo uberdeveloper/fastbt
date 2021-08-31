@@ -326,6 +326,21 @@ def test_bracket_order_is_target_hit(bracket_order):
     assert bracket_order.is_target_hit is False
     bracket_order.update_ltp({'aapl': 961})
     assert bracket_order.is_target_hit is True
+    assert bracket_order.total_mtm == 3100
 
-
-
+def test_bracket_order_do_target(bracket_order):
+    broker = bracket_order.broker
+    bracket_order.broker.order_place.side_effect = ['aaaaaa', 'bbbbbb']
+    bracket_order.execute_all()
+    bracket_order.update_orders({
+        'aaaaaa': {
+            'average_price': 930,
+            'filled_quantity': 100,
+            'status': 'COMPLETE'
+        }
+    })
+    for i in (944,952,960,961):
+        bracket_order.update_ltp({'aapl': i})
+        bracket_order.do_target()
+    broker.order_modify.assert_called_once()
+    #TO DO: Add kwargs to check
