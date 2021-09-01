@@ -463,3 +463,27 @@ class BracketOrder(StopOrder):
             order = self.orders[-1]
             order.order_type = 'MARKET'
             order.modify(broker=self.broker)
+
+class OptionStrategy:
+    """
+    Option Strategy is a list of compound orders
+    """
+    def __init__(self, broker:Type[Broker])->None:
+        self._orders:List[CompoundOrder] = []
+        self._broker:Type[Broker] = broker
+        self._ltp:defaultdict = defaultdict()
+
+    @property
+    def broker(self):
+        return self._broker
+
+    def add_order(self, order:CompoundOrder)->None:
+        """
+        Add a compound order
+        broker is overriden
+        """
+        order._broker = self.broker
+        self._orders.append(order)
+
+
+

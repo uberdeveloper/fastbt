@@ -344,3 +344,11 @@ def test_bracket_order_do_target(bracket_order):
         bracket_order.do_target()
     broker.order_modify.assert_called_once()
     #TO DO: Add kwargs to check
+
+def test_option_strategy_add_order(simple_compound_order):
+    order = simple_compound_order
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        strategy = OptionStrategy(broker=broker)
+        strategy.add_order(order)
+        assert strategy._orders[0].broker == broker
+
