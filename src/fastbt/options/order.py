@@ -477,6 +477,10 @@ class OptionStrategy:
     def broker(self):
         return self._broker
 
+    @property
+    def orders(self):
+        return self._orders
+
     def add_order(self, order:CompoundOrder)->None:
         """
         Add a compound order
@@ -484,6 +488,16 @@ class OptionStrategy:
         """
         order._broker = self.broker
         self._orders.append(order)
+
+    @property
+    def all_orders(self)->List[Order]:
+        """
+        Get the list of all orders
+        """
+        orders = []
+        for order in self.orders:
+            orders.extend(order.orders)
+        return orders
 
 
 

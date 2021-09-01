@@ -352,3 +352,21 @@ def test_option_strategy_add_order(simple_compound_order):
         strategy.add_order(order)
         assert strategy._orders[0].broker == broker
 
+def test_option_strategy_orders(simple_compound_order):
+    order = simple_compound_order
+    broker = Broker()
+    strategy = OptionStrategy(broker=broker)
+    strategy.add_order(order)
+    assert len(strategy.orders) == 1
+    strategy.add_order(order)
+    assert len(strategy.orders) == 2
+
+def test_option_strategy_all_orders(simple_compound_order):
+    order = simple_compound_order
+    broker = Broker()
+    strategy = OptionStrategy(broker=broker)
+    for i in range(3):
+        strategy.add_order(order)
+    assert len(strategy.all_orders) == 9
+
+
