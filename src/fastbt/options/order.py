@@ -499,5 +499,11 @@ class OptionStrategy:
             orders.extend(order.orders)
         return orders
 
-
-
+    def update_ltp(self, last_price:Dict[str,float]):
+        """
+        Update ltp for the given symbols
+        last_price
+            dictionary with symbol as key and last price as value
+        """
+        for order in self.orders:
+            order.update_ltp(last_price)
