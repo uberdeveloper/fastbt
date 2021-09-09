@@ -505,8 +505,7 @@ class OptionStrategy:
         last_price
             dictionary with symbol as key and last price as value
         """
-        for order in self.orders:
-            order.update_ltp(last_price)
+        self._call('update_ltp', last_price=last_price)
 
     def _call(self, attribute:str, **kwargs)->List[Any]:
         """
@@ -522,7 +521,7 @@ class OptionStrategy:
         """
         responses = []
         for order in self.orders:
-            attr = getattr(order, attribute)
+            attr = getattr(order, attribute, None)
             if callable(attr):
                 responses.append(attr(**kwargs))
             else:
