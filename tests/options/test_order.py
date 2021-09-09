@@ -378,3 +378,14 @@ def test_option_strategy_update_ltp(simple_compound_order):
     strategy.update_ltp({'goog': 415})
     for order in strategy.orders:
         order.ltp['goog'] == 415
+
+def test_option_strategy_call(simple_compound_order, compound_order_average_prices):
+    broker = Broker()
+    strategy = OptionStrategy(broker=broker)
+    strategy.add_order(simple_compound_order)
+    strategy.add_order(compound_order_average_prices)
+    assert strategy._call('count') == [3,4]
+    for i in range(2):
+        strategy.add_order(simple_compound_order)
+    assert strategy._call('count') == [3,4,3,3]
+    

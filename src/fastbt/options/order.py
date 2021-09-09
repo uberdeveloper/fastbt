@@ -507,3 +507,24 @@ class OptionStrategy:
         """
         for order in self.orders:
             order.update_ltp(last_price)
+
+    def _call(self, attribute:str, **kwargs)->List[Any]:
+        """
+        Call the given method or property on each of the compound orders
+        attribute   
+            property or method
+        kwargs
+            keyword arguments to be called in case of a method
+        returns a list of the return values
+        Note
+        -----
+        1) An attribtute is considered to be a method if callable returns True
+        """
+        responses = []
+        for order in self.orders:
+            attr = getattr(order, attribute)
+            if callable(attr):
+                responses.append(attr(**kwargs))
+            else:
+                responses.append(attr)
+        return responses
