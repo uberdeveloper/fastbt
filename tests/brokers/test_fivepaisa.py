@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import Mock,patch,call
 
 from fastbt.brokers.fivepaisa import *
+from py5paisa import FivePaisaClient
 import requests
 import json
 
@@ -27,8 +28,14 @@ def test_broker_get_instrument_token_override_contracts():
     broker = FivePaisa('a','b','c')
     assert broker._get_instrument_token(symbol='SBIN', contracts=contracts) == 3045
 
-def test_broker_order_place():
-    pass
+@patch('py5paisa.FivePaisaClient')
+def test_broker_order_place(fivepaisa):
+    broker = FivePaisa('a','b','c')
+    broker.fivepaisa = fivepaisa
+    broker.order_place(symbol='sbin', quantity=10, side='buy')
+    broker.order_place(symbol='sbin', quantity=10, side='buy')
+    print(fivepaisa.place_order.call_args_list)
+    assert 10==15
 
 def test_broker_order_place_side():
     pass

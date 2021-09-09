@@ -34,7 +34,7 @@ class FivePaisa(Broker):
             'SELL': OrderType.SELL
             }
     
-    def __init__(self, email, password, dob):
+    def __init__(self, email:str, password:str, dob:str):
         """
         Initialize the broker
         """
@@ -78,15 +78,16 @@ class FivePaisa(Broker):
        """
        defaults = {
                'exchange': 'NSE',
-               'exchange_segment': 'EQ',
+               'segment': 'EQ',
                'order_type': 'LIMIT',
                'product': 'MIS',
         }
-       for k,v in defaults.items():
-           pass
-       symbol = kwargs.get('symbol')
-       code = int(self.master.get(symbol))
-       order = Order(order_type=self.side.get('BUY'), scrip_code=code, quantity=1,exchange=Exchange.NSE)
-       print(order.scrip_code, order.quantity, order.order_type)
-       print(order)
+       kwargs.update(defaults)
+       symbol = kwargs.pop('symbol')
+       exchange = kwargs.pop('exchange')
+       side = kwargs.pop('side', 'BUY')
+       scrip_code = self._get_instrument_token(symbol=symbol, exchange=exchange)
+       order = Order(order_type=self.side.get('BUY'), scrip_code=scrip_code, quantity=1,exchange=Exchange.NSE)
+       #print(order.scrip_code, order.quantity, order.order_type)
+       #print(order)
        self.fivepaisa.place_order(order)
