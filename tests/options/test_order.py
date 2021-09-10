@@ -389,3 +389,12 @@ def test_option_strategy_call(simple_compound_order, compound_order_average_pric
         strategy.add_order(simple_compound_order)
     assert strategy._call('count') == [3,4,3,3]
     
+def test_option_strategy_call_attribute_do_no_exist(simple_compound_order, compound_order_average_prices):
+    broker = Broker()
+    strategy = OptionStrategy(broker=broker)
+    strategy.add_order(simple_compound_order)
+    strategy.add_order(compound_order_average_prices)
+
+def test_option_strategy_call_method(simple_compound_order, compound_order_average_prices):
+    pass
+   

@@ -412,6 +412,10 @@ class CompoundOrder:
     def total_mtm(self)->float:
         return sum(self.mtm.values())
 
+    def execute_all(self):
+        for order in self.orders:
+            order.execute(broker=self.broker)
+
 class StopOrder(CompoundOrder):
     def __init__(self, symbol:str, side:str, trigger_price:float,
         price:float=0.0, quantity:int=1, order_type='MARKET',
@@ -424,10 +428,6 @@ class StopOrder(CompoundOrder):
         self.add_order(symbol=symbol, side=side2, price=0,
         trigger_price=trigger_price, quantity=quantity, order_type='SL-M',
         disclosed_quantity=disclosed_quantity)
-
-    def execute_all(self):
-        for order in self.orders:
-            order.execute(broker=self.broker)
 
 class BracketOrder(StopOrder):
     def __init__(self, target:float, **kwargs):
