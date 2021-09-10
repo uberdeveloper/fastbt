@@ -20,13 +20,13 @@ def simple_compound_order():
 @pytest.fixture
 def compound_order_average_prices():
     com = CompoundOrder(broker=Broker())
-    com.add_order(symbol='aapl', quantity=20,side='buy',
+    com.add_order(symbol='aapl', quantity=20,side='buy', order_id='11111',
     filled_quantity=20, average_price=1000)
-    com.add_order(symbol='aapl', quantity=20,side='buy',
+    com.add_order(symbol='aapl', quantity=20,side='buy', order_id='22222',
     filled_quantity=20, average_price=900)
-    com.add_order(symbol='goog', quantity=20,side='sell',
+    com.add_order(symbol='goog', quantity=20,side='sell', order_id='333333',
     filled_quantity=20, average_price=700)
-    com.add_order(symbol='goog', quantity=15,side='sell',
+    com.add_order(symbol='goog', quantity=15,side='sell', order_id='444444',
     filled_quantity=15, average_price=600)
     return com
 
@@ -389,12 +389,40 @@ def test_option_strategy_call(simple_compound_order, compound_order_average_pric
         strategy.add_order(simple_compound_order)
     assert strategy._call('count') == [3,4,3,3]
     
-def test_option_strategy_call_attribute_do_no_exist(simple_compound_order, compound_order_average_prices):
+def test_option_strategy_call_attribute_do_not_exist(simple_compound_order, compound_order_average_prices):
     broker = Broker()
     strategy = OptionStrategy(broker=broker)
     strategy.add_order(simple_compound_order)
     strategy.add_order(compound_order_average_prices)
+    assert strategy._call('no_attribute') == [None, None]
 
-def test_option_strategy_call_method(simple_compound_order, compound_order_average_prices):
-    pass
-   
+def test_option_strategy_update_ltp(simple_compound_order, compound_order_average_prices):
+    broker = Broker()
+    strategy = OptionStrategy(broker=broker)
+    strategy.add_order(simple_compound_order)
+    strategy.add_order(compound_order_average_prices)
+    strategy.update_ltp({'amzn':300, 'goog': 350})
+    for order in strategy.orders:
+        assert order.ltp == {'amzn': 300, 'goog': 350}
+
+def test_option_strategy_update_orders(simple_compound_order, compound_order_average_prices):
+    broker = Broker()
+    strategy = OptionStrategy(broker=broker)
+    strategy.add_order(simple_compound_order)
+    strategy.add_order(compound_order_average_prices)
+    order_data = {
+        'aaaaaa': {'order_id': 'aaaaaa', 'exchange_order_id': 10001},
+        'bbbbbb': {'order_id': 'bbbbbb', 'exchange_order_id': 10002},
+        '333333': {'order_id': '333333', 'exchange_order_id': 10003},
+        '111111': {'order_id': '111111', 'exchange_order_id': 10004},
+    }
+    strategy.update_orders(data=order_data)
+
+def test_option_strategy_execute_all(simple_compound_order, compound_order_average_prices):
+    with patch('fastbt.brokers.zerodha.Zerodha') as broker:
+        strategy = OptionStrategy(broker=broker)
+        strategy.add_order(simple_compound_order)
+        strategy.add_order(compound_order_average_prices)
+        strategy.add_order(compound_order_average_prices)
+        strategy.execute_all()
+        broker.order_place.call_count == 6

@@ -9,7 +9,7 @@ def get_option(spot:float,num:int=0,step:float=100.0)->float:
     """
     Get the option price given number of strikes
     spot
-	    spot price of the instrument
+        spot price of the instrument
     num
         number of strikes farther
     step
@@ -499,13 +499,13 @@ class OptionStrategy:
             orders.extend(order.orders)
         return orders
 
-    def update_ltp(self, last_price:Dict[str,float]):
+    def update_ltp(self, last_price:Dict[str,float])->List[Any]:
         """
         Update ltp for the given symbols
         last_price
             dictionary with symbol as key and last price as value
         """
-        self._call('update_ltp', last_price=last_price)
+        return self._call('update_ltp', last_price=last_price)
 
     def _call(self, attribute:str, **kwargs)->List[Any]:
         """
@@ -527,3 +527,19 @@ class OptionStrategy:
             else:
                 responses.append(attr)
         return responses
+
+    def update_orders(self, data:Dict[str,Dict[str,Any]])->List[Any]:
+        """
+        Update all orders
+        data
+            data as dictionary with key as broker order_id
+        returns a dictionary with order_id and update status as boolean
+        for all compound orders
+        """
+        return self._call('update_orders', data=data)
+
+    def execute_all(self)->List[Any]:
+        """
+        Execute all orders in all compound orders
+        """
+        return self._call('execute_all')
