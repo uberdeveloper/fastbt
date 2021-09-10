@@ -11,11 +11,12 @@ Requirements
 4) All columns are renamed to lower case
 """
 
+
 class DataSource(object):
     def __init__(self, data, symbol=None, timestamp=None, sort=True):
         """
         Initialize the dataframe
-        By default, all columns would be converted into lower case, 
+        By default, all columns would be converted into lower case,
         values would be sorted by timestamp and indexes would be reset
         symbol
             symbol column
@@ -26,57 +27,58 @@ class DataSource(object):
             if data is already sorted, pass False to save time
         """
         import hashlib
+
         self.hash = hashlib.sha1().hexdigest()
         self._isTALIB = True
-        data = data.rename({symbol: 'symbol', timestamp: 'timestamp'},
-            axis='columns')
-        data = data.rename(str.lower, axis='columns')
+        data = data.rename({symbol: "symbol", timestamp: "timestamp"}, axis="columns")
+        data = data.rename(str.lower, axis="columns")
         if sort:
-            self._data = data.sort_values(by='timestamp').reset_index(drop=True)
+            self._data = data.sort_values(by="timestamp").reset_index(drop=True)
         else:
             self._data = data.reset_index(drop=True)
 
         try:
             import talib
+
             self._func_map = {
-                'BBANDS': (talib.BBANDS, ['close']),
-                'DEMA': (talib.DEMA, ['close']),
-                'EMA': (talib.EMA, ['close']),
-                'KAMA': (talib.KAMA, ['close']),
-                'MA': (talib.MA, ['close']),
-                'MAMA': (talib.MAMA, ['close']),
-                'MIDPOINT': (talib.MIDPOINT, ['close']),
-                'MIDPRICE': (talib.MIDPRICE, ['high', 'low']),
-                'SAR': (talib.SAR, ['high', 'low']),
-                'SAREXT': (talib.SAREXT, ['high', 'low']),
-                'SMA': (talib.SMA, ['close']),
-                'STDDEV': (talib.STDDEV, ['close']),
-                'TEMA': (talib.TEMA, ['close']),
-                'TRIMA': (talib.TRIMA, ['close']),
-                'WMA': (talib.WMA, ['close']),
-                'AD': (talib.AD, ['high', 'low', 'close', 'volume']),
-                'OBV': (talib.OBV, ['close', 'volume']),
-                'ATR': (talib.ATR, ['high', 'low', 'close']),
-                'NATR': (talib.NATR, ['high', 'low', 'close']),
-                'TRANGE': (talib.TRANGE, ['high', 'low', 'close']),
-                'ADX': (talib.ADX, ['high', 'low', 'close']),
-                'AROON': (talib.AROON, ['high', 'low']),
-                'BOP': (talib.BOP, ['open', 'high', 'low', 'close']),
-                'CCI': (talib.CCI, ['high', 'low', 'close']),
-                'DX': (talib.DX, ['high', 'low', 'close']),
-                'MACD': (talib.MACD, ['close']),
-                'MOM': (talib.MOM, ['close']),
-                'ROC': (talib.ROC, ['close']),
-                'RSI': (talib.RSI, ['close']),
-                'STOCH': (talib.STOCH, ['high', 'low', 'close']),
-                'STOCHF': (talib.STOCHF, ['high', 'low', 'close']),
-                'STOCHRSI': (talib.STOCHRSI, ['close']),
-                'ULTOSC': (talib.ULTOSC, ['high', 'low', 'close']),
-                'WILLR': (talib.WILLR, ['high', 'low', 'close'])
+                "BBANDS": (talib.BBANDS, ["close"]),
+                "DEMA": (talib.DEMA, ["close"]),
+                "EMA": (talib.EMA, ["close"]),
+                "KAMA": (talib.KAMA, ["close"]),
+                "MA": (talib.MA, ["close"]),
+                "MAMA": (talib.MAMA, ["close"]),
+                "MIDPOINT": (talib.MIDPOINT, ["close"]),
+                "MIDPRICE": (talib.MIDPRICE, ["high", "low"]),
+                "SAR": (talib.SAR, ["high", "low"]),
+                "SAREXT": (talib.SAREXT, ["high", "low"]),
+                "SMA": (talib.SMA, ["close"]),
+                "STDDEV": (talib.STDDEV, ["close"]),
+                "TEMA": (talib.TEMA, ["close"]),
+                "TRIMA": (talib.TRIMA, ["close"]),
+                "WMA": (talib.WMA, ["close"]),
+                "AD": (talib.AD, ["high", "low", "close", "volume"]),
+                "OBV": (talib.OBV, ["close", "volume"]),
+                "ATR": (talib.ATR, ["high", "low", "close"]),
+                "NATR": (talib.NATR, ["high", "low", "close"]),
+                "TRANGE": (talib.TRANGE, ["high", "low", "close"]),
+                "ADX": (talib.ADX, ["high", "low", "close"]),
+                "AROON": (talib.AROON, ["high", "low"]),
+                "BOP": (talib.BOP, ["open", "high", "low", "close"]),
+                "CCI": (talib.CCI, ["high", "low", "close"]),
+                "DX": (talib.DX, ["high", "low", "close"]),
+                "MACD": (talib.MACD, ["close"]),
+                "MOM": (talib.MOM, ["close"]),
+                "ROC": (talib.ROC, ["close"]),
+                "RSI": (talib.RSI, ["close"]),
+                "STOCH": (talib.STOCH, ["high", "low", "close"]),
+                "STOCHF": (talib.STOCHF, ["high", "low", "close"]),
+                "STOCHRSI": (talib.STOCHRSI, ["close"]),
+                "ULTOSC": (talib.ULTOSC, ["high", "low", "close"]),
+                "WILLR": (talib.WILLR, ["high", "low", "close"]),
             }
         except ModuleNotFoundError:
             self._isTALIB = False
-            print('TALIB not installed')
+            print("TALIB not installed")
 
     @property
     def data(self):
@@ -94,11 +96,10 @@ class DataSource(object):
         r = x.rolling(window=window)
         m = r.mean()
         s = r.std()
-        z = (x-m)/s
+        z = (x - m) / s
         return z
 
-
-    def add_lag(self, on='close', period=1, col_name='auto'):
+    def add_lag(self, on="close", period=1, col_name="auto"):
         """
         add lagged data based on symbol
         on
@@ -109,34 +110,41 @@ class DataSource(object):
             column name
             By default, column name is created as lag_{{column}}_{{period}}
         """
-        grouped = self.data.groupby('symbol')
-        if col_name == 'auto':
-            col_name = 'lag_' + on + '_' + str(period)
+        grouped = self.data.groupby("symbol")
+        if col_name == "auto":
+            col_name = "lag_" + on + "_" + str(period)
         col = grouped[on].transform(lambda x: x.shift(period))
         self._data[col_name.lower()] = col
         return self.data
 
-    def add_pct_change(self, on='close', period=1, col_name='auto',
-                        lag=None, **kwargs):
+    def add_pct_change(self, on="close", period=1, col_name="auto", lag=None, **kwargs):
         """
         Add percentage change based on symbol
         lag
             also add lag by one period
         """
-        grouped = self.data.groupby('symbol')
-        if col_name == 'auto':
-            col_name = 'chg_' + on + '_'+ str(period)
+        grouped = self.data.groupby("symbol")
+        if col_name == "auto":
+            col_name = "chg_" + on + "_" + str(period)
         col = grouped[on].transform(lambda x: x.pct_change(period, **kwargs))
         if lag:
             self._data[col_name + self.hash] = col
-            self.add_lag(on=col_name+self.hash, period=lag, col_name=col_name)
+            self.add_lag(on=col_name + self.hash, period=lag, col_name=col_name)
             del self._data[col_name + self.hash]
         else:
             self._data[col_name.lower()] = col
         return self.data
 
-    def add_rolling(self, window, groupby='symbol', on='close', 
-                    function='mean', col_name='auto',lag=None, **kwargs):
+    def add_rolling(
+        self,
+        window,
+        groupby="symbol",
+        on="close",
+        function="mean",
+        col_name="auto",
+        lag=None,
+        **kwargs
+    ):
         """
         Add rolling window statistics
         This is just a wrapper for the pandas rolling functions
@@ -160,20 +168,22 @@ class DataSource(object):
         >>> df.groupby(groupby)[on].transform(lambda x: x.rolling(**kwargs).agg(function))
         """
         grouped = self.data.groupby(groupby)
-        if col_name == 'auto':
-            col_name = 'rol_{f}_{on}_{w}'.format(f=function, on=on, w=window)
-        if function == 'zscore':
+        if col_name == "auto":
+            col_name = "rol_{f}_{on}_{w}".format(f=function, on=on, w=window)
+        if function == "zscore":
             col = grouped[on].transform(lambda x: self._zscore(x, window))
         else:
-            col = grouped[on].transform(lambda x: x.rolling(window, **kwargs).agg(function))
+            col = grouped[on].transform(
+                lambda x: x.rolling(window, **kwargs).agg(function)
+            )
         if lag:
             self._data[col_name + self.hash] = col
-            self.add_lag(on=col_name+self.hash, period=lag, col_name=col_name)
+            self.add_lag(on=col_name + self.hash, period=lag, col_name=col_name)
             del self._data[col_name + self.hash]
         else:
             self._data[col_name.lower()] = col
         return self.data
-        
+
     def add_formula(self, formula, col_name):
         """
         Add a formula to the dataframe
@@ -191,8 +201,9 @@ class DataSource(object):
         self._data[col_name.lower()] = self._data.eval(formula.lower())
         return self.data
 
-    def add_indicator(self, indicator, period=None, col_name='auto', 
-                    lag=None, **kwargs):
+    def add_indicator(
+        self, indicator, period=None, col_name="auto", lag=None, **kwargs
+    ):
         """
         Add an indicator
         indicator
@@ -203,40 +214,44 @@ class DataSource(object):
             column name for this indicator
         kwargs for the indicator
         """
-        if not(self._isTALIB):
-            return 'TALIB not installed'
+        if not (self._isTALIB):
+            return "TALIB not installed"
         indicator = indicator.upper()
         if period is not None:
-            kwargs.update({'timeperiod': period})
+            kwargs.update({"timeperiod": period})
         func, args = self._func_map.get(indicator, (None, None))
 
-        if func is None:            
-            raise NameError('Function not available\n' + 
-             'Only the following functions are available\n{}'.format(self._func_map.keys()))
+        if func is None:
+            raise NameError(
+                "Function not available\n"
+                + "Only the following functions are available\n{}".format(
+                    self._func_map.keys()
+                )
+            )
 
         def apply_func(group):
             cols = [group[arg] for arg in args]
             return func(*cols, **kwargs)
 
         data = self.data.reset_index(drop=True)
-        grouped = data.groupby('symbol')
+        grouped = data.groupby("symbol")
 
         # Hack when the number of groups is single
         ngroups = grouped.ngroups
         if ngroups == 1:
-            result = apply_func(data).to_frame() # Directly work on data
-            result['symbol'] = data.iloc[0]['symbol']
+            result = apply_func(data).to_frame()  # Directly work on data
+            result["symbol"] = data.iloc[0]["symbol"]
         else:
-            result = grouped.apply(apply_func).reset_index(level='symbol')
+            result = grouped.apply(apply_func).reset_index(level="symbol")
         # End of hack
 
-        if col_name == 'auto':
-            col_name = indicator + '_' + str(period if period is not None else 0)
-        del result['symbol'] # Removed for easy join
+        if col_name == "auto":
+            col_name = indicator + "_" + str(period if period is not None else 0)
+        del result["symbol"]  # Removed for easy join
         if lag:
             result.columns = [col_name + self.hash]
             self._data = data.join(result)
-            self.add_lag(on=col_name+self.hash, period=lag, col_name=col_name)
+            self.add_lag(on=col_name + self.hash, period=lag, col_name=col_name)
             del self._data[col_name + self.hash]
         else:
             result.columns = [col_name.lower()]
@@ -250,11 +265,11 @@ class DataSource(object):
             a datetime index
         kwargs
             kwargs to the reindex function
-        This will reindex all the symbols to the 
+        This will reindex all the symbols to the
         given datetime index
         Note
         ----
-        1) Call this function before adding any columns so that all the 
+        1) Call this function before adding any columns so that all the
         symbols in your dataframe have equal number of data points
         2) reindex replaces the original dataframe with this data
         3) NA's are forward filled by default; if you don't want
@@ -262,14 +277,17 @@ class DataSource(object):
 
         See also
         ---------
-        utils.calendar 
+        utils.calendar
         """
         # Check only key since None is allowed
-        if 'method' not in kwargs.keys():
-            kwargs['method'] = 'ffill'
-        self._data = self.data.set_index('timestamp').groupby('symbol').apply(
-            lambda x: x.reindex(new_index, axis='index', **kwargs))
-        del self._data['symbol']
+        if "method" not in kwargs.keys():
+            kwargs["method"] = "ffill"
+        self._data = (
+            self.data.set_index("timestamp")
+            .groupby("symbol")
+            .apply(lambda x: x.reindex(new_index, axis="index", **kwargs))
+        )
+        del self._data["symbol"]
         self._data.reset_index(inplace=True)
         return self.data
 
@@ -287,19 +305,19 @@ class DataSource(object):
         L - lag
         P - percent change
         F - formula
-        I - indicator 
+        I - indicator
         """
         f_map = {
-        'L': self.add_lag,
-        'P': self.add_pct_change,
-        'F': self.add_formula,
-        'I': self.add_indicator,
-        'R': self.add_rolling
+            "L": self.add_lag,
+            "P": self.add_pct_change,
+            "F": self.add_formula,
+            "I": self.add_indicator,
+            "R": self.add_rolling,
         }
 
         for item in batch:
             # Parse data arguments and return final data
-            k,v = tuple(item.items())[0]
+            k, v = tuple(item.items())[0]
             func = f_map[k]
-            self._data = func(**v)        
+            self._data = func(**v)
         return self.data

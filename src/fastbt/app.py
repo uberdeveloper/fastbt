@@ -23,8 +23,8 @@ app = CustomFlask(__name__)
 
 @app.route("/")
 def hello_world():
-    col_types = ['lag', 'percent_change', 'rolling', 'formula', 'indicator']
-    context = {"name": "Ram", 'col_types': col_types}
+    col_types = ["lag", "percent_change", "rolling", "formula", "indicator"]
+    context = {"name": "Ram", "col_types": col_types}
     return render_template("backtest.html", **context)
 
 
@@ -33,16 +33,19 @@ def run_backtest():
     if request.method == "POST":
         pass
         # return str(request.form)
-    df = pd.read_csv('/home/machine/Projects/finance/nifty50',
-                     parse_dates=['timestamp'])
+    df = pd.read_csv(
+        "/home/machine/Projects/finance/nifty50", parse_dates=["timestamp"]
+    )
     import json
-    columns = json.loads(request.form.get('columns'))
-    conditions = json.loads(request.form.get('conditions'))
+
+    columns = json.loads(request.form.get("columns"))
+    conditions = json.loads(request.form.get("conditions"))
     print(columns)
-    result = backtest(data=df, order='S', stop_loss=3,
-                      columns=columns, conditions=conditions)
+    result = backtest(
+        data=df, order="S", stop_loss=3, columns=columns, conditions=conditions
+    )
     txt = str(result.columns)
-    return str(result.net_profit.sum()) + '\n' + txt
+    return str(result.net_profit.sum()) + "\n" + txt
 
 
 @app.route("/ds", methods=["GET", "POST"])

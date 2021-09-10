@@ -6,10 +6,11 @@ All features are optimized with numba for speed
 import numpy as np
 from numba import njit
 
+
 @njit
 def high_count(values):
     """
-    Given a list of values, return the number of 
+    Given a list of values, return the number of
     times high is broken
     >>> arr = np.array([11,12,9,8,13])
     >>> list(high_count(arr))
@@ -22,14 +23,15 @@ def high_count(values):
     for i in np.arange(1, length):
         if values[i] > max_val:
             max_val = values[i]
-            count+=1
+            count += 1
         arr[i] = count
-    return arr 
+    return arr
+
 
 @njit
 def low_count(values):
     """
-    Given a list of values, return the number of 
+    Given a list of values, return the number of
     times low is broken
     >>> arr = np.array([13,14,12,11,9,10])
     >>> list(low_count(arr))
@@ -42,15 +44,16 @@ def low_count(values):
     for i in np.arange(1, length):
         if values[i] < min_val:
             min_val = values[i]
-            count+=1
+            count += 1
         arr[i] = count
-    return arr 
+    return arr
+
 
 @njit
 def last_high(values):
     """
     Given a list of values, return an array with
-    the index of the corresponding last highs 
+    the index of the corresponding last highs
     Note
     ----
     index starts at zero
@@ -67,4 +70,4 @@ def last_high(values):
             max_val = values[i]
             counter = i
         arr[i] = counter
-    return arr 
+    return arr

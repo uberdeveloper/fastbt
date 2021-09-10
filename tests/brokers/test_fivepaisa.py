@@ -1,59 +1,67 @@
 import pytest
-from unittest.mock import Mock,patch,call
+from unittest.mock import Mock, patch, call
 
 from fastbt.brokers.fivepaisa import *
 from py5paisa import FivePaisaClient
 import requests
 import json
 
-contracts = {
-        'NSE:SBIN': 3045,
-        'NFO:SBT': 5316
-        }
+contracts = {"NSE:SBIN": 3045, "NFO:SBT": 5316}
+
 
 def test_get_instrument_token():
-    token = get_instrument_token(contracts, 'NSE', 'SBIN')
+    token = get_instrument_token(contracts, "NSE", "SBIN")
     assert token == 3045
-    token = get_instrument_token(contracts, 'NFO', 'SBT')
+    token = get_instrument_token(contracts, "NFO", "SBT")
     assert token == 5316
-    token = get_instrument_token(contracts, 'NFO', 'ABCD')
+    token = get_instrument_token(contracts, "NFO", "ABCD")
     assert token is None
-    
+
+
 def test_broker_get_instrument_token():
-    broker = FivePaisa('a','b','c')
+    broker = FivePaisa("a", "b", "c")
     broker.contracts = contracts
-    assert broker._get_instrument_token(symbol='SBIN') == 3045
+    assert broker._get_instrument_token(symbol="SBIN") == 3045
+
 
 def test_broker_get_instrument_token_override_contracts():
-    broker = FivePaisa('a','b','c')
-    assert broker._get_instrument_token(symbol='SBIN', contracts=contracts) == 3045
+    broker = FivePaisa("a", "b", "c")
+    assert broker._get_instrument_token(symbol="SBIN", contracts=contracts) == 3045
 
-@patch('py5paisa.FivePaisaClient')
+
+@patch("py5paisa.FivePaisaClient")
 def test_broker_order_place(fivepaisa):
-    broker = FivePaisa('a','b','c')
+    broker = FivePaisa("a", "b", "c")
     broker.fivepaisa = fivepaisa
-    broker.order_place(symbol='sbin', quantity=10, side='buy')
-    broker.order_place(symbol='sbin', quantity=10, side='buy')
+    broker.order_place(symbol="sbin", quantity=10, side="buy")
+    broker.order_place(symbol="sbin", quantity=10, side="buy")
     print(fivepaisa.place_order.call_args_list)
-    assert 10==15
+    assert 10 == 15
+
 
 def test_broker_order_place_side():
     pass
 
+
 def test_broker_order_place_price():
     pass
+
 
 def test_broker_order_place_quantity():
     pass
 
+
 def test_broker_order_place_order_type():
     pass
+
 
 def test_broker_order_place_stop():
     pass
 
+
 def test_broker_cancel_order():
     pass
+
 
 def test_broker_modify_order():
     pass

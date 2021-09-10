@@ -1,6 +1,6 @@
 import os
 import requests
-from fastbt.Meta import Broker,Status,pre,post
+from fastbt.Meta import Broker, Status, pre, post
 from requests_oauthlib import OAuth2Session
 
 from selenium import webdriver
@@ -14,27 +14,31 @@ from typing import Dict, List
 
 def get_authorization_url():
     oauth = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
-    authorization_url, _state = oauth.authorization_url(authorization_base_url, access_type="authorization_code")
+    authorization_url, _state = oauth.authorization_url(
+        authorization_base_url, access_type="authorization_code"
+    )
     return authorization_url
 
-def fetch_all_contracts(exchanges=['NSE','NFO']):
+
+def fetch_all_contracts(exchanges=["NSE", "NFO"]):
     """
     Fetch all contracts for the given list of exchanges
     exchanges
         exchanges as a list
     """
-    url = 'https://masterswift.mastertrust.co.in/api/v2/contracts.json?exchanges={exc}'
+    url = "https://masterswift.mastertrust.co.in/api/v2/contracts.json?exchanges={exc}"
     # All contracts are stored as dictionary keys
     contracts = {}
     for e in exchanges:
         url2 = url.format(exc=e)
         req = requests.get(url2).json()
-        for k,v in req.items():
+        for k, v in req.items():
             for c in v:
-                symbol = c['trading_symbol']
-                code = c['code']
+                symbol = c["trading_symbol"]
+                code = c["code"]
                 contracts[f"{e}:{symbol}"] = code
     return contracts
+
 
 def get_instrument_token(contracts, exchange, symbol):
     """
@@ -46,38 +50,47 @@ def get_instrument_token(contracts, exchange, symbol):
     symbol
         symbol to look up for
     """
-    return contracts.get(f"{exchange}:{symbol}") 
+    return contracts.get(f"{exchange}:{symbol}")
+
 
 class MasterTrust(Broker):
     """
     Automated Trading class
     """
-    def __init__(self, client_id, password,
-                PIN, secret, exchange='NSE',
-                product='MIS', token_file='token.tok'):
+
+    def __init__(
+        self,
+        client_id,
+        password,
+        PIN,
+        secret,
+        exchange="NSE",
+        product="MIS",
+        token_file="token.tok",
+    ):
         self.filter = self.dict_filter
-        self._client_id = client_id 
+        self._client_id = client_id
         self._password = password
         self._pin = PIN
         self._secret = secret
         self.exchange = exchange
         self.product = product
-        self._store_access_token = True        
+        self._store_access_token = True
         self._access_token = None
         self.token_file = token_file
-        self.base_url = 'https://masterswift-beta.mastertrust.co.in'
+        self.base_url = "https://masterswift-beta.mastertrust.co.in"
         self.authorization_base_url = f"{self.base_url}/oauth2/auth"
         self.token_url = f"{self.base_url}/oauth2/token"
         super(MasterTrust, self).__init__()
         try:
-            with open(self.token_file, 'r') as f:
+            with open(self.token_file, "r") as f:
                 access_token = f.read()
             self._access_token = access_token
         except Exception as e:
-            print('Token not found',e)
+            print("Token not found", e)
 
         self._set_headers()
-        self._sides = {'BUY': 'SELL', 'SELL': 'BUY'}
+        self._sides = {"BUY": "SELL", "SELL": "BUY"}
 
     @property
     def headers(self):
@@ -93,30 +106,33 @@ class MasterTrust(Broker):
 
     def _set_headers(self):
         self._headers = {
-            'Accept': 'application/json',
-            'Authorization': f'Bearer {self._access_token}',
-            'Cache-Control': 'no-cache'
+            "Accept": "application/json",
+            "Authorization": f"Bearer {self._access_token}",
+            "Cache-Control": "no-cache",
         }
 
-    def get_authorization_url(self, client_id='APIUSER', redirect_uri='http://127.0.0.1/',
-            scope=['orders']):
+    def get_authorization_url(
+        self, client_id="APIUSER", redirect_uri="http://127.0.0.1/", scope=["orders"]
+    ):
         oauth = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
-        authorization_url, _state = oauth.authorization_url(self.authorization_base_url,
-                access_type="authorization_code")
+        authorization_url, _state = oauth.authorization_url(
+            self.authorization_base_url, access_type="authorization_code"
+        )
         return authorization_url
 
-    def get_access_token(self, url, redirect_uri='http://127.0.0.1/',
-            scope=['orders']):
+    def get_access_token(self, url, redirect_uri="http://127.0.0.1/", scope=["orders"]):
         # to make oauth2 work with http
-        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-        oauth = OAuth2Session('APIUSER',redirect_uri=redirect_uri, scope=scope)
-        token = oauth.fetch_token(self.token_url, authorization_response=url, client_secret=self._secret)
-        access_token = token['access_token']
+        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+        oauth = OAuth2Session("APIUSER", redirect_uri=redirect_uri, scope=scope)
+        token = oauth.fetch_token(
+            self.token_url, authorization_response=url, client_secret=self._secret
+        )
+        access_token = token["access_token"]
         self._access_token = access_token
         with open(self.token_file, "w") as f:
             f.write(access_token)
         return access_token
-            
+
     def _shortcuts(self):
         """
         Provides shortcuts to master trust function
@@ -132,8 +148,8 @@ class MasterTrust(Broker):
             Force an authentication even if tokens exists
         """
         try:
-            if not(force):
-                with open(self.token_file, 'r') as f:
+            if not (force):
+                with open(self.token_file, "r") as f:
                     access_token = f.read()
                 self._access_token = access_token
                 self._set_headers()
@@ -151,28 +167,30 @@ class MasterTrust(Broker):
 
     def _login(self):
         import time
+
         options = Options()
-        options.add_argument('--headless')
-        options.add_argument('--disable-gpu')
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
         driver = webdriver.Chrome(options=options)
         url = self.get_authorization_url()
         driver.get(url)
         time.sleep(2)
         WebDriverWait(driver, 45).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "btn-container")))
-        driver.find_element_by_name('login_id').send_keys(self._client_id)
-        driver.find_element_by_name('password').send_keys(self._password)
+            EC.presence_of_element_located((By.CLASS_NAME, "btn-container"))
+        )
+        driver.find_element_by_name("login_id").send_keys(self._client_id)
+        driver.find_element_by_name("password").send_keys(self._password)
         driver.find_element_by_xpath('//button[@type="submit"]').click()
         time.sleep(2)
         WebDriverWait(driver, 45).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "btn-container")))
+            EC.presence_of_element_located((By.CLASS_NAME, "btn-container"))
+        )
         driver.find_element_by_xpath('//input[@type="password"]').send_keys(self._pin)
-        driver.find_element_by_xpath('//button[@type="submit"]').click() 
+        driver.find_element_by_xpath('//button[@type="submit"]').click()
         time.sleep(2)
         current_url = driver.current_url
         driver.close()
-        return current_url 
-
+        return current_url
 
     def _response(self, response, full=False):
         """
@@ -184,39 +202,40 @@ class MasterTrust(Broker):
         """
         try:
             resp = response.json()
-            if full or (resp.get('status') == 'error'):
+            if full or (resp.get("status") == "error"):
                 return resp
             else:
-                return resp['data']
+                return resp["data"]
         except:
             return {}
-    
-    def _get_instrument_token(self, symbol, exchange='NSE', contracts=None):
-        if not(contracts):
-            contracts = self.contracts
-        return get_instrument_token(contracts=contracts, exchange=exchange, symbol=symbol)
 
+    def _get_instrument_token(self, symbol, exchange="NSE", contracts=None):
+        if not (contracts):
+            contracts = self.contracts
+        return get_instrument_token(
+            contracts=contracts, exchange=exchange, symbol=symbol
+        )
 
     def profile(self):
         """
         Get the profile for the user
         """
         url = f"{self.base_url}/api/v1/user/profile"
-        payload = {'client_id': self.client_id} 
+        payload = {"client_id": self.client_id}
         resp = requests.get(url, headers=self.headers, params=payload)
-        return self._response(resp) 
+        return self._response(resp)
 
     @post
     def positions(self):
         """
         Return only the positions for the day
         """
-        url = f"{self.base_url}/api/v1/positions" 
-        payload = {'client_id': self.client_id, 'type':'live'}
+        url = f"{self.base_url}/api/v1/positions"
+        payload = {"client_id": self.client_id, "type": "live"}
         resp = requests.get(url, headers=self.headers, params=payload)
         resp = self._response(resp)
         for r in resp:
-            r['side'] = 'BUY' if r.get('quantity', 0) > 0 else 'SELL'
+            r["side"] = "BUY" if r.get("quantity", 0) > 0 else "SELL"
         return resp
 
     @post
@@ -224,20 +243,20 @@ class MasterTrust(Broker):
         """
         Return the completed orders for the day
         """
-        url = f"{self.base_url}/api/v1/orders" 
-        payload = {'client_id': self.client_id, 'type':'completed'}
+        url = f"{self.base_url}/api/v1/orders"
+        payload = {"client_id": self.client_id, "type": "completed"}
         resp = requests.get(url, headers=self.headers, params=payload)
-        return self._response(resp).get('orders', [])
+        return self._response(resp).get("orders", [])
 
     @post
     def pending_orders(self):
         """
         Return the completed orders for the day
         """
-        url = f"{self.base_url}/api/v1/orders" 
-        payload = {'client_id': self.client_id, 'type':'pending'}
+        url = f"{self.base_url}/api/v1/orders"
+        payload = {"client_id": self.client_id, "type": "pending"}
         resp = requests.get(url, headers=self.headers, params=payload)
-        return self._response(resp).get('orders', [])
+        return self._response(resp).get("orders", [])
 
     def orders(self):
         """
@@ -246,27 +265,26 @@ class MasterTrust(Broker):
         """
         pending = self.pending_orders()
         completed = self.completed_orders()
-        pending.extend(completed) 
-        return pending 
+        pending.extend(completed)
+        return pending
 
     def trades(self):
         """
         Return the tradebook for the day
         """
-        url = f"{self.base_url}/api/v1/trades" 
-        payload = {'client_id': self.client_id}
+        url = f"{self.base_url}/api/v1/trades"
+        payload = {"client_id": self.client_id}
         resp = requests.get(url, headers=self.headers, params=payload)
-        return self._response(resp).get('trades', [])
-
+        return self._response(resp).get("trades", [])
 
     def realized_mtm(self, positions=None):
         """
         Get the realized MTM
         """
-        if not(positions):
+        if not (positions):
             positions = self.positions()
-        if len(positions)>0:
-            return sum([float(p['realized_mtm']) for p in positions])
+        if len(positions) > 0:
+            return sum([float(p["realized_mtm"]) for p in positions])
         else:
             # Return 0 in case of no transactions
             return 0
@@ -275,26 +293,30 @@ class MasterTrust(Broker):
         """
         Get the unrealized MTM
         """
-        if not(positions):
+        if not (positions):
             positions = self.positions()
-        if len(positions)==0:
-            collect = {p['symbol']:0 for p in positions}
+        if len(positions) == 0:
+            collect = {p["symbol"]: 0 for p in positions}
         else:
             collect = {}
             for p in positions:
-                if p['quantity'] > 0:
-                    collect[p['symbol']] = (p['ltp']-(-p['net_amount']/p['quantity']))*p['quantity']-p['realized_mtm']
-                elif p['quantity'] < 0:
-                    collect[p['symbol']] = (p['ltp']-(-p['net_amount']/p['quantity']))*p['quantity']-p['realized_mtm']
+                if p["quantity"] > 0:
+                    collect[p["symbol"]] = (
+                        p["ltp"] - (-p["net_amount"] / p["quantity"])
+                    ) * p["quantity"] - p["realized_mtm"]
+                elif p["quantity"] < 0:
+                    collect[p["symbol"]] = (
+                        p["ltp"] - (-p["net_amount"] / p["quantity"])
+                    ) * p["quantity"] - p["realized_mtm"]
                 else:
-                    collect[p['symbol']] = 0
+                    collect[p["symbol"]] = 0
         return sum(list(collect.values()))
 
     def mtm(self, positions=None):
         """
         Get the mtm
         """
-        if not(positions):
+        if not (positions):
             positions = self.positions()
         realized_mtm = self.realized_mtm(positions=positions)
         unrealized_mtm = self.unrealized_mtm(positions=positions)
@@ -306,28 +328,27 @@ class MasterTrust(Broker):
         """
         positions = self.positions()
         if symbol is None:
-            return {p['symbol']:p['quantity'] for p in positions}
+            return {p["symbol"]: p["quantity"] for p in positions}
         else:
             for p in positions:
-                if p['symbol'] == symbol:
-                    return p['quantity']
+                if p["symbol"] == symbol:
+                    return p["quantity"]
             return 0
 
     def order_place(self, **kwargs):
         """
         Place an order
         """
-        url = f"{self.base_url}/api/v1/orders" 
-        symbol = kwargs.pop('symbol')
-        side = kwargs.pop('side')
-        exchange = kwargs.get('exchange', self.exchange)
-        token = self._get_instrument_token(exchange=exchange,
-                symbol=symbol)
-        kwargs['instrument_token'] = token
-        kwargs['order_side'] = side
-        kwargs['client_id'] = self.client_id
-        kwargs['user_order_id'] = 1000
-        payload = kwargs.copy() 
+        url = f"{self.base_url}/api/v1/orders"
+        symbol = kwargs.pop("symbol")
+        side = kwargs.pop("side")
+        exchange = kwargs.get("exchange", self.exchange)
+        token = self._get_instrument_token(exchange=exchange, symbol=symbol)
+        kwargs["instrument_token"] = token
+        kwargs["order_side"] = side
+        kwargs["client_id"] = self.client_id
+        kwargs["user_order_id"] = 1000
+        payload = kwargs.copy()
         resp = requests.post(url, headers=self.headers, params=payload)
         return self._response(resp)
 
@@ -335,14 +356,13 @@ class MasterTrust(Broker):
         """
         Place an order
         """
-        url = f"{self.base_url}/api/v1/orders" 
-        symbol = kwargs.pop('symbol')
-        exchange = kwargs.get('exchange', self.exchange)
-        token = self._get_instrument_token(exchange=exchange,
-                symbol=symbol)
-        kwargs['instrument_token'] = token
-        kwargs['client_id'] = self.client_id
-        payload = kwargs.copy() 
+        url = f"{self.base_url}/api/v1/orders"
+        symbol = kwargs.pop("symbol")
+        exchange = kwargs.get("exchange", self.exchange)
+        token = self._get_instrument_token(exchange=exchange, symbol=symbol)
+        kwargs["instrument_token"] = token
+        kwargs["client_id"] = self.client_id
+        payload = kwargs.copy()
         resp = requests.put(url, headers=self.headers, params=payload)
         return self._response(resp)
 
@@ -350,8 +370,8 @@ class MasterTrust(Broker):
         """
         Place an order
         """
-        url = f"{self.base_url}/api/v1/orders/{oms_order_id}" 
-        payload = {'client_id': self.client_id} 
+        url = f"{self.base_url}/api/v1/orders/{oms_order_id}"
+        payload = {"client_id": self.client_id}
         resp = requests.delete(url, headers=self.headers, params=payload)
         return self._response(resp)
 
@@ -359,17 +379,16 @@ class MasterTrust(Broker):
         """
         Place a bracket order
         """
-        url = f"{self.base_url}/api/v1/orders/bracket" 
-        symbol = kwargs.pop('symbol')
-        side = kwargs.pop('side')
-        exchange = kwargs.get('exchange', self.exchange)
-        token = self._get_instrument_token(exchange=self.exchange,
-                symbol=symbol)
-        kwargs['instrument_token'] = token
-        kwargs['order_side'] = side
-        kwargs['client_id'] = self.client_id
-        kwargs['user_order_id'] = 1000
-        payload = kwargs.copy() 
+        url = f"{self.base_url}/api/v1/orders/bracket"
+        symbol = kwargs.pop("symbol")
+        side = kwargs.pop("side")
+        exchange = kwargs.get("exchange", self.exchange)
+        token = self._get_instrument_token(exchange=self.exchange, symbol=symbol)
+        kwargs["instrument_token"] = token
+        kwargs["order_side"] = side
+        kwargs["client_id"] = self.client_id
+        kwargs["user_order_id"] = 1000
+        payload = kwargs.copy()
         resp = requests.post(url, headers=self.headers, params=payload)
         return self._response(resp)
 
@@ -378,7 +397,7 @@ class MasterTrust(Broker):
         Exit at existing bracket order
         """
         url = f"{self.base_url}/api/v1/orders/bracket/"
-        payload = kwargs.copy() 
+        payload = kwargs.copy()
         resp = requests.delete(url, headers=self.headers, params=payload)
         return resp.json()
 
@@ -402,10 +421,9 @@ class MasterTrust(Broker):
             # Return in case of no matching orders
             return responses
         for order in orders:
-            order_id = order['oms_order_id']
-            symbol = order['symbol']
-            resp = self.order_modify(oms_order_id=order_id, 
-                    symbol=symbol, **kwargs)
+            order_id = order["oms_order_id"]
+            symbol = order["symbol"]
+            resp = self.order_modify(oms_order_id=order_id, symbol=symbol, **kwargs)
             responses.append(resp)
         return responses
 
@@ -428,42 +446,44 @@ class MasterTrust(Broker):
         ----
         1) This implementation is exclusive to this broker - master trust
         2) stop is the actual stop loss price
-        3) stop, target is identified by status 
+        3) stop, target is identified by status
         4) if both p and n, percentage takes precedence
         """
         orders = self.pending_orders()
-        orders = self.filter(orders, symbol=symbol, product='BO', status='trigger pending')
+        orders = self.filter(
+            orders, symbol=symbol, product="BO", status="trigger pending"
+        )
         responses = []
-        url = f"{self.base_url}/api/v1/orders" 
+        url = f"{self.base_url}/api/v1/orders"
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
-        total_quantity = sum([o.get('quantity', 0) for o in orders])
+        total_quantity = sum([o.get("quantity", 0) for o in orders])
         threshold_to_exit = total_quantity
         p = min(p, 100)
         if p > 0:
-            threshold_to_exit = int(total_quantity * p *0.01)
+            threshold_to_exit = int(total_quantity * p * 0.01)
         qty = 0
         if n is None:
             n = len(orders)
         if p > 0:
             for order in orders:
-                q = order.get('quantity', 0)
+                q = order.get("quantity", 0)
                 qty += q
                 kwargs = {
-                        'oms_order_id': order['oms_order_id'],
-                        'trading_symbol': order['symbol'],
-                        'order_type': order['order_type'],
-                        'exchange': order['exchange'],
-                        'quantity': order['quantity'],
-                        'product': order['product'],
-                        'validity': order['validity'],
-                        'instrument_token': order['instrument_token'],
-                        'trigger_price': stop,
-                        'price': stop,
-                        'client_id': self.client_id
+                    "oms_order_id": order["oms_order_id"],
+                    "trading_symbol": order["symbol"],
+                    "order_type": order["order_type"],
+                    "exchange": order["exchange"],
+                    "quantity": order["quantity"],
+                    "product": order["product"],
+                    "validity": order["validity"],
+                    "instrument_token": order["instrument_token"],
+                    "trigger_price": stop,
+                    "price": stop,
+                    "client_id": self.client_id,
                 }
-                payload = kwargs.copy() 
+                payload = kwargs.copy()
                 resp = requests.put(url, headers=self.headers, params=payload)
                 responses.append(self._response(resp))
                 if qty > threshold_to_exit:
@@ -471,25 +491,25 @@ class MasterTrust(Broker):
             return responses
 
         # This code is run only when ou need to modify by number of orders
-        for i,order in enumerate(orders):
+        for i, order in enumerate(orders):
             if i >= n:
                 # Since the number of orders to be squared off is met,
                 # we exit the program
                 return responses
             kwargs = {
-                    'oms_order_id': order['oms_order_id'],
-                    'trading_symbol': order['symbol'],
-                    'order_type': order['order_type'],
-                    'exchange': order['exchange'],
-                    'quantity': order['quantity'],
-                    'product': order['product'],
-                    'validity': order['validity'],
-                    'instrument_token': order['instrument_token'],
-                    'trigger_price': stop,
-                    'price': stop,
-                    'client_id': self.client_id
-                    }
-            payload = kwargs.copy() 
+                "oms_order_id": order["oms_order_id"],
+                "trading_symbol": order["symbol"],
+                "order_type": order["order_type"],
+                "exchange": order["exchange"],
+                "quantity": order["quantity"],
+                "product": order["product"],
+                "validity": order["validity"],
+                "instrument_token": order["instrument_token"],
+                "trigger_price": stop,
+                "price": stop,
+                "client_id": self.client_id,
+            }
+            payload = kwargs.copy()
             resp = requests.put(url, headers=self.headers, params=payload)
             responses.append(self._response(resp))
             if first:
@@ -511,68 +531,68 @@ class MasterTrust(Broker):
         ----
         1) This implementation is exclusive to this broker - master trust
         2) target is the actual target price
-        3) stop, target is identified by status 
+        3) stop, target is identified by status
         first
             whether to modify the first order or all orders
             By default, all orders are modified
             If first=True, only the first order is modified
         """
         orders = self.pending_orders()
-        orders = self.filter(orders, symbol=symbol, product='BO', status='open')
+        orders = self.filter(orders, symbol=symbol, product="BO", status="open")
         responses = []
-        url = f"{self.base_url}/api/v1/orders" 
+        url = f"{self.base_url}/api/v1/orders"
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
-        total_quantity = sum([o.get('quantity', 0) for o in orders])
+        total_quantity = sum([o.get("quantity", 0) for o in orders])
         threshold_to_exit = total_quantity
         p = min(p, 100)
         if p > 0:
-            threshold_to_exit = int(total_quantity * p *0.01)
+            threshold_to_exit = int(total_quantity * p * 0.01)
         qty = 0
         if n is None:
             n = len(orders)
 
         if p > 0:
             for order in orders:
-                q = order.get('quantity', 0)
+                q = order.get("quantity", 0)
                 qty += q
                 kwargs = {
-                    'oms_order_id': order['oms_order_id'],
-                    'trading_symbol': order['symbol'],
-                    'order_type': order['order_type'],
-                    'exchange': order['exchange'],
-                    'quantity': order['quantity'],
-                    'product': order['product'],
-                    'validity': order['validity'],
-                    'instrument_token': order['instrument_token'],
-                    'price': target,
-                    'client_id': self.client_id
-                    }
-                payload = kwargs.copy() 
+                    "oms_order_id": order["oms_order_id"],
+                    "trading_symbol": order["symbol"],
+                    "order_type": order["order_type"],
+                    "exchange": order["exchange"],
+                    "quantity": order["quantity"],
+                    "product": order["product"],
+                    "validity": order["validity"],
+                    "instrument_token": order["instrument_token"],
+                    "price": target,
+                    "client_id": self.client_id,
+                }
+                payload = kwargs.copy()
                 resp = requests.put(url, headers=self.headers, params=payload)
                 responses.append(self._response(resp))
                 if qty > threshold_to_exit:
                     return responses
             return responses
-        for i,order in enumerate(orders):
+        for i, order in enumerate(orders):
             if i >= n:
                 # Since the number of orders to be squared off is met,
                 # we exit the program
                 return responses
             kwargs = {
-                    'oms_order_id': order['oms_order_id'],
-                    'trading_symbol': order['symbol'],
-                    'order_type': order['order_type'],
-                    'exchange': order['exchange'],
-                    'quantity': order['quantity'],
-                    'product': order['product'],
-                    'validity': order['validity'],
-                    'instrument_token': order['instrument_token'],
-                    'price': target,
-                    'client_id': self.client_id
-                    }
-            payload = kwargs.copy() 
+                "oms_order_id": order["oms_order_id"],
+                "trading_symbol": order["symbol"],
+                "order_type": order["order_type"],
+                "exchange": order["exchange"],
+                "quantity": order["quantity"],
+                "product": order["product"],
+                "validity": order["validity"],
+                "instrument_token": order["instrument_token"],
+                "price": target,
+                "client_id": self.client_id,
+            }
+            payload = kwargs.copy()
             resp = requests.put(url, headers=self.headers, params=payload)
             responses.append(self._response(resp))
             if first:
@@ -590,29 +610,29 @@ class MasterTrust(Broker):
             If first=True, only the first order is modified
         """
         orders = self.pending_orders()
-        orders = self.filter(orders, symbol=symbol, product='BO', status='open')
+        orders = self.filter(orders, symbol=symbol, product="BO", status="open")
         responses = []
         if len(orders) == 0:
             # Return in case of no matching orders
             return responses
-        total_quantity = sum([o.get('quantity', 0) for o in orders])
+        total_quantity = sum([o.get("quantity", 0) for o in orders])
         threshold_to_exit = total_quantity
         p = min(p, 100)
         if p > 0:
-            threshold_to_exit = int(total_quantity * p *0.01)
+            threshold_to_exit = int(total_quantity * p * 0.01)
             print(f"Exit threshold = {total_quantity}, {p}, {threshold_to_exit}")
         qty = 0
         for order in orders:
-            oms_order_id = order['oms_order_id']
-            q = order.get('quantity', 0)
+            oms_order_id = order["oms_order_id"]
+            q = order.get("quantity", 0)
             qty += q
-            leg_order_indicator = order['leg_order_indicator']
+            leg_order_indicator = order["leg_order_indicator"]
             kwargs = {
-                    'oms_order_id': oms_order_id,
-                    'leg_order_indicator': leg_order_indicator,
-                    'status': 'open',
-                    'client_id': self.client_id
-                    }
+                "oms_order_id": oms_order_id,
+                "leg_order_indicator": leg_order_indicator,
+                "status": "open",
+                "client_id": self.client_id,
+            }
             if leg_order_indicator:
                 response = self.exit_bracket_order(**kwargs)
             else:
@@ -623,34 +643,42 @@ class MasterTrust(Broker):
             if first:
                 return responses
         return responses
-    
-    def close_all_positions(self, **kwargs):
-            """
-            Close all existing positions by placing
-            market orders.
-            To close a particular class of orders, include 
-            them in kwargs
-            """
-            positions = self.positions()
-            if kwargs:
-                positions = self.dict_filter(positions, **kwargs)
-            if len(positions) > 0:
-                for position in positions:
-                    qty = abs(position['quantity'])
-                    symbol = position['symbol']
-                    side = self._sides[position['side']]
-                    if qty > 0:
-                        self.order_place(symbol=symbol, quantity=qty,
-                            order_type='MARKET', side=side, exchange=self.exchange,
-                            product='MIS', validity='DAY')
 
-    def modify_all_orders_by_conditions(self,modifications:Dict=None, n:int=0,**kwargs)->List:
+    def close_all_positions(self, **kwargs):
+        """
+        Close all existing positions by placing
+        market orders.
+        To close a particular class of orders, include
+        them in kwargs
+        """
+        positions = self.positions()
+        if kwargs:
+            positions = self.dict_filter(positions, **kwargs)
+        if len(positions) > 0:
+            for position in positions:
+                qty = abs(position["quantity"])
+                symbol = position["symbol"]
+                side = self._sides[position["side"]]
+                if qty > 0:
+                    self.order_place(
+                        symbol=symbol,
+                        quantity=qty,
+                        order_type="MARKET",
+                        side=side,
+                        exchange=self.exchange,
+                        product="MIS",
+                        validity="DAY",
+                    )
+
+    def modify_all_orders_by_conditions(
+        self, modifications: Dict = None, n: int = 0, **kwargs
+    ) -> List:
         """
         Modify all orders by the given condition
         """
         responses = []
-        url = f"{self.base_url}/api/v1/orders" 
-        if not(modifications):
+        url = f"{self.base_url}/api/v1/orders"
+        if not (modifications):
             return responses
         orders = self.pending_orders()
         orders = self.filter(orders, **kwargs)
@@ -658,45 +686,45 @@ class MasterTrust(Broker):
             return responses
         if n <= 0:
             n = len(orders)
-        for i,order in enumerate(orders):
+        for i, order in enumerate(orders):
             if i >= n:
                 # Since the number of orders to be squared off is met,
                 # we exit the program
                 return responses
             kwargs = {
-                    'oms_order_id': order['oms_order_id'],
-                    'instrument_token': order['instrument_token'],
-                    'exchange': order['exchange'],
-                    'product': order['product'],
-                    'validity': order['validity'],
-                    'order_type': order['order_type'],
-                    'quantity': order['quantity'],
-                    'client_id': self.client_id
-                    }
+                "oms_order_id": order["oms_order_id"],
+                "instrument_token": order["instrument_token"],
+                "exchange": order["exchange"],
+                "product": order["product"],
+                "validity": order["validity"],
+                "order_type": order["order_type"],
+                "quantity": order["quantity"],
+                "client_id": self.client_id,
+            }
             kwargs.update(modifications)
-            payload = kwargs.copy() 
+            payload = kwargs.copy()
             resp = requests.put(url, headers=self.headers, params=payload)
             responses.append(self._response(resp))
-        return responses 
-        
-    def cancel_all_orders_by_conditions(self, n:int=0,**kwargs)->List:
+        return responses
+
+    def cancel_all_orders_by_conditions(self, n: int = 0, **kwargs) -> List:
         """
         Modify all orders by the given condition
         """
         responses = []
-        url = f"{self.base_url}/api/v1/orders" 
+        url = f"{self.base_url}/api/v1/orders"
         orders = self.pending_orders()
         orders = self.filter(orders, **kwargs)
         if len(orders) == 0:
             return responses
         if n <= 0:
             n = len(orders)
-        for i,order in enumerate(orders):
+        for i, order in enumerate(orders):
             if i >= n:
                 # Since the number of orders to be squared off is met,
                 # we exit the program
                 return responses
-            oms_order_id = order['oms_order_id']
+            oms_order_id = order["oms_order_id"]
             resp = self.order_cancel(oms_order_id)
             responses.append(resp)
         return responses

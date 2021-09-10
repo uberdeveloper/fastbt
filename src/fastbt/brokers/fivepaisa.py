@@ -1,6 +1,15 @@
-from fastbt.Meta import Broker,Status,pre,post
+from fastbt.Meta import Broker, Status, pre, post
 from py5paisa import FivePaisaClient
-from py5paisa.order import Order,Exchange,ExchangeSegment,OrderFor,OrderType,OrderValidity,AHPlaced 
+from py5paisa.order import (
+    Order,
+    Exchange,
+    ExchangeSegment,
+    OrderFor,
+    OrderType,
+    OrderValidity,
+    AHPlaced,
+)
+
 
 def get_instrument_token(contracts, exchange, symbol):
     """
@@ -12,29 +21,21 @@ def get_instrument_token(contracts, exchange, symbol):
     symbol
         symbol to look up for
     """
-    return contracts.get(f"{exchange}:{symbol}") 
+    return contracts.get(f"{exchange}:{symbol}")
+
 
 class FivePaisa(Broker):
     """
     Automated trading class for five paisa
     """
-    exchange = {
-            'NSE': Exchange.NSE,
-            'BSE': Exchange.BSE,
-            'MCX': Exchange.MCX
-            }
 
-    exchange_segment = {
-            'EQ': ExchangeSegment.CASH,
-            'FO': ExchangeSegment.DERIVATIVE
-            }
+    exchange = {"NSE": Exchange.NSE, "BSE": Exchange.BSE, "MCX": Exchange.MCX}
 
-    side = {
-            'BUY': OrderType.BUY,
-            'SELL': OrderType.SELL
-            }
-    
-    def __init__(self, email:str, password:str, dob:str):
+    exchange_segment = {"EQ": ExchangeSegment.CASH, "FO": ExchangeSegment.DERIVATIVE}
+
+    side = {"BUY": OrderType.BUY, "SELL": OrderType.SELL}
+
+    def __init__(self, email: str, password: str, dob: str):
         """
         Initialize the broker
         """
@@ -43,7 +44,7 @@ class FivePaisa(Broker):
         self._dob = dob
         super(FivePaisa, self).__init__()
         self.contracts = {}
-        print('Hi Five paisa')
+        print("Hi Five paisa")
 
     def _shortcuts(self):
         """
@@ -56,38 +57,46 @@ class FivePaisa(Broker):
         self.positions = self.fivepaisa.positions
 
     def authenticate(self):
-        client = FivePaisaClient(email=self._email, passwd=self._password,
-                dob=self._dob)
+        client = FivePaisaClient(
+            email=self._email, passwd=self._password, dob=self._dob
+        )
         client.login()
         self.fivepaisa = client
         self._shortcuts()
-        
-    def _get_instrument_token(self, symbol, exchange='NSE', contracts=None):
-        if not(contracts):
+
+    def _get_instrument_token(self, symbol, exchange="NSE", contracts=None):
+        if not (contracts):
             contracts = self.contracts
-        return get_instrument_token(contracts=contracts, exchange=exchange, symbol=symbol)
+        return get_instrument_token(
+            contracts=contracts, exchange=exchange, symbol=symbol
+        )
 
     @post
     def orders(self):
         return self.fivepaisa.order_book()
-   
+
     @pre
     def order_place(self, **kwargs):
-       """
-       Place an order
-       """
-       defaults = {
-               'exchange': 'NSE',
-               'segment': 'EQ',
-               'order_type': 'LIMIT',
-               'product': 'MIS',
+        """
+        Place an order
+        """
+        defaults = {
+            "exchange": "NSE",
+            "segment": "EQ",
+            "order_type": "LIMIT",
+            "product": "MIS",
         }
-       kwargs.update(defaults)
-       symbol = kwargs.pop('symbol')
-       exchange = kwargs.pop('exchange')
-       side = kwargs.pop('side', 'BUY')
-       scrip_code = self._get_instrument_token(symbol=symbol, exchange=exchange)
-       order = Order(order_type=self.side.get('BUY'), scrip_code=scrip_code, quantity=1,exchange=Exchange.NSE)
-       #print(order.scrip_code, order.quantity, order.order_type)
-       #print(order)
-       self.fivepaisa.place_order(order)
+        kwargs.update(defaults)
+        symbol = kwargs.pop("symbol")
+        exchange = kwargs.pop("exchange")
+        side = kwargs.pop("side", "BUY")
+        scrip_code = self._get_instrument_token(symbol=symbol, exchange=exchange)
+        order = Order(
+            order_type=self.side.get("BUY"),
+            scrip_code=scrip_code,
+            quantity=1,
+            exchange=Exchange.NSE,
+        )
+        # print(order.scrip_code, order.quantity, order.order_type)
+        # print(order)
+        self.fivepaisa.place_order(order)
