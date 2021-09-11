@@ -189,7 +189,7 @@ class Order:
         else:
             return False
 
-    def update(self, data: Dict) -> bool:
+    def update(self, data: Dict[str, Any]) -> bool:
         """
         Update order based on information received from broker
         data
@@ -209,7 +209,7 @@ class Order:
         else:
             return False
 
-    def execute(self, broker: Broker, **kwargs):
+    def execute(self, broker: Broker, **kwargs) -> Optional[str]:
         """
         Execute an order on a broker, place a new order
         kwargs
@@ -267,22 +267,22 @@ class CompoundOrder:
         self._ltp: defaultdict = defaultdict()
 
     @property
-    def orders(self):
+    def orders(self) -> List[Order]:
         return self._orders
 
     @property
-    def broker(self):
+    def broker(self) -> Type[Broker]:
         return self._broker
 
     @property
-    def count(self):
+    def count(self) -> int:
         """
         return the number of orders
         """
         return len(self.orders)
 
     @property
-    def ltp(self):
+    def ltp(self) -> defaultdict:
         return self._ltp
 
     @property
@@ -300,7 +300,7 @@ class CompoundOrder:
             c.update({symbol: qty})
         return c
 
-    def add_order(self, **kwargs) -> str:
+    def add_order(self, **kwargs) -> Optional[str]:
         order = Order(**kwargs)
         self._orders.append(order)
         return order.internal_id
@@ -325,7 +325,10 @@ class CompoundOrder:
                 quantity_counter.update({symbol: quantity})
         dct: defaultdict = defaultdict()
         for v in value_counter:
-            dct[v] = value_counter.get(v) / quantity_counter.get(v)
+            numerator = value_counter.get(v)
+            denominator = quantity_counter.get(v)
+            if numerator and denominator:
+                dct[v] = numerator / denominator
         return dct
 
     @property
@@ -343,14 +346,17 @@ class CompoundOrder:
             data as dictionary with key as broker order_id
         returns a dictionary with order_id and update status as boolean
         """
-        dct = {}
+        dct: Dict[str, bool] = {}
         for order in self.orders:
-            order_id = order.order_id
+            order_id = str(order.order_id)
             status = order.status
             if (order_id in data) and (status != "COMPLETE"):
                 d = data.get(order_id)
-                order.update(d)
-                dct[order_id] = True
+                if d:
+                    order.update(d)
+                    dct[order_id] = True
+                else:
+                    dct[order_id] = False
             else:
                 dct[order_id] = False
         return dct
@@ -372,11 +378,11 @@ class CompoundOrder:
         return {"buy": buy_counter, "sell": sell_counter}
 
     @property
-    def buy_quantity(self):
+    def buy_quantity(self) -> Counter:
         return self._total_quantity()["buy"]
 
     @property
-    def sell_quantity(self):
+    def sell_quantity(self) -> Counter:
         return self._total_quantity()["sell"]
 
     def update_ltp(self, last_price: Dict[str, float]):
@@ -470,7 +476,7 @@ class BracketOrder(StopOrder):
         self._target = target
 
     @property
-    def target(self):
+    def target(self) -> float:
         return self._target
 
     @property
@@ -511,11 +517,11 @@ class OptionStrategy:
         self._ltp: defaultdict = defaultdict()
 
     @property
-    def broker(self):
+    def broker(self) -> Type[Broker]:
         return self._broker
 
     @property
-    def orders(self):
+    def orders(self) -> List[CompoundOrder]:
         return self._orders
 
     def add_order(self, order: CompoundOrder) -> None:

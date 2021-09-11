@@ -4,6 +4,7 @@ from fastbt.options.order import *
 from fastbt.Meta import Broker
 from collections import Counter
 import pendulum
+from copy import deepcopy
 from fastbt.brokers.zerodha import Zerodha
 
 
@@ -240,7 +241,7 @@ def test_compound_order_update_orders(simple_compound_order):
             "filled_quantity": 12,
             "status": "COMPLETE",
             "average_price": 180,
-            "exchange_order_id": 'some_exchange_id'
+            "exchange_order_id": "some_exchange_id",
         },
     }
     updates = order.update_orders(order_data)
@@ -248,7 +249,7 @@ def test_compound_order_update_orders(simple_compound_order):
     assert order.orders[-1].filled_quantity == 12
     assert order.orders[-1].status == "COMPLETE"
     assert order.orders[-1].average_price == 180
-    assert order.orders[-1].exchange_order_id ==  'some_exchange_id'
+    assert order.orders[-1].exchange_order_id == "some_exchange_id"
 
 
 def test_compound_order_buy_quantity(simple_compound_order):
@@ -576,8 +577,11 @@ def test_option_strategy_update_orders(
     strategy.update_orders(data=order_data)
     # Order not updated for completed orders
     for order in strategy.all_orders:
-        if order.order_id in ['333333', '111111']:
-            assert order.exchange_order_id == order_data[order.order_id]['exchange_order_id']
+        if order.order_id in ["333333", "111111"]:
+            assert (
+                order.exchange_order_id
+                == order_data[order.order_id]["exchange_order_id"]
+            )
         else:
             # Already completed orders will have no exchange_order_id in dummy data
             assert order.exchange_order_id is None
@@ -596,5 +600,8 @@ def test_option_strategy_execute_all(
         strategy = OptionStrategy(broker=broker)
         strategy.add_order(simple_compound_order)
         strategy.add_order(compound_order_average_prices)
+        strategy.add_order(deepcopy(compound_order_average_prices))
         strategy.execute_all()
-        assert broker.order_place.call_count == 5
+        assert broker.order_place.call_count == 9
+        strategy.execute_all()
+        assert broker.order_place.call_count == 9
