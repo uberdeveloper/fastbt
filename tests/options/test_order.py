@@ -605,3 +605,35 @@ def test_option_strategy_execute_all(
         assert broker.order_place.call_count == 9
         strategy.execute_all()
         assert broker.order_place.call_count == 9
+        #TO DO: Add more cases instead of replacing values
+
+def test_option_strategy_total_mtm(compound_order_average_prices):
+    broker = Broker()
+    strategy = OptionStrategy(broker=broker)
+    for i in range(5):
+        strategy.add_order(compound_order_average_prices)
+    strategy.update_ltp({"aapl": 900, "goog": 300})
+    assert strategy.total_mtm == 52500
+    for i in range(5):
+        strategy.add_order(compound_order_average_prices)
+    strategy.update_ltp({"aapl": 950, "goog": 550})
+    assert strategy.total_mtm == 37500
+
+
+def test_option_strategy_positions(simple_compound_order):
+    broker = Broker()
+    order = simple_compound_order
+    strategy = OptionStrategy(broker=broker)
+    strategy.add_order(deepcopy(order))
+    strategy.add_order(deepcopy(order))
+    order.add_order(
+        symbol="aapl",
+        quantity=20,
+        side="buy",
+        filled_quantity=20,
+        average_price=920,
+        status="COMPLETE",
+    )
+    strategy.add_order(deepcopy(order))
+    assert strategy.positions == {'aapl': 53, 'goog':-30}
+    

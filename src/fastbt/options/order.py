@@ -586,3 +586,24 @@ class OptionStrategy:
         Execute all orders in all compound orders
         """
         return self._call("execute_all")
+
+    @property
+    def total_mtm(self) -> float:
+        """
+        Returns the total mtm for this strategy
+        """
+        mtm = self._call("total_mtm")
+        return sum([x for x in mtm if x is not None])
+
+
+    @property
+    def positions(self) -> Counter:
+        """
+        Return the combined positions for this strategy
+        """
+        c:Counter = Counter()
+        positions = self._call("positions")
+        for position in positions:
+            c.update(position)
+        return c
+
