@@ -46,7 +46,7 @@ def compound_order_average_prices():
         symbol="aapl",
         quantity=20,
         side="buy",
-        order_id="11111",
+        order_id="111111",
         filled_quantity=20,
         average_price=1000,
     )
@@ -54,7 +54,7 @@ def compound_order_average_prices():
         symbol="aapl",
         quantity=20,
         side="buy",
-        order_id="22222",
+        order_id="222222",
         filled_quantity=20,
         average_price=900,
     )
@@ -240,6 +240,7 @@ def test_compound_order_update_orders(simple_compound_order):
             "filled_quantity": 12,
             "status": "COMPLETE",
             "average_price": 180,
+            "exchange_order_id": 'some_exchange_id'
         },
     }
     updates = order.update_orders(order_data)
@@ -247,6 +248,7 @@ def test_compound_order_update_orders(simple_compound_order):
     assert order.orders[-1].filled_quantity == 12
     assert order.orders[-1].status == "COMPLETE"
     assert order.orders[-1].average_price == 180
+    assert order.orders[-1].exchange_order_id ==  'some_exchange_id'
 
 
 def test_compound_order_buy_quantity(simple_compound_order):
@@ -560,6 +562,11 @@ def test_option_strategy_update_orders(
     strategy = OptionStrategy(broker=broker)
     strategy.add_order(simple_compound_order)
     strategy.add_order(compound_order_average_prices)
+    # Reset order_id to None to simulate new orders
+    for order in simple_compound_order.orders:
+        order.order_id = None
+    for order in compound_order_average_prices.orders:
+        order.order_id = None
     order_data = {
         "aaaaaa": {"order_id": "aaaaaa", "exchange_order_id": 10001},
         "bbbbbb": {"order_id": "bbbbbb", "exchange_order_id": 10002},
@@ -567,15 +574,27 @@ def test_option_strategy_update_orders(
         "111111": {"order_id": "111111", "exchange_order_id": 10004},
     }
     strategy.update_orders(data=order_data)
+    # Order not updated for completed orders
+    for order in strategy.all_orders:
+        if order.order_id in ['333333', '111111']:
+            assert order.exchange_order_id == order_data[order.order_id]['exchange_order_id']
+        else:
+            # Already completed orders will have no exchange_order_id in dummy data
+            assert order.exchange_order_id is None
 
 
 def test_option_strategy_execute_all(
     simple_compound_order, compound_order_average_prices
 ):
+    # Reset order_id to None to simulate new orders
+    for order in simple_compound_order.orders:
+        order.order_id = None
+    for order in compound_order_average_prices.orders:
+        order.order_id = None
+        order.filled_quantity = 0
     with patch("fastbt.brokers.zerodha.Zerodha") as broker:
         strategy = OptionStrategy(broker=broker)
         strategy.add_order(simple_compound_order)
         strategy.add_order(compound_order_average_prices)
-        strategy.add_order(compound_order_average_prices)
         strategy.execute_all()
-        broker.order_place.call_count == 6
+        assert broker.order_place.call_count == 5
