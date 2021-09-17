@@ -110,12 +110,14 @@ def bracket_order():
 
 
 def test_order_simple():
-    order = Order(symbol="aapl", side="buy", quantity=10)
+    order = Order(symbol="aapl", side="buy", quantity=10,
+    timezone='Europe/Paris')
     assert order.quantity == 10
     assert order.pending_quantity == 10
     assert order.filled_quantity == 0
     assert order.timestamp is not None
     assert order.internal_id is not None
+    assert order.timezone == 'Europe/Paris'
 
 
 def test_order_is_complete():
@@ -636,4 +638,14 @@ def test_option_strategy_positions(simple_compound_order):
     )
     strategy.add_order(deepcopy(order))
     assert strategy.positions == {'aapl': 53, 'goog':-30}
+
+def test_order_expires():
+    known = pendulum.datetime(2021,1,1,12,tz='UTC')
+    with pendulum.test(known):
+        order = Order(symbol="aapl", side="buy", quantity=10)
+        assert order.expires_in == (60*60*12)-1
+    order = Order(symbol="aapl", side="buy", quantity=10, expires_in=600)
+    assert order.expires_in == 600
+    order = Order(symbol="aapl", side="buy", quantity=10, expires_in=-600)
+    assert order.expires_in == 600
     

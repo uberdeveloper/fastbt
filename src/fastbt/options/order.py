@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import timezone
 from typing import Optional, Dict, List, Type, Any, Union
 from fastbt.Meta import Broker
 import uuid
@@ -153,10 +154,13 @@ class Order:
     disclosed_quantity: int = 0
     validity: str = "DAY"
     status: Optional[str] = None
+    expires_in:int = 0
+    timezone:str = 'UTC'
 
     def __post_init__(self) -> None:
         self.internal_id = uuid.uuid4().hex
-        self.timestamp = pendulum.now()
+        tz = self.timezone
+        self.timestamp = pendulum.now(tz=tz)
         self.pending_quantity = self.quantity
         self._attrs: List[str] = [
             "exchange_timestamp",
@@ -167,6 +171,10 @@ class Order:
             "disclosed_quantity",
             "average_price",
         ]
+        if self.expires_in == 0:
+            self.expires_in = (pendulum.today(tz=tz).end_of('day') - pendulum.now(tz=tz)).seconds
+        else:
+            self.expires_in = abs(self.expires_in)
 
     @property
     def is_complete(self) -> bool:
@@ -606,4 +614,3 @@ class OptionStrategy:
         for position in positions:
             c.update(position)
         return c
-
