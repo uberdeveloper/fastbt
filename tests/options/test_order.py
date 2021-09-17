@@ -665,3 +665,13 @@ def test_order_expiry_times():
     assert order.time_to_expiry == 0
     assert order.time_after_expiry == 40
     pendulum.set_test_now()
+
+def test_order_has_expired():
+    known = pendulum.datetime(2021,1,1,10,tz='UTC')
+    pendulum.set_test_now(known)
+    order = Order(symbol="aapl", side="buy", quantity=10, expires_in=60)
+    assert order.has_expired is False
+    known = known.add(seconds=60)
+    pendulum.set_test_now(known)
+    assert order.has_expired is True
+    pendulum.set_test_now()

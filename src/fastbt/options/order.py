@@ -209,6 +209,10 @@ class Order:
         ts = self.timestamp
         return max(0, (now-ts).seconds - self.expires_in)
 
+    @property
+    def has_expired(self)->bool:
+        return True if self.time_to_expiry == 0 else False
+
     def update(self, data: Dict[str, Any]) -> bool:
         """
         Update order based on information received from broker
