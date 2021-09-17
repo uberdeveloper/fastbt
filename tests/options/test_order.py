@@ -649,3 +649,19 @@ def test_order_expires():
     order = Order(symbol="aapl", side="buy", quantity=10, expires_in=-600)
     assert order.expires_in == 600
     
+def test_order_expiry_times():
+    known = pendulum.datetime(2021,1,1,9,30,tz='UTC')
+    pendulum.set_test_now(known)
+    order = Order(symbol="aapl", side="buy", quantity=10, expires_in=60)
+    assert order.expires_in == 60
+    assert order.time_to_expiry == 60
+    assert order.time_after_expiry == 0
+    known = known.add(seconds=40)
+    pendulum.set_test_now(known)
+    assert order.time_to_expiry == 20
+    assert order.time_after_expiry == 0
+    known = known.add(seconds=60)
+    pendulum.set_test_now(known)
+    assert order.time_to_expiry == 0
+    assert order.time_after_expiry == 40
+    pendulum.set_test_now()

@@ -197,6 +197,18 @@ class Order:
         else:
             return False
 
+    @property
+    def time_to_expiry(self)->int:
+        now = pendulum.now(tz=self.timezone)
+        ts = self.timestamp
+        return max(0, self.expires_in - (now-ts).seconds)
+    
+    @property
+    def time_after_expiry(self)->int:
+        now = pendulum.now(tz=self.timezone)
+        ts = self.timestamp
+        return max(0, (now-ts).seconds - self.expires_in)
+
     def update(self, data: Dict[str, Any]) -> bool:
         """
         Update order based on information received from broker
