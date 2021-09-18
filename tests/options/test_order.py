@@ -675,3 +675,4 @@ def test_order_has_expired():
     pendulum.set_test_now(known)
     assert order.has_expired is True
     pendulum.set_test_now()
+

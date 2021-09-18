@@ -6,7 +6,6 @@ import uuid
 import pendulum
 from collections import Counter, defaultdict
 
-
 def get_option(spot: float, num: int = 0, step: float = 100.0) -> float:
     """
     Get the option price given number of strikes
@@ -22,7 +21,6 @@ def get_option(spot: float, num: int = 0, step: float = 100.0) -> float:
     """
     v = round(spot / step)
     return v * (step + num)
-
 
 class OptionPayoff:
     """
@@ -156,6 +154,12 @@ class Order:
     status: Optional[str] = None
     expires_in:int = 0
     timezone:str = 'UTC'
+    client_id: Optional[str] = None
+    convert_to_market_after_expiry:bool = False
+    cancel_after_expiry:bool = False
+    retries:int = 0
+    exchange:Optional[str] = None
+    tag: Optional[str] = None
 
     def __post_init__(self) -> None:
         self.internal_id = uuid.uuid4().hex
