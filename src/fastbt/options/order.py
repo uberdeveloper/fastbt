@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import timezone
-from typing import Optional, Dict, List, Type, Any, Union
+from typing import Optional, Dict, List, Type, Any, Union, Tuple, Callable
 from fastbt.Meta import Broker
 import uuid
 import pendulum
@@ -634,3 +634,40 @@ class OptionStrategy:
         for position in positions:
             c.update(position)
         return c
+
+class OptionOrder(CompoundOrder):
+    def __init__(self, symbol:str,spot:float,expiry:str,
+            contracts:List[Tuple[int,str,str,int]],
+            step:float=100,fmt:Optional[Callable]=None):
+        """
+        Initialize your option order
+        symbol
+            base symbol to be used
+        spot
+            spot price of the underlying
+        expiry
+            expiry of the contract
+        contracts
+            list of contracts to be entered into, the contracts
+            should be a list of 4-tuples with the elements being
+            the (atm, buy or sell, put or call, qty)
+            To buy the atm call and buy option, this should be
+            [(0,c,b,1), (0,p,b,1)]
+        step
+            step size to calculate the strike prices
+        fmt
+            format to generate the option symbol as a function
+            This function takes the symbol,expiry,spot,strike and
+            generates a option contract name
+        """
+        self.symbol = symbol
+        self.spot = spot
+        self.expiry = expiry
+        self._contracts = contracts
+        self.step = step
+        if fmt:
+            self._fmt_function = fmt
+        super(OptionOrder, self).__init__(**kwargs)
+
+
+            
