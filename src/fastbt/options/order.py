@@ -638,7 +638,7 @@ class OptionStrategy:
 class OptionOrder(CompoundOrder):
     def __init__(self, symbol:str,spot:float,expiry:str,
             contracts:List[Tuple[int,str,str,int]],
-            step:float=100,fmt:Optional[Callable]=None):
+            step:float=100,fmt:Optional[Callable]=None, **kwargs):
         """
         Initialize your option order
         symbol
@@ -657,7 +657,7 @@ class OptionOrder(CompoundOrder):
             step size to calculate the strike prices
         fmt
             format to generate the option symbol as a function
-            This function takes the symbol,expiry,spot,strike and
+            This function takes the symbol,expiry,strike,option_type and
             generates a option contract name
         """
         self.symbol = symbol
@@ -667,7 +667,12 @@ class OptionOrder(CompoundOrder):
         self.step = step
         if fmt:
             self._fmt_function = fmt
+        else:
+            def _format_function(symbol, expiry, strike, option_type):
+                return f"{symbol}{expiry}{strike}{option_type}E".upper()
+            self._fmt_function = _format_function
         super(OptionOrder, self).__init__(**kwargs)
+
 
 
             

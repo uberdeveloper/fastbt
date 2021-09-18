@@ -676,3 +676,11 @@ def test_order_has_expired():
     assert order.has_expired is True
     pendulum.set_test_now()
 
+def test_option_order_default_format_function():
+    broker = Broker()
+    order = OptionOrder(symbol='nifty',spot=17128,expiry=923, 
+            contracts = [(0,'c','b',1),(0,'p','b',1)], broker=broker)
+    assert order._fmt_function('nifty',923,17200,'c') == 'NIFTY92317200CE'
+
+
+
