@@ -673,7 +673,6 @@ class OptionOrder(CompoundOrder):
             self._fmt_function = _format_function
         super(OptionOrder, self).__init__(**kwargs)
 
-
     def _generate_strikes(self)->List[Union[int, float]]:
         """
         Generate strikes for the contracts
@@ -698,6 +697,23 @@ class OptionOrder(CompoundOrder):
             name = self._fmt_function(self.symbol,self.expiry,s,opt)
             contract_names.append(name)
         return contract_names
+
+    def generate_orders(self,**kwargs)->List[Order]:
+        """
+        Generate the list of orders to be placed
+        kwargs
+            other arguments to be added to the order
+        """
+        orders = []
+        symbols = self._generate_contract_names()
+        order_map = {'b': 'buy', 's': 'sell'}
+        for symbol, contract in zip(symbols, self._contracts):
+            side = order_map[contract[2][0].lower()]
+            qty = contract[3]
+            order = Order(symbol=symbol,side=side,quantity=qty,**kwargs)
+            orders.append(order)
+        return orders
+
 
                 
 
