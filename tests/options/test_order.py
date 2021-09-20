@@ -682,5 +682,21 @@ def test_option_order_default_format_function():
             contracts = [(0,'c','b',1),(0,'p','b',1)], broker=broker)
     assert order._fmt_function('nifty',923,17200,'c') == 'NIFTY92317200CE'
 
+@pytest.mark.parametrize(
+    "contracts,spot,step,expected",
+    [
+        ([(0,'c','b',1), (0,'p','b',1)],17128,100,[17100,17100]),
+        ([(0,'c','b',1), (0,'p','b',1)],17128,50,[17150,17150]),
+        ([(2,'c','b',1), (1,'p','b',1)],16930,100,[17100,16800]),
+        ([(3,'c','b',1), (3,'p','b',1)],31314,200,[32000,30800]),
+    ]
+    )
+def test_option_order_generate_strikes(contracts,spot,step,expected):
+    broker = Broker()
+    order = OptionOrder(symbol='nifty',spot=spot,expiry=923, 
+            contracts=contracts, broker=broker,step=step)
+    assert order._generate_strikes() == expected
+
+
 
 

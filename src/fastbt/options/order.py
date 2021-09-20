@@ -674,5 +674,20 @@ class OptionOrder(CompoundOrder):
         super(OptionOrder, self).__init__(**kwargs)
 
 
+    def _generate_strikes(self)->List[Union[int, float]]:
+        """
+        Generate  strikes for the contracts
+        """
+        strikes = []
+        sign = {'C':1, 'P':-1}
+        for c in self._contracts:
+            strk = c[0]
+            opt = c[1][0].upper()
+            strike = get_option(self.spot, step=self.step) + strk * sign[opt] * self.step
+            strikes.append(strike)
+        return strikes
 
-            
+                
+
+                
+
