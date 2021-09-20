@@ -676,7 +676,7 @@ class OptionOrder(CompoundOrder):
 
     def _generate_strikes(self)->List[Union[int, float]]:
         """
-        Generate  strikes for the contracts
+        Generate strikes for the contracts
         """
         strikes = []
         sign = {'C':1, 'P':-1}
@@ -686,6 +686,18 @@ class OptionOrder(CompoundOrder):
             strike = get_option(self.spot, step=self.step) + strk * sign[opt] * self.step
             strikes.append(strike)
         return strikes
+
+    def _generate_contract_names(self)->List[str]:
+        """
+        Generate the list of contract names
+        """
+        strikes = self._generate_strikes()
+        contract_names = []
+        for c,s in zip(self._contracts, strikes):
+            opt = c[1][0].upper()
+            name = self._fmt_function(self.symbol,self.expiry,s,opt)
+            contract_names.append(name)
+        return contract_names
 
                 
 

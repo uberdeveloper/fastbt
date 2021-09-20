@@ -698,5 +698,13 @@ def test_option_order_generate_strikes(contracts,spot,step,expected):
     assert order._generate_strikes() == expected
 
 
+def test_option_order_generate_contract_names():
+    broker = Broker()
+    order = OptionOrder(symbol='nifty',spot=17144,expiry=923,step=50,
+            contracts=[(0,'c','b',1),(0,'p','b',1)], broker=broker)
+    assert order._generate_contract_names() == ['NIFTY92317150CE', 'NIFTY92317150PE']
+
+
+
 
 
