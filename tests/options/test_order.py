@@ -720,8 +720,24 @@ def test_option_order_generate_contracts():
         generated[i].internal_id = orders[i].internal_id
     pendulum.set_test_now()
     assert orders == generated
-  
-    
+
+def test_option_order_add_all_orders():
+    broker = Broker()
+    order = OptionOrder(symbol='nifty',spot=17144,expiry=923,step=50,
+            contracts=[(0,'c','b',50),(0,'p','b',50)], broker=broker)
+    known = pendulum.datetime(2021,1,1,10)
+    pendulum.set_test_now(known)
+    orders = [
+            Order(symbol='NIFTY92317150CE',side='buy',quantity=50,
+                exchange='NSE',timezone='Asia/Kolkata',order_type='MARKET'),
+            Order(symbol='NIFTY92317150PE',side='buy',quantity=50,
+                exchange='NSE',timezone='Asia/Kolkata',order_type='MARKET')
+            ]
+    order.add_all_orders(exchange='NSE', timezone='Asia/Kolkata')
+    for i in range(len(orders)):
+        order.orders[i].internal_id = orders[i].internal_id
+    pendulum.set_test_now()
+    assert order.orders == orders
     
 
 

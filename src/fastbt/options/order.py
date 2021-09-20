@@ -714,6 +714,15 @@ class OptionOrder(CompoundOrder):
             orders.append(order)
         return orders
 
+    def add_all_orders(self, **kwargs):
+        """
+        Generate and add all the orders given in contracts
+        """
+        gen = self.generate_orders(**kwargs)
+        for g in gen:
+            self._orders.append(g)
+
+
 
                 
 
