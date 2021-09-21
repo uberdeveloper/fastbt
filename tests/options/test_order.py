@@ -6,6 +6,7 @@ from collections import Counter
 import pendulum
 from copy import deepcopy
 from fastbt.brokers.zerodha import Zerodha
+from streamlit.config import get_options_for_section
 
 
 @pytest.fixture
@@ -738,9 +739,13 @@ def test_option_order_add_all_orders():
         order.orders[i].internal_id = orders[i].internal_id
     pendulum.set_test_now()
     assert order.orders == orders
-    
 
-
-
-
-
+strategy_test_data = [
+    (
+        {'spot':17234, 'name': 'short_straddle', 'a':0},
+        [('sell', 'call', 17200), ('sell', 'put', 17200)]
+    )
+]
+@pytest.mark.parametrize("test_input, expected", strategy_test_data)
+def test_get_option_contracts_short_straddle(test_input, expected):
+    assert get_option_contracts(**test_input) == expected

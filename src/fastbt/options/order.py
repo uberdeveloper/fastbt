@@ -130,6 +130,41 @@ class OptionPayoff:
             payoffs.append(profit)
         return payoffs
 
+def get_option_contracts(spot, name:str,step:float=100,
+a:int=0,b:int=0,c:int=0,d:int=0)->List[Tuple[str,str,float]]:
+    """
+    Get the list of option contracts given strategy name
+    See this reference on how the contracts are generated
+    https://www.optionsplaybook.com/option-strategies/
+    spot
+        value of the underlying
+    name 
+        name of the strategy
+    step
+        step size of the option
+    a
+        strike A steps away from atm
+    b
+        strike B steps away from atm
+    c
+        strike C steps away from atm
+    d
+        strike D steps away from atm
+    Note
+    -----
+    1) atm is calculated as the nearest strike price to spot
+    2) strikes a,b,c,d as in options playbook
+    3) all the strikes may not be applicable to all the strategies
+    """
+    name = name.lower()
+    contracts = []
+    if name == 'short_straddle':
+        atm = get_option(spot, step=step)
+        ctx1 = ('sell', 'call', atm + a*step)
+        ctx2 = ('sell', 'put', atm - a*step)
+        contracts.append(ctx1)
+        contracts.append(ctx2)
+    return contracts
 
 @dataclass
 class Order:
