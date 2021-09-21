@@ -16,6 +16,22 @@
   output:
     - [sell, call, 17300]
     - [sell, put, 17100]
+-
+  kwargs:
+    name: short_strangle
+    spot: 17234
+  output:
+    - [sell, put, 17100]
+    - [sell, call, 17300]
+-
+  kwargs:
+    name: short_strangle
+    spot: 17234
+    a: 2
+    b: 2
+  output:
+    - [sell, put, 17000]
+    - [sell, call, 17400]
   
   
     
