@@ -176,6 +176,24 @@ a:int=0,b:int=0,c:int=0,d:int=0)->List[Tuple[str,str,float]]:
         contracts.append(ctx1)
         contracts.append(ctx2)
         return contracts
+    elif name == 'long_straddle':
+        atm = get_option(spot, step=step)
+        ctx1 = ('buy', 'call', atm + a*step)
+        ctx2 = ('buy', 'put', atm - a*step)
+        contracts.append(ctx1)
+        contracts.append(ctx2)
+        return contracts
+    elif name == 'long_strangle':
+        atm = get_option(spot, step=step)
+        if a == 0:
+            a = 1
+        if b == 0:
+            b = 1
+        ctx1 = ('buy', 'put', atm - a*step)
+        ctx2 = ('buy', 'call', atm + b*step)
+        contracts.append(ctx1)
+        contracts.append(ctx2)
+        return contracts
     return contracts
 
 @dataclass

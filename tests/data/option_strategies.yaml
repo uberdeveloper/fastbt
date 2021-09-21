@@ -32,6 +32,43 @@
   output:
     - [sell, put, 17000]
     - [sell, call, 17400]
+-
+  kwargs:
+    name: long_straddle
+    a: 0
+    step: 100
+    spot: 17234
+  output:
+    - [buy, call, 17200]
+    - [buy, put, 17200]
+-
+  kwargs:
+    name: long_straddle
+    a: 1
+    step: 100
+    spot: 17234
+  output:
+    - [buy, call, 17300]
+    - [buy, put, 17100]
+-
+  kwargs:
+    name: long_strangle
+    spot: 17234
+  output:
+    - [buy, put, 17100]
+    - [buy, call, 17300]
+-
+  kwargs:
+    name: long_strangle
+    spot: 17234
+    a: 2
+    b: 2
+  output:
+    - [buy, put, 17000]
+    - [buy, call, 17400]
+  
+  
+    
   
   
     
