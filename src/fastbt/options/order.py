@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timezone
 from typing import Optional, Dict, List, Type, Any, Union, Tuple, Callable
 from fastbt.Meta import Broker
@@ -352,20 +352,19 @@ class Order:
         """
         broker.order_cancel(order_id=self.order_id)
 
-
+@dataclass
 class CompoundOrder:
-    def __init__(self, broker: Type[Broker]):
-        self._orders: List[Order] = []
-        self._broker: Type[Broker] = broker
+    broker: Type[Broker]
+    internal_id: Optional[str] = None
+
+    def __post_init__(self)->None:
+        self.internal_id = uuid.uuid4().hex
         self._ltp: defaultdict = defaultdict()
+        self._orders: List[Order] = []
 
     @property
-    def orders(self) -> List[Order]:
+    def orders(self)->List[Order]:
         return self._orders
-
-    @property
-    def broker(self) -> Type[Broker]:
-        return self._broker
 
     @property
     def count(self) -> int:
@@ -622,7 +621,7 @@ class OptionStrategy:
         Add a compound order
         broker is overriden
         """
-        order._broker = self.broker
+        order.broker = self.broker
         self._orders.append(order)
 
     @property
