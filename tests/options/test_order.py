@@ -4,10 +4,17 @@ from fastbt.options.order import *
 from fastbt.Meta import Broker
 from collections import Counter
 import pendulum
+import yaml
 from copy import deepcopy
 from fastbt.brokers.zerodha import Zerodha
-from streamlit.config import get_options_for_section
 
+with open('tests/data/option_strategies.yaml') as f:
+    test_data = yaml.safe_load(f)
+    strategy_test_data = []
+    for data in test_data:
+        strategy_test_data.append(
+            (data['kwargs'], [tuple(x) for x in data['output']])
+            )
 
 @pytest.fixture
 def simple_compound_order():
@@ -740,12 +747,7 @@ def test_option_order_add_all_orders():
     pendulum.set_test_now()
     assert order.orders == orders
 
-strategy_test_data = [
-    (
-        {'spot':17234, 'name': 'short_straddle', 'a':0},
-        [('sell', 'call', 17200), ('sell', 'put', 17200)]
-    )
-]
 @pytest.mark.parametrize("test_input, expected", strategy_test_data)
 def test_get_option_contracts_short_straddle(test_input, expected):
+    print(strategy_test_data)
     assert get_option_contracts(**test_input) == expected

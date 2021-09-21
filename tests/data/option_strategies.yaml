@@ -1,0 +1,21 @@
+-
+  kwargs:
+    name: short_straddle
+    a: 0
+    step: 100
+    spot: 17234
+  output:
+    - [sell, call, 17200]
+    - [sell, put, 17200]
+-
+  kwargs:
+    name: short_straddle
+    a: 1
+    step: 100
+    spot: 17234
+  output:
+    - [sell, call, 17300]
+    - [sell, put, 17100]
+  
+  
+    
