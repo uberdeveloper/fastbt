@@ -447,6 +447,7 @@ def test_stop_order(stop_order):
         trigger_price=850,
         price=0,
         order_type="SL-M",
+        parent_id=stop_order.internal_id
     )
     # Copy over from existing order as these are system attributes
     order.internal_id = stop_order.orders[-1].internal_id
@@ -683,6 +684,14 @@ def test_order_has_expired():
     pendulum.set_test_now(known)
     assert order.has_expired is True
     pendulum.set_test_now()
+
+def test_order_has_parent():
+    order = Order(symbol="aapl", side="buy", quantity=10)
+    assert order.has_parent is False
+    com = CompoundOrder(broker=Broker())
+    com.add_order(symbol='aapl', side='buy', quantity=10)
+    com.orders[0].has_parent is True
+
 
 def test_option_order_default_format_function():
     broker = Broker()

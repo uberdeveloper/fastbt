@@ -202,6 +202,7 @@ class Order:
     side: str
     quantity: int = 1
     internal_id: Optional[str] = None
+    parent_id: Optional[str] = None
     timestamp: Optional[pendulum.DateTime] = None
     order_type: str = "MARKET"
     broker_timestamp: Optional[pendulum.DateTime] = None
@@ -281,6 +282,10 @@ class Order:
     @property
     def has_expired(self)->bool:
         return True if self.time_to_expiry == 0 else False
+
+    @property
+    def has_parent(self)->bool:
+        return True if self.parent_id else False
 
     def update(self, data: Dict[str, Any]) -> bool:
         """
@@ -393,6 +398,7 @@ class CompoundOrder:
         return c
 
     def add_order(self, **kwargs) -> Optional[str]:
+        kwargs['parent_id'] = self.internal_id
         order = Order(**kwargs)
         self._orders.append(order)
         return order.internal_id
