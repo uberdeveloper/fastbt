@@ -222,7 +222,7 @@ class Order:
     timezone:str = 'UTC'
     client_id: Optional[str] = None
     convert_to_market_after_expiry:bool = False
-    cancel_after_expiry:bool = False
+    cancel_after_expiry:bool = True
     retries:int = 0
     exchange:Optional[str] = None
     tag: Optional[str] = None
@@ -532,6 +532,17 @@ class CompoundOrder:
     def execute_all(self):
         for order in self.orders:
             order.execute(broker=self.broker)
+    
+    def check_flags(self):
+        """
+        Check for flags on each order and take suitable action
+        """
+        for order in self.orders:
+            if (order.is_pending) and (order.has_expired):
+                if order.convert_to_market_after_expiry:
+                    order.order_type = 'MARKET'
+                    order.modify(self.broker)
+
 
 
 class StopOrder(CompoundOrder):

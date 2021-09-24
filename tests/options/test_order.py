@@ -760,3 +760,26 @@ def test_option_order_add_all_orders():
 def test_get_option_contracts_short_straddle(test_input, expected):
     print(strategy_test_data)
     assert get_option_contracts(**test_input) == expected
+
+def test_compound_order_check_flags_convert_to_market_after_expiry():
+    known = pendulum.datetime(2021,1,1,10)
+    pendulum.set_test_now(known)
+    with patch("fastbt.brokers.zerodha.Zerodha") as broker:
+        com = CompoundOrder(broker=broker)
+        com.add_order(
+            symbol="aapl",
+            side="buy",
+            quantity=10,
+            order_type="LIMIT",
+            price=650,
+            order_id="abcdef",
+            expires_in=30,
+            convert_to_market_after_expiry=True
+        )
+        com.execute_all()
+        com.check_flags()
+        known = known.add(seconds=30)
+        pendulum.set_test_now(known)
+        com.check_flags()
+        broker.order_modify.assert_called_once()
+    pendulum.set_test_now()
