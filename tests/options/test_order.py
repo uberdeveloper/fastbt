@@ -816,3 +816,27 @@ def test_compound_order_completed_orders(simple_compound_order):
 def test_compound_order_pending_orders(simple_compound_order):
     order = simple_compound_order
     assert len(order.pending_orders) == 1
+
+def test_option_strategy_is_profit_hit(compound_order_average_prices):
+    com = compound_order_average_prices
+    broker = Broker()
+    strategy = OptionStrategy(profit=1000,loss=1000,broker=broker)
+    strategy.add_order(com)
+    strategy.update_ltp({'aapl':925, 'goog':620})
+    assert strategy.total_mtm == 300
+    assert strategy.is_profit_hit is False
+    strategy.update_ltp({'aapl':1025, 'goog':620})
+    assert strategy.is_profit_hit is True
+
+def test_option_strategy_is_loss_hit(compound_order_average_prices):
+    com = compound_order_average_prices
+    broker = Broker()
+    strategy = OptionStrategy(profit=1000,loss=1000,broker=broker)
+    strategy.add_order(com)
+    strategy.update_ltp({'aapl':1000, 'goog':800})
+    assert strategy.total_mtm == -3000
+    assert strategy.is_profit_hit is False
+    assert strategy.is_loss_hit is True
+
+
+

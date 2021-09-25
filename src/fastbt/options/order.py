@@ -544,15 +544,12 @@ class CompoundOrder:
                     order.modify(self.broker)
                 elif order.cancel_after_expiry:
                     order.cancel(broker=self.broker)
-    
     @property
     def completed_orders(self)->List[Order]:
         return [order for order in self.orders if order.is_complete]
-
     @property
     def pending_orders(self)->List[Order]:
         return [order for order in self.orders if order.is_pending]
-
 
 class StopOrder(CompoundOrder):
     def __init__(
@@ -628,11 +625,13 @@ class OptionStrategy:
     """
     Option Strategy is a list of compound orders
     """
-
-    def __init__(self, broker: Type[Broker]) -> None:
+    def __init__(self, broker: Type[Broker],
+            profit=1e100,loss=-1e100) -> None:
         self._orders: List[CompoundOrder] = []
         self._broker: Type[Broker] = broker
         self._ltp: defaultdict = defaultdict()
+        self.profit:float = profit 
+        self.loss:float = loss
 
     @property
     def broker(self) -> Type[Broker]:
@@ -724,6 +723,14 @@ class OptionStrategy:
         for position in positions:
             c.update(position)
         return c
+
+    @property
+    def is_profit_hit(self)->bool:
+        return True if self.total_mtm > self.profit else False
+
+    @property
+    def is_loss_hit(self)->bool:
+        return True if self.total_mtm < self.loss else False
 
 class OptionOrder(CompoundOrder):
     def __init__(self, symbol:str,spot:float,expiry:str,
