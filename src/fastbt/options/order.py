@@ -542,6 +542,8 @@ class CompoundOrder:
                 if order.convert_to_market_after_expiry:
                     order.order_type = 'MARKET'
                     order.modify(self.broker)
+                elif order.cancel_after_expiry:
+                    order.cancel(broker=self.broker)
 
 
 
