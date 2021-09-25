@@ -6,6 +6,7 @@ import uuid
 import pendulum
 from collections import Counter, defaultdict
 
+
 def get_option(spot: float, num: int = 0, step: float = 100.0) -> float:
     """
     Get the option price given number of strikes
@@ -21,6 +22,7 @@ def get_option(spot: float, num: int = 0, step: float = 100.0) -> float:
     """
     v = round(spot / step)
     return v * (step + num)
+
 
 class OptionPayoff:
     """
@@ -130,15 +132,17 @@ class OptionPayoff:
             payoffs.append(profit)
         return payoffs
 
-def get_option_contracts(spot, name:str,step:float=100,
-a:int=0,b:int=0,c:int=0,d:int=0)->List[Tuple[str,str,float]]:
+
+def get_option_contracts(
+    spot, name: str, step: float = 100, a: int = 0, b: int = 0, c: int = 0, d: int = 0
+) -> List[Tuple[str, str, float]]:
     """
     Get the list of option contracts given strategy name
     See this reference on how the contracts are generated
     https://www.optionsplaybook.com/option-strategies/
     spot
         value of the underlying
-    name 
+    name
         name of the strategy
     step
         step size of the option
@@ -158,43 +162,44 @@ a:int=0,b:int=0,c:int=0,d:int=0)->List[Tuple[str,str,float]]:
     """
     name = name.lower()
     contracts = []
-    if name == 'short_straddle':
+    if name == "short_straddle":
         atm = get_option(spot, step=step)
-        ctx1 = ('sell', 'call', atm + a*step)
-        ctx2 = ('sell', 'put', atm - a*step)
+        ctx1 = ("sell", "call", atm + a * step)
+        ctx2 = ("sell", "put", atm - a * step)
         contracts.append(ctx1)
         contracts.append(ctx2)
         return contracts
-    elif name == 'short_strangle':
+    elif name == "short_strangle":
         atm = get_option(spot, step=step)
         if a == 0:
             a = 1
         if b == 0:
             b = 1
-        ctx1 = ('sell', 'put', atm - a*step)
-        ctx2 = ('sell', 'call', atm + b*step)
+        ctx1 = ("sell", "put", atm - a * step)
+        ctx2 = ("sell", "call", atm + b * step)
         contracts.append(ctx1)
         contracts.append(ctx2)
         return contracts
-    elif name == 'long_straddle':
+    elif name == "long_straddle":
         atm = get_option(spot, step=step)
-        ctx1 = ('buy', 'call', atm + a*step)
-        ctx2 = ('buy', 'put', atm - a*step)
+        ctx1 = ("buy", "call", atm + a * step)
+        ctx2 = ("buy", "put", atm - a * step)
         contracts.append(ctx1)
         contracts.append(ctx2)
         return contracts
-    elif name == 'long_strangle':
+    elif name == "long_strangle":
         atm = get_option(spot, step=step)
         if a == 0:
             a = 1
         if b == 0:
             b = 1
-        ctx1 = ('buy', 'put', atm - a*step)
-        ctx2 = ('buy', 'call', atm + b*step)
+        ctx1 = ("buy", "put", atm - a * step)
+        ctx2 = ("buy", "call", atm + b * step)
         contracts.append(ctx1)
         contracts.append(ctx2)
         return contracts
     return contracts
+
 
 @dataclass
 class Order:
@@ -218,13 +223,13 @@ class Order:
     disclosed_quantity: int = 0
     validity: str = "DAY"
     status: Optional[str] = None
-    expires_in:int = 0
-    timezone:str = 'UTC'
+    expires_in: int = 0
+    timezone: str = "UTC"
     client_id: Optional[str] = None
-    convert_to_market_after_expiry:bool = False
-    cancel_after_expiry:bool = True
-    retries:int = 0
-    exchange:Optional[str] = None
+    convert_to_market_after_expiry: bool = False
+    cancel_after_expiry: bool = True
+    retries: int = 0
+    exchange: Optional[str] = None
     tag: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -242,7 +247,9 @@ class Order:
             "average_price",
         ]
         if self.expires_in == 0:
-            self.expires_in = (pendulum.today(tz=tz).end_of('day') - pendulum.now(tz=tz)).seconds
+            self.expires_in = (
+                pendulum.today(tz=tz).end_of("day") - pendulum.now(tz=tz)
+            ).seconds
         else:
             self.expires_in = abs(self.expires_in)
 
@@ -268,23 +275,23 @@ class Order:
             return False
 
     @property
-    def time_to_expiry(self)->int:
+    def time_to_expiry(self) -> int:
         now = pendulum.now(tz=self.timezone)
         ts = self.timestamp
-        return max(0, self.expires_in - (now-ts).seconds)
-    
-    @property
-    def time_after_expiry(self)->int:
-        now = pendulum.now(tz=self.timezone)
-        ts = self.timestamp
-        return max(0, (now-ts).seconds - self.expires_in)
+        return max(0, self.expires_in - (now - ts).seconds)
 
     @property
-    def has_expired(self)->bool:
+    def time_after_expiry(self) -> int:
+        now = pendulum.now(tz=self.timezone)
+        ts = self.timestamp
+        return max(0, (now - ts).seconds - self.expires_in)
+
+    @property
+    def has_expired(self) -> bool:
         return True if self.time_to_expiry == 0 else False
 
     @property
-    def has_parent(self)->bool:
+    def has_parent(self) -> bool:
         return True if self.parent_id else False
 
     def update(self, data: Dict[str, Any]) -> bool:
@@ -357,18 +364,19 @@ class Order:
         """
         broker.order_cancel(order_id=self.order_id)
 
+
 @dataclass
 class CompoundOrder:
     broker: Type[Broker]
     internal_id: Optional[str] = None
 
-    def __post_init__(self)->None:
+    def __post_init__(self) -> None:
         self.internal_id = uuid.uuid4().hex
         self._ltp: defaultdict = defaultdict()
         self._orders: List[Order] = []
 
     @property
-    def orders(self)->List[Order]:
+    def orders(self) -> List[Order]:
         return self._orders
 
     @property
@@ -398,7 +406,7 @@ class CompoundOrder:
         return c
 
     def add_order(self, **kwargs) -> Optional[str]:
-        kwargs['parent_id'] = self.internal_id
+        kwargs["parent_id"] = self.internal_id
         order = Order(**kwargs)
         self._orders.append(order)
         return order.internal_id
@@ -532,7 +540,7 @@ class CompoundOrder:
     def execute_all(self):
         for order in self.orders:
             order.execute(broker=self.broker)
-    
+
     def check_flags(self):
         """
         Check for flags on each order and take suitable action
@@ -540,16 +548,19 @@ class CompoundOrder:
         for order in self.orders:
             if (order.is_pending) and (order.has_expired):
                 if order.convert_to_market_after_expiry:
-                    order.order_type = 'MARKET'
+                    order.order_type = "MARKET"
                     order.modify(self.broker)
                 elif order.cancel_after_expiry:
                     order.cancel(broker=self.broker)
+
     @property
-    def completed_orders(self)->List[Order]:
+    def completed_orders(self) -> List[Order]:
         return [order for order in self.orders if order.is_complete]
+
     @property
-    def pending_orders(self)->List[Order]:
+    def pending_orders(self) -> List[Order]:
         return [order for order in self.orders if order.is_pending]
+
 
 class StopOrder(CompoundOrder):
     def __init__(
@@ -562,7 +573,7 @@ class StopOrder(CompoundOrder):
         order_type="MARKET",
         disclosed_quantity: int = 0,
         order_args: Optional[Dict] = None,
-        **kwargs
+        **kwargs,
     ):
         super(StopOrder, self).__init__(**kwargs)
         side2 = "sell" if side.lower() == "buy" else "buy"
@@ -625,13 +636,13 @@ class OptionStrategy:
     """
     Option Strategy is a list of compound orders
     """
-    def __init__(self, broker: Type[Broker],
-            profit=1e100,loss=-1e100) -> None:
+
+    def __init__(self, broker: Type[Broker], profit=1e100, loss=-1e100) -> None:
         self._orders: List[CompoundOrder] = []
         self._broker: Type[Broker] = broker
         self._ltp: defaultdict = defaultdict()
-        self.profit:float = profit 
-        self.loss:float = loss
+        self.profit: float = profit
+        self.loss: float = loss
 
     @property
     def broker(self) -> Type[Broker]:
@@ -712,28 +723,27 @@ class OptionStrategy:
         mtm = self._call("total_mtm")
         return sum([x for x in mtm if x is not None])
 
-
     @property
     def positions(self) -> Counter:
         """
         Return the combined positions for this strategy
         """
-        c:Counter = Counter()
+        c: Counter = Counter()
         positions = self._call("positions")
         for position in positions:
             c.update(position)
         return c
 
     @property
-    def is_profit_hit(self)->bool:
+    def is_profit_hit(self) -> bool:
         return True if self.total_mtm > self.profit else False
 
     @property
-    def is_loss_hit(self)->bool:
+    def is_loss_hit(self) -> bool:
         return True if self.total_mtm < self.loss else False
-    
+
     @property
-    def can_exit_strategy(self)->bool:
+    def can_exit_strategy(self) -> bool:
         """
         Check whether we can exit from the strategy
         We can exit from the strategy if either of the following
@@ -744,14 +754,22 @@ class OptionStrategy:
         if self.is_profit_hit:
             return True
         elif self.is_loss_hit:
-            return True 
+            return True
         else:
             return False
 
+
 class OptionOrder(CompoundOrder):
-    def __init__(self, symbol:str,spot:float,expiry:str,
-            contracts:List[Tuple[int,str,str,int]],
-            step:float=100,fmt:Optional[Callable]=None, **kwargs):
+    def __init__(
+        self,
+        symbol: str,
+        spot: float,
+        expiry: str,
+        contracts: List[Tuple[int, str, str, int]],
+        step: float = 100,
+        fmt: Optional[Callable] = None,
+        **kwargs,
+    ):
         """
         Initialize your option order
         symbol
@@ -781,37 +799,41 @@ class OptionOrder(CompoundOrder):
         if fmt:
             self._fmt_function = fmt
         else:
+
             def _format_function(symbol, expiry, strike, option_type):
                 return f"{symbol}{expiry}{strike}{option_type}E".upper()
+
             self._fmt_function = _format_function
         super(OptionOrder, self).__init__(**kwargs)
 
-    def _generate_strikes(self)->List[Union[int, float]]:
+    def _generate_strikes(self) -> List[Union[int, float]]:
         """
         Generate strikes for the contracts
         """
         strikes = []
-        sign = {'C':1, 'P':-1}
+        sign = {"C": 1, "P": -1}
         for c in self._contracts:
             strk = c[0]
             opt = c[1][0].upper()
-            strike = get_option(self.spot, step=self.step) + strk * sign[opt] * self.step
+            strike = (
+                get_option(self.spot, step=self.step) + strk * sign[opt] * self.step
+            )
             strikes.append(strike)
         return strikes
 
-    def _generate_contract_names(self)->List[str]:
+    def _generate_contract_names(self) -> List[str]:
         """
         Generate the list of contract names
         """
         strikes = self._generate_strikes()
         contract_names = []
-        for c,s in zip(self._contracts, strikes):
+        for c, s in zip(self._contracts, strikes):
             opt = c[1][0].upper()
-            name = self._fmt_function(self.symbol,self.expiry,s,opt)
+            name = self._fmt_function(self.symbol, self.expiry, s, opt)
             contract_names.append(name)
         return contract_names
 
-    def generate_orders(self,**kwargs)->List[Order]:
+    def generate_orders(self, **kwargs) -> List[Order]:
         """
         Generate the list of orders to be placed
         kwargs
@@ -819,11 +841,11 @@ class OptionOrder(CompoundOrder):
         """
         orders = []
         symbols = self._generate_contract_names()
-        order_map = {'b': 'buy', 's': 'sell'}
+        order_map = {"b": "buy", "s": "sell"}
         for symbol, contract in zip(symbols, self._contracts):
             side = order_map[contract[2][0].lower()]
             qty = contract[3]
-            order = Order(symbol=symbol,side=side,quantity=qty,**kwargs)
+            order = Order(symbol=symbol, side=side, quantity=qty, **kwargs)
             orders.append(order)
         return orders
 
@@ -834,10 +856,3 @@ class OptionOrder(CompoundOrder):
         gen = self.generate_orders(**kwargs)
         for g in gen:
             self._orders.append(g)
-
-
-
-                
-
-                
-

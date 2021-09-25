@@ -8,13 +8,12 @@ import yaml
 from copy import deepcopy
 from fastbt.brokers.zerodha import Zerodha
 
-with open('tests/data/option_strategies.yaml') as f:
+with open("tests/data/option_strategies.yaml") as f:
     test_data = yaml.safe_load(f)
     strategy_test_data = []
     for data in test_data:
-        strategy_test_data.append(
-            (data['kwargs'], [tuple(x) for x in data['output']])
-            )
+        strategy_test_data.append((data["kwargs"], [tuple(x) for x in data["output"]]))
+
 
 @pytest.fixture
 def simple_compound_order():
@@ -118,14 +117,13 @@ def bracket_order():
 
 
 def test_order_simple():
-    order = Order(symbol="aapl", side="buy", quantity=10,
-    timezone='Europe/Paris')
+    order = Order(symbol="aapl", side="buy", quantity=10, timezone="Europe/Paris")
     assert order.quantity == 10
     assert order.pending_quantity == 10
     assert order.filled_quantity == 0
     assert order.timestamp is not None
     assert order.internal_id is not None
-    assert order.timezone == 'Europe/Paris'
+    assert order.timezone == "Europe/Paris"
 
 
 def test_order_is_complete():
@@ -447,7 +445,7 @@ def test_stop_order(stop_order):
         trigger_price=850,
         price=0,
         order_type="SL-M",
-        parent_id=stop_order.internal_id
+        parent_id=stop_order.internal_id,
     )
     # Copy over from existing order as these are system attributes
     order.internal_id = stop_order.orders[-1].internal_id
@@ -616,7 +614,8 @@ def test_option_strategy_execute_all(
         assert broker.order_place.call_count == 9
         strategy.execute_all()
         assert broker.order_place.call_count == 9
-        #TO DO: Add more cases instead of replacing values
+        # TO DO: Add more cases instead of replacing values
+
 
 def test_option_strategy_total_mtm(compound_order_average_prices):
     broker = Broker()
@@ -646,20 +645,22 @@ def test_option_strategy_positions(simple_compound_order):
         status="COMPLETE",
     )
     strategy.add_order(deepcopy(order))
-    assert strategy.positions == {'aapl': 53, 'goog':-30}
+    assert strategy.positions == {"aapl": 53, "goog": -30}
+
 
 def test_order_expires():
-    known = pendulum.datetime(2021,1,1,12,tz='UTC')
+    known = pendulum.datetime(2021, 1, 1, 12, tz="UTC")
     with pendulum.test(known):
         order = Order(symbol="aapl", side="buy", quantity=10)
-        assert order.expires_in == (60*60*12)-1
+        assert order.expires_in == (60 * 60 * 12) - 1
     order = Order(symbol="aapl", side="buy", quantity=10, expires_in=600)
     assert order.expires_in == 600
     order = Order(symbol="aapl", side="buy", quantity=10, expires_in=-600)
     assert order.expires_in == 600
-    
+
+
 def test_order_expiry_times():
-    known = pendulum.datetime(2021,1,1,9,30,tz='UTC')
+    known = pendulum.datetime(2021, 1, 1, 9, 30, tz="UTC")
     pendulum.set_test_now(known)
     order = Order(symbol="aapl", side="buy", quantity=10, expires_in=60)
     assert order.expires_in == 60
@@ -675,8 +676,9 @@ def test_order_expiry_times():
     assert order.time_after_expiry == 40
     pendulum.set_test_now()
 
+
 def test_order_has_expired():
-    known = pendulum.datetime(2021,1,1,10,tz='UTC')
+    known = pendulum.datetime(2021, 1, 1, 10, tz="UTC")
     pendulum.set_test_now(known)
     order = Order(symbol="aapl", side="buy", quantity=10, expires_in=60)
     assert order.has_expired is False
@@ -685,84 +687,144 @@ def test_order_has_expired():
     assert order.has_expired is True
     pendulum.set_test_now()
 
+
 def test_order_has_parent():
     order = Order(symbol="aapl", side="buy", quantity=10)
     assert order.has_parent is False
     com = CompoundOrder(broker=Broker())
-    com.add_order(symbol='aapl', side='buy', quantity=10)
+    com.add_order(symbol="aapl", side="buy", quantity=10)
     com.orders[0].has_parent is True
 
 
 def test_option_order_default_format_function():
     broker = Broker()
-    order = OptionOrder(symbol='nifty',spot=17128,expiry=923, 
-            contracts = [(0,'c','b',1),(0,'p','b',1)], broker=broker)
-    assert order._fmt_function('nifty',923,17200,'c') == 'NIFTY92317200CE'
+    order = OptionOrder(
+        symbol="nifty",
+        spot=17128,
+        expiry=923,
+        contracts=[(0, "c", "b", 1), (0, "p", "b", 1)],
+        broker=broker,
+    )
+    assert order._fmt_function("nifty", 923, 17200, "c") == "NIFTY92317200CE"
+
 
 @pytest.mark.parametrize(
     "contracts,spot,step,expected",
     [
-        ([(0,'c','b',1), (0,'p','b',1)],17128,100,[17100,17100]),
-        ([(0,'c','b',1), (0,'p','b',1)],17128,50,[17150,17150]),
-        ([(2,'c','b',1), (1,'p','b',1)],16930,100,[17100,16800]),
-        ([(3,'c','b',1), (3,'p','b',1)],31314,200,[32000,30800]),
-    ]
-    )
-def test_option_order_generate_strikes(contracts,spot,step,expected):
+        ([(0, "c", "b", 1), (0, "p", "b", 1)], 17128, 100, [17100, 17100]),
+        ([(0, "c", "b", 1), (0, "p", "b", 1)], 17128, 50, [17150, 17150]),
+        ([(2, "c", "b", 1), (1, "p", "b", 1)], 16930, 100, [17100, 16800]),
+        ([(3, "c", "b", 1), (3, "p", "b", 1)], 31314, 200, [32000, 30800]),
+    ],
+)
+def test_option_order_generate_strikes(contracts, spot, step, expected):
     broker = Broker()
-    order = OptionOrder(symbol='nifty',spot=spot,expiry=923, 
-            contracts=contracts, broker=broker,step=step)
+    order = OptionOrder(
+        symbol="nifty",
+        spot=spot,
+        expiry=923,
+        contracts=contracts,
+        broker=broker,
+        step=step,
+    )
     assert order._generate_strikes() == expected
+
 
 def test_option_order_generate_contract_names():
     broker = Broker()
-    order = OptionOrder(symbol='nifty',spot=17144,expiry=923,step=50,
-            contracts=[(0,'c','b',1),(0,'p','b',1)], broker=broker)
-    assert order._generate_contract_names() == ['NIFTY92317150CE', 'NIFTY92317150PE']
+    order = OptionOrder(
+        symbol="nifty",
+        spot=17144,
+        expiry=923,
+        step=50,
+        contracts=[(0, "c", "b", 1), (0, "p", "b", 1)],
+        broker=broker,
+    )
+    assert order._generate_contract_names() == ["NIFTY92317150CE", "NIFTY92317150PE"]
+
 
 def test_option_order_generate_contracts():
     broker = Broker()
-    order = OptionOrder(symbol='nifty',spot=17144,expiry=923,step=50,
-            contracts=[(0,'c','b',50),(0,'p','b',50)], broker=broker)
-    known = pendulum.datetime(2021,1,1,10)
+    order = OptionOrder(
+        symbol="nifty",
+        spot=17144,
+        expiry=923,
+        step=50,
+        contracts=[(0, "c", "b", 50), (0, "p", "b", 50)],
+        broker=broker,
+    )
+    known = pendulum.datetime(2021, 1, 1, 10)
     pendulum.set_test_now(known)
     orders = [
-            Order(symbol='NIFTY92317150CE',side='buy',quantity=50,
-                exchange='NSE',timezone='Asia/Kolkata',order_type='MARKET'),
-            Order(symbol='NIFTY92317150PE',side='buy',quantity=50,
-                exchange='NSE',timezone='Asia/Kolkata',order_type='MARKET')
-            ]
-    generated = order.generate_orders(exchange='NSE', timezone='Asia/Kolkata')
+        Order(
+            symbol="NIFTY92317150CE",
+            side="buy",
+            quantity=50,
+            exchange="NSE",
+            timezone="Asia/Kolkata",
+            order_type="MARKET",
+        ),
+        Order(
+            symbol="NIFTY92317150PE",
+            side="buy",
+            quantity=50,
+            exchange="NSE",
+            timezone="Asia/Kolkata",
+            order_type="MARKET",
+        ),
+    ]
+    generated = order.generate_orders(exchange="NSE", timezone="Asia/Kolkata")
     for i in range(len(orders)):
         generated[i].internal_id = orders[i].internal_id
     pendulum.set_test_now()
     assert orders == generated
 
+
 def test_option_order_add_all_orders():
     broker = Broker()
-    order = OptionOrder(symbol='nifty',spot=17144,expiry=923,step=50,
-            contracts=[(0,'c','b',50),(0,'p','b',50)], broker=broker)
-    known = pendulum.datetime(2021,1,1,10)
+    order = OptionOrder(
+        symbol="nifty",
+        spot=17144,
+        expiry=923,
+        step=50,
+        contracts=[(0, "c", "b", 50), (0, "p", "b", 50)],
+        broker=broker,
+    )
+    known = pendulum.datetime(2021, 1, 1, 10)
     pendulum.set_test_now(known)
     orders = [
-            Order(symbol='NIFTY92317150CE',side='buy',quantity=50,
-                exchange='NSE',timezone='Asia/Kolkata',order_type='MARKET'),
-            Order(symbol='NIFTY92317150PE',side='buy',quantity=50,
-                exchange='NSE',timezone='Asia/Kolkata',order_type='MARKET')
-            ]
-    order.add_all_orders(exchange='NSE', timezone='Asia/Kolkata')
+        Order(
+            symbol="NIFTY92317150CE",
+            side="buy",
+            quantity=50,
+            exchange="NSE",
+            timezone="Asia/Kolkata",
+            order_type="MARKET",
+        ),
+        Order(
+            symbol="NIFTY92317150PE",
+            side="buy",
+            quantity=50,
+            exchange="NSE",
+            timezone="Asia/Kolkata",
+            order_type="MARKET",
+        ),
+    ]
+    order.add_all_orders(exchange="NSE", timezone="Asia/Kolkata")
     for i in range(len(orders)):
         order.orders[i].internal_id = orders[i].internal_id
     pendulum.set_test_now()
     assert order.orders == orders
+
 
 @pytest.mark.parametrize("test_input, expected", strategy_test_data)
 def test_get_option_contracts_short_straddle(test_input, expected):
     print(strategy_test_data)
     assert get_option_contracts(**test_input) == expected
 
+
 def test_compound_order_check_flags_convert_to_market_after_expiry():
-    known = pendulum.datetime(2021,1,1,10)
+    known = pendulum.datetime(2021, 1, 1, 10)
     pendulum.set_test_now(known)
     with patch("fastbt.brokers.zerodha.Zerodha") as broker:
         com = CompoundOrder(broker=broker)
@@ -774,7 +836,7 @@ def test_compound_order_check_flags_convert_to_market_after_expiry():
             price=650,
             order_id="abcdef",
             expires_in=30,
-            convert_to_market_after_expiry=True
+            convert_to_market_after_expiry=True,
         )
         com.execute_all()
         com.check_flags()
@@ -784,8 +846,9 @@ def test_compound_order_check_flags_convert_to_market_after_expiry():
         broker.order_modify.assert_called_once()
     pendulum.set_test_now()
 
+
 def test_compound_order_check_flags_cancel_after_expiry():
-    known = pendulum.datetime(2021,1,1,10)
+    known = pendulum.datetime(2021, 1, 1, 10)
     pendulum.set_test_now(known)
     with patch("fastbt.brokers.zerodha.Zerodha") as broker:
         com = CompoundOrder(broker=broker)
@@ -806,54 +869,56 @@ def test_compound_order_check_flags_cancel_after_expiry():
         broker.order_cancel.assert_called_once()
     pendulum.set_test_now()
 
+
 def test_compound_order_completed_orders(simple_compound_order):
     order = simple_compound_order
     assert len(order.completed_orders) == 2
-    order.orders[-1].status= 'COMPLETE'
+    order.orders[-1].status = "COMPLETE"
     order.orders[-1].filled_quantity = 12
     assert len(order.completed_orders) == 3
+
 
 def test_compound_order_pending_orders(simple_compound_order):
     order = simple_compound_order
     assert len(order.pending_orders) == 1
 
+
 def test_option_strategy_is_profit_hit(compound_order_average_prices):
     com = compound_order_average_prices
     broker = Broker()
-    strategy = OptionStrategy(profit=1000,loss=-1000,broker=broker)
+    strategy = OptionStrategy(profit=1000, loss=-1000, broker=broker)
     strategy.add_order(com)
-    strategy.update_ltp({'aapl':925, 'goog':620})
+    strategy.update_ltp({"aapl": 925, "goog": 620})
     assert strategy.total_mtm == 300
     assert strategy.is_profit_hit is False
-    strategy.update_ltp({'aapl':1025, 'goog':620})
+    strategy.update_ltp({"aapl": 1025, "goog": 620})
     assert strategy.is_profit_hit is True
+
 
 def test_option_strategy_is_loss_hit(compound_order_average_prices):
     com = compound_order_average_prices
     broker = Broker()
-    strategy = OptionStrategy(profit=1000,loss=-1000,broker=broker)
+    strategy = OptionStrategy(profit=1000, loss=-1000, broker=broker)
     strategy.add_order(com)
-    strategy.update_ltp({'aapl':925, 'goog':620})
-    print('loss hit')
+    strategy.update_ltp({"aapl": 925, "goog": 620})
+    print("loss hit")
     print(strategy.total_mtm, strategy.is_loss_hit, strategy.loss)
-    assert strategy.is_loss_hit is False 
-    strategy.update_ltp({'aapl':1000, 'goog':800})
+    assert strategy.is_loss_hit is False
+    strategy.update_ltp({"aapl": 1000, "goog": 800})
     assert strategy.total_mtm == -3000
     assert strategy.is_profit_hit is False
     assert strategy.is_loss_hit is True
     strategy.loss = -5000
     assert strategy.is_loss_hit is False
 
+
 def test_option_strategy_can_exit_strategy(compound_order_average_prices):
     com = compound_order_average_prices
     broker = Broker()
-    strategy = OptionStrategy(profit=1000,loss=-1000,broker=broker)
+    strategy = OptionStrategy(profit=1000, loss=-1000, broker=broker)
     strategy.add_order(com)
-    strategy.update_ltp({'aapl':925, 'goog':620})
+    strategy.update_ltp({"aapl": 925, "goog": 620})
     print(strategy.total_mtm, strategy.can_exit_strategy)
     assert strategy.can_exit_strategy is False
-    strategy.update_ltp({'aapl':1000, 'goog':800})
+    strategy.update_ltp({"aapl": 1000, "goog": 800})
     assert strategy.can_exit_strategy is True
-
-
-
