@@ -544,7 +544,14 @@ class CompoundOrder:
                     order.modify(self.broker)
                 elif order.cancel_after_expiry:
                     order.cancel(broker=self.broker)
+    
+    @property
+    def completed_orders(self)->List[Order]:
+        return [order for order in self.orders if order.is_complete]
 
+    @property
+    def pending_orders(self)->List[Order]:
+        return [order for order in self.orders if order.is_pending]
 
 
 class StopOrder(CompoundOrder):

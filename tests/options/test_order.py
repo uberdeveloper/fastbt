@@ -805,3 +805,14 @@ def test_compound_order_check_flags_cancel_after_expiry():
         com.check_flags()
         broker.order_cancel.assert_called_once()
     pendulum.set_test_now()
+
+def test_compound_order_completed_orders(simple_compound_order):
+    order = simple_compound_order
+    assert len(order.completed_orders) == 2
+    order.orders[-1].status= 'COMPLETE'
+    order.orders[-1].filled_quantity = 12
+    assert len(order.completed_orders) == 3
+
+def test_compound_order_pending_orders(simple_compound_order):
+    order = simple_compound_order
+    assert len(order.pending_orders) == 1
