@@ -820,7 +820,7 @@ def test_compound_order_pending_orders(simple_compound_order):
 def test_option_strategy_is_profit_hit(compound_order_average_prices):
     com = compound_order_average_prices
     broker = Broker()
-    strategy = OptionStrategy(profit=1000,loss=1000,broker=broker)
+    strategy = OptionStrategy(profit=1000,loss=-1000,broker=broker)
     strategy.add_order(com)
     strategy.update_ltp({'aapl':925, 'goog':620})
     assert strategy.total_mtm == 300
@@ -831,12 +831,29 @@ def test_option_strategy_is_profit_hit(compound_order_average_prices):
 def test_option_strategy_is_loss_hit(compound_order_average_prices):
     com = compound_order_average_prices
     broker = Broker()
-    strategy = OptionStrategy(profit=1000,loss=1000,broker=broker)
+    strategy = OptionStrategy(profit=1000,loss=-1000,broker=broker)
     strategy.add_order(com)
+    strategy.update_ltp({'aapl':925, 'goog':620})
+    print('loss hit')
+    print(strategy.total_mtm, strategy.is_loss_hit, strategy.loss)
+    assert strategy.is_loss_hit is False 
     strategy.update_ltp({'aapl':1000, 'goog':800})
     assert strategy.total_mtm == -3000
     assert strategy.is_profit_hit is False
     assert strategy.is_loss_hit is True
+    strategy.loss = -5000
+    assert strategy.is_loss_hit is False
+
+def test_option_strategy_can_exit_strategy(compound_order_average_prices):
+    com = compound_order_average_prices
+    broker = Broker()
+    strategy = OptionStrategy(profit=1000,loss=-1000,broker=broker)
+    strategy.add_order(com)
+    strategy.update_ltp({'aapl':925, 'goog':620})
+    print(strategy.total_mtm, strategy.can_exit_strategy)
+    assert strategy.can_exit_strategy is False
+    strategy.update_ltp({'aapl':1000, 'goog':800})
+    assert strategy.can_exit_strategy is True
 
 
 

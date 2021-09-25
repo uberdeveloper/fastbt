@@ -731,6 +731,22 @@ class OptionStrategy:
     @property
     def is_loss_hit(self)->bool:
         return True if self.total_mtm < self.loss else False
+    
+    @property
+    def can_exit_strategy(self)->bool:
+        """
+        Check whether we can exit from the strategy
+        We can exit from the strategy if either of the following
+        conditions is met
+        1) Profit is hit
+        2) Loss is hit
+        """
+        if self.is_profit_hit:
+            return True
+        elif self.is_loss_hit:
+            return True 
+        else:
+            return False
 
 class OptionOrder(CompoundOrder):
     def __init__(self, symbol:str,spot:float,expiry:str,
