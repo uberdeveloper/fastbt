@@ -1,4 +1,5 @@
 import pandas as pd
+import pyotp
 from fastbt.Meta import Broker, Status, pre, post
 
 from kiteconnect import KiteConnect
@@ -39,13 +40,24 @@ class Zerodha(Broker):
     """
 
     def __init__(
-        self, api_key, secret, user_id, password, PIN, exchange="NSE", product="MIS"
+        self,
+        api_key,
+        secret,
+        user_id,
+        password,
+        PIN,
+        exchange="NSE",
+        product="MIS",
+        totp=None,
+        is_pin=False,
     ):
         self._api_key = api_key
         self._secret = secret
         self._user_id = user_id
         self._password = password
         self._pin = PIN
+        self._totp = totp
+        self.is_pin = is_pin
         self.exchange = exchange
         self.product = product
         self._store_access_token = True
@@ -187,10 +199,12 @@ class Zerodha(Broker):
             EC.presence_of_element_located((By.CLASS_NAME, "button-orange"))
         )
         driver.find_element_by_xpath('//button[@type="submit"]').click()
+        totp_pass = pyotp.TOTP(self._totp).now()
+        twofa_pass = self._pin if self.is_pin is True else totp_pass
         twofa_form = WebDriverWait(driver, 45).until(
             EC.presence_of_element_located((By.CLASS_NAME, "twofa-form"))
         )
-        twofa_form.find_elements_by_tag_name("input")[0].send_keys(self._pin)
+        twofa_form.find_elements_by_tag_name("input")[0].send_keys(twofa_pass)
         WebDriverWait(driver, 45).until(
             EC.presence_of_element_located((By.CLASS_NAME, "button-orange"))
         )
@@ -305,10 +319,8 @@ class Zerodha(Broker):
         data = data[cols].to_dict(orient="records")
         exchange = kwargs.get("exchange", "NSE")
         sym = ["{e}:{s}".format(e=exchange, s=x["symbol"]) for x in data]
-        print(sym)
         ltps = self.ltp(sym)
         ltps = {k[4:]: v["last_price"] for k, v in ltps.items()}
-        print(ltps)
         all_orders = []
         replace = {
             "symbol": "tradingsymbol",
