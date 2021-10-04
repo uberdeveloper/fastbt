@@ -890,5 +890,16 @@ class TrailingStopOrder(StopOrder):
         multiplier = self.trail_small/self.trail_big
         self._stop = self.initial_stop + (mtm_per_unit*multiplier)
         
+    def watch(self):
+        self._update_maxmtm()
+        self._update_stop()
+        ltp = self.ltp.get(self.symbol)
+        if ltp:
+            #TODO: Implement for sell also
+            if ltp < self.stop:
+                order = self.orders[-1]
+                order.order_type = "MARKET"
+                order.modify(broker=self.broker)
+
 
 

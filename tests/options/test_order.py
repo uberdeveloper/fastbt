@@ -993,4 +993,18 @@ def test_trailing_stop_update_stop_two(trailing_stop_order):
     order._update_stop()
     assert order.stop == 910
 
+def test_trailing_stop_watch(trailing_stop_order):
+    order = trailing_stop_order
+    broker = order.broker
+    order.update_ltp({'aapl':1000})
+    order.trail_big = 10
+    order.trail_small = 10
+    order.watch()
+    assert order.stop == 920
+    for i in (944, 912, 960, 961):
+        order.update_ltp({"aapl": i})
+        order.watch()
+    broker.order_modify.assert_called_once()
+
+
 
