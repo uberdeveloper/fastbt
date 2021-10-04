@@ -869,7 +869,10 @@ class TrailingStopOrder(StopOrder):
         self.buffer:float = buffer
         super(TrailingStopOrder, self).__init__(**kwargs)
         self._maxmtm:float = 0
-        self._stop:float = kwargs.pop('trigger_price', 0)
+        self._stop:float = kwargs.get('trigger_price', 0)
+        self.initial_stop = self._stop
+        self.symbol:str = kwargs.get('symbol')
+        self.quantity:int = kwargs.get('quantity',1)
 
     @property
     def stop(self):
@@ -878,6 +881,14 @@ class TrailingStopOrder(StopOrder):
     @property
     def maxmtm(self):
         return self._maxmtm
+    
+    def _update_maxmtm(self):
+        self._maxmtm = max(self.total_mtm, self._maxmtm)
+
+    def _update_stop(self):
+        mtm_per_unit = self.maxmtm/self.quantity
+        multiplier = self.trail_small/self.trail_big
+        self._stop = self.initial_stop + (mtm_per_unit*multiplier)
         
 
 
