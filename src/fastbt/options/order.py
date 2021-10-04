@@ -856,3 +856,28 @@ class OptionOrder(CompoundOrder):
         gen = self.generate_orders(**kwargs)
         for g in gen:
             self._orders.append(g)
+
+@dataclass
+class TrailingStopOrder(StopOrder):
+    """
+    Trailing stop order
+    """
+    def __init__(self, trail_by:Tuple[float, float], 
+            buffer:float, **kwargs):
+        self.trail_big:float = trail_by[0]
+        self.trail_small:float = trail_by[-1]
+        self.buffer:float = buffer
+        super(TrailingStopOrder, self).__init__(**kwargs)
+        self._maxmtm:float = 0
+        self._stop:float = kwargs.pop('trigger_price', 0)
+
+    @property
+    def stop(self):
+        return self._stop
+
+    @property
+    def maxmtm(self):
+        return self._maxmtm
+        
+
+
