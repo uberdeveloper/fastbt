@@ -893,7 +893,7 @@ class OptionOrder(CompoundOrder):
             self._orders.append(g)
 
 @dataclass
-class TrailingStopOrder(StopOrder):
+class TrailingStopOrder(StopLimitOrder):
     """
     Trailing stop order
     """
