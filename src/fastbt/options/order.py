@@ -595,6 +595,41 @@ class StopOrder(CompoundOrder):
             disclosed_quantity=disclosed_quantity,
         )
 
+class StopLimitOrder(CompoundOrder):
+    def __init__(
+        self,
+        symbol: str,
+        side: str,
+        trigger_price: float,
+        price: float = 0.0,
+        stop_limit_price:float = 0.0,
+        quantity: int = 1,
+        order_type="MARKET",
+        disclosed_quantity: int = 0,
+        order_args: Optional[Dict] = None,
+        **kwargs,
+    ):
+        super(StopLimitOrder, self).__init__(**kwargs)
+        side2 = "sell" if side.lower() == "buy" else "buy"
+        if stop_limit_price == 0:
+            stop_limit_price = trigger_price
+        self.add_order(
+            symbol=symbol,
+            side=side,
+            price=price,
+            quantity=quantity,
+            order_type=order_type,
+            disclosed_quantity=disclosed_quantity,
+        )
+        self.add_order(
+            symbol=symbol,
+            side=side2,
+            price=stop_limit_price,
+            trigger_price=trigger_price,
+            quantity=quantity,
+            order_type="SL",
+            disclosed_quantity=disclosed_quantity,
+        )
 
 class BracketOrder(StopOrder):
     def __init__(self, target: float, **kwargs):
@@ -862,11 +897,9 @@ class TrailingStopOrder(StopOrder):
     """
     Trailing stop order
     """
-    def __init__(self, trail_by:Tuple[float, float], 
-            buffer:float, **kwargs):
+    def __init__(self, trail_by:Tuple[float, float],**kwargs):
         self.trail_big:float = trail_by[0]
         self.trail_small:float = trail_by[-1]
-        self.buffer:float = buffer
         super(TrailingStopOrder, self).__init__(**kwargs)
         self._maxmtm:float = 0
         self._stop:float = kwargs.get('trigger_price', 0)

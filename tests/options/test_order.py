@@ -126,7 +126,6 @@ def trailing_stop_order():
             order_type="LIMIT",
             trigger_price=850,
             trail_by=(10,5),
-            buffer=10,
             broker=broker,
         )
         order.orders[0].filled_quantity = 100
@@ -1007,4 +1006,23 @@ def test_trailing_stop_watch(trailing_stop_order):
     broker.order_modify.assert_called_once()
 
 
+def test_stop_limit_order():
+    broker = Broker()
+    order= StopLimitOrder(
+            symbol="aapl",
+            side="buy",
+            quantity=100,
+            trigger_price=850,
+            broker=broker,
+        )
+    assert order.orders[-1].price == 850
+    order= StopLimitOrder(
+            symbol="aapl",
+            side="buy",
+            quantity=100,
+            trigger_price=850,
+            stop_limit_price=855,
+            broker=broker
+            )
+    assert order.orders[-1].price == 855
 
