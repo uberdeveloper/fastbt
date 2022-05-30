@@ -31,4 +31,28 @@ file_patterns = {
         "https://www1.nseindia.com/archives/fo/bhav/fo{date}.zip",
         lambda x: {"date": x.strftime("%d%m%y")},
     ),
+    "indices": (
+        "https://www1.nseindia.com/content/indices/ind_close_all_{date}.csv",
+        lambda x: {"date": x.strftime("%d%m%Y")}
+        ),
+    "top10marketcap": (
+        "https://www1.nseindia.com/content/indices/top10nifty50_{date}.csv",
+        lambda x: {"date": x.strftime("%d%m%y")}
+        ),
+    "fii_stats": (
+        "https://www1.nseindia.com/content/fo/fii_stats_{date}.xls",
+        lambda x: {"date": x.strftime("%d-%b-%Y")}
+        ),
+    "fno_participant":(
+        "https://www1.nseindia.com/content/nsccl/fao_participant_vol_{date}.csv",
+        lambda x: {"date": x.strftime("%d%m%Y")}
+        ),
+    "fno_category":(
+        "https://www1.nseindia.com/archives/fo/cat/fo_cat_turnover_{date}.xls",
+        lambda x: {"date": x.strftime("%d%m%y")}
+        ),
+    "fno_oi_participant":(
+        "https://www1.nseindia.com/content/nsccl/fao_participant_oi_{date}.csv",
+        lambda x: {"date": x.strftime("%d%m%Y")}
+        ),
 }
