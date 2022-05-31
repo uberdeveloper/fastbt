@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 import urllib.parse as parse
 
 try:
-    from numba import jit, njit
+    from numba import jit, njit, float64
 except ImportError:
     print("Install numba")
 
@@ -472,8 +472,7 @@ def streak(values):
     values that appear in the array
     """
     l = len(values)
-    arr = zeros(l)
-    arr[0] = 1
+    arr = np.ones(l, dtype=np.int32)
     cnt = 1
     for i in arange(1, l):
         if values[i] == values[i - 1]:
