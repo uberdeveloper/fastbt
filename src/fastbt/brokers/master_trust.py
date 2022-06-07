@@ -658,6 +658,7 @@ class MasterTrust(Broker):
             for position in positions:
                 qty = abs(position["quantity"])
                 symbol = position["symbol"]
+                product = position["product"]
                 side = self._sides[position["side"]]
                 if qty > 0:
                     self.order_place(
@@ -666,7 +667,7 @@ class MasterTrust(Broker):
                         order_type="MARKET",
                         side=side,
                         exchange=self.exchange,
-                        product="MIS",
+                        product=product,
                         validity="DAY",
                     )
 
