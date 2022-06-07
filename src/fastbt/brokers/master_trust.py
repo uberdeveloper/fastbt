@@ -383,7 +383,7 @@ class MasterTrust(Broker):
         symbol = kwargs.pop("symbol")
         side = kwargs.pop("side")
         exchange = kwargs.get("exchange", self.exchange)
-        token = self._get_instrument_token(exchange=self.exchange, symbol=symbol)
+        token = self._get_instrument_token(exchange=exchange, symbol=symbol)
         kwargs["instrument_token"] = token
         kwargs["order_side"] = side
         kwargs["client_id"] = self.client_id
