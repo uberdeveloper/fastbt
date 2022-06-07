@@ -226,12 +226,12 @@ class MasterTrust(Broker):
         return self._response(resp)
 
     @post
-    def positions(self):
+    def positions(self, pos_type="historical"):
         """
         Return only the positions for the day
         """
         url = f"{self.base_url}/api/v1/positions"
-        payload = {"client_id": self.client_id, "type": "live"}
+        payload = {"client_id": self.client_id, "type": pos_type}
         resp = requests.get(url, headers=self.headers, params=payload)
         resp = self._response(resp)
         for r in resp:
