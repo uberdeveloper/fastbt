@@ -226,12 +226,12 @@ class MasterTrust(Broker):
         return self._response(resp)
 
     @post
-    def positions(self):
+    def positions(self, pos_type="historical"):
         """
         Return only the positions for the day
         """
         url = f"{self.base_url}/api/v1/positions"
-        payload = {"client_id": self.client_id, "type": "live"}
+        payload = {"client_id": self.client_id, "type": pos_type}
         resp = requests.get(url, headers=self.headers, params=payload)
         resp = self._response(resp)
         for r in resp:
@@ -383,7 +383,7 @@ class MasterTrust(Broker):
         symbol = kwargs.pop("symbol")
         side = kwargs.pop("side")
         exchange = kwargs.get("exchange", self.exchange)
-        token = self._get_instrument_token(exchange=self.exchange, symbol=symbol)
+        token = self._get_instrument_token(exchange=exchange, symbol=symbol)
         kwargs["instrument_token"] = token
         kwargs["order_side"] = side
         kwargs["client_id"] = self.client_id
@@ -658,6 +658,7 @@ class MasterTrust(Broker):
             for position in positions:
                 qty = abs(position["quantity"])
                 symbol = position["symbol"]
+                product = position["product"]
                 side = self._sides[position["side"]]
                 if qty > 0:
                     self.order_place(
@@ -666,7 +667,7 @@ class MasterTrust(Broker):
                         order_type="MARKET",
                         side=side,
                         exchange=self.exchange,
-                        product="MIS",
+                        product=product,
                         validity="DAY",
                     )
 
