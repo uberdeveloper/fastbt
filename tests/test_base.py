@@ -298,7 +298,7 @@ def test_candlestick_update_candle():
     cdl = CandleStick(name="AAPL")
     for i in [100, 101, 102, 101, 103, 101, 99, 102]:
         cdl.update(i)
-    ts = pendulum.parse("2020-01-01T9:00:00")
+    ts = pendulum.parse("2020-01-01T09:00:00")
     cdl.update_candle(timestamp=ts)
     candle = Candle(timestamp=ts, open=100, high=103, low=99, close=102)
     assert len(cdl.candles) == 1
@@ -310,11 +310,11 @@ def test_candlestick_update_multiple_candles():
     cdl = CandleStick(name="AAPL")
     for i in [100, 101, 102, 101, 103, 101, 99, 102]:
         cdl.update(i)
-    ts = pendulum.parse("2020-01-01T9:00:00")
+    ts = pendulum.parse("2020-01-01T09:00:00")
     cdl.update_candle(timestamp=ts)
     for i in [102.5, 104, 103, 102, 103]:
         cdl.update(i)
-    ts = pendulum.parse("2020-01-01T9:30:00")
+    ts = pendulum.parse("2020-01-01T09:30:00")
     cdl.update_candle(timestamp=ts)
     c1, c2 = cdl.candles[0], cdl.candles[1]
     assert len(cdl.candles) == 2
