@@ -78,10 +78,10 @@ class FivePaisa(Broker):
         Place an order
         """
         defaults = {
-            "exchange": "NSE",
-            "segment": "EQ",
-            "order_type": "LIMIT",
-            "product": "MIS",
+            "exchange": "N",
+            "exchange_segment": "C",
+            "is_intraday": True,
+            "price": 0,
         }
         kwargs.update(defaults)
         symbol = kwargs.pop("symbol")
@@ -91,8 +91,8 @@ class FivePaisa(Broker):
         order = Order(
             order_type=self.side.get("BUY"),
             scrip_code=scrip_code,
-            quantity=1,
             exchange=Exchange.NSE,
+            **kwargs,
         )
         # print(order.scrip_code, order.quantity, order.order_type)
         # print(order)
