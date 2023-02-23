@@ -607,7 +607,7 @@ def stockmock_parser(url: str) -> Dict[str, Any]:
         for k, v in dct.items():
             try:
                 dct[k] = float(v)
-            except Exception as e:
+            except Exception:
                 pass
         return dct
 

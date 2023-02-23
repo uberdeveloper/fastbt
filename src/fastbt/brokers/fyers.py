@@ -116,7 +116,7 @@ class Fyers(Broker):
     @post
     def profile(self):
         prof = self.fyers.get_profile(self._token)
-        prof = self._fetch(profi)
+        prof = self._fetch(prof)
         if prof:
             prof["result"]
         else:

@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from numba import jit, njit
 import os
 import inspect
+from intake import Schema
 
 
 class DataSource:

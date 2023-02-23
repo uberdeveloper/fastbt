@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from typing import Dict, List
 
 
-def get_authorization_url():
+def get_authorization_url(authorization_base_url, redirect_uri):
     oauth = OAuth2Session(client_id, redirect_uri=redirect_uri, scope=scope)
     authorization_url, _state = oauth.authorization_url(
         authorization_base_url, access_type="authorization_code"
@@ -208,7 +208,7 @@ class MasterTrust(Broker):
                 return resp
             else:
                 return resp["data"]
-        except Exception as e:
+        except Exception:
             return {}
 
     def _get_instrument_token(self, symbol, exchange="NSE", contracts=None):
