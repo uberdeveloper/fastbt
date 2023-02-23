@@ -22,6 +22,16 @@ def read(*names, **kwargs):
         return fh.read()
 
 
+EXTRAS_REQUIRE = dict(
+    ta=["TA-Lib"],
+    io=["tables", "zarr", "openpyxl", "xlwt"],
+    compiled=["numba>0.55.0"],
+    plotting=["bokeh>3.0.0"],
+    apps=["streamlit>1.15.0"],
+    test=["pytest", "pytest-watch", "ruff"],
+)
+
+
 setup(
     name="fastbt",
     version="0.3.0",
@@ -50,31 +60,29 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: Implementation :: CPython",
         # uncomment if you test on these interpreters:
         # 'Programming Language :: Python :: Implementation :: IronPython',
         # 'Programming Language :: Python :: Implementation :: Jython',
         # 'Programming Language :: Python :: Implementation :: Stackless',
-        "Topic :: Utilities",
+        "Topic :: Office/Business :: Financial :: Investment",
     ],
     keywords=[
         # eg: 'keyword1', 'keyword2', 'keyword3',
         "fastbt",
         "backtesting",
-        "algo trading",
+        "algorithmic trading",
+        "quantitative finance",
+        "research",
+        "finance",
     ],
     install_requires=[
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
-        "pandas>=0.23.0",
+        "pandas>=1.0.0",
         "sqlalchemy<=2.0.0",
+        "pendulum>=2.0.0",
     ],
-    extras_require={
-        # eg:
-        #   'rst': ['docutils>=0.11'],
-        #   ':python_version=="2.6"': ['argparse'],
-    },
+    extras_require=EXTRAS_REQUIRE,
 )
