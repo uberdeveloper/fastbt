@@ -636,8 +636,8 @@ def stockmock_parser(url: str) -> Dict[str, Any]:
     params["positions"] = pos
     return params
 
-   
-def get_atm(spot: float, opt:str='c', step: float = 100.0, n=0) -> float:
+
+def get_atm(spot: float, opt: str = "c", step: float = 100.0, n=0) -> float:
     """
     Get the at the money option; the most nearest option.
     This is common for both put and call options
@@ -651,9 +651,10 @@ def get_atm(spot: float, opt:str='c', step: float = 100.0, n=0) -> float:
         strikes above or below atm based on the step and type of option
     """
     opt = opt.lower()[0]
-    sign = 1 if opt == 'p' else -1
+    sign = 1 if opt == "p" else -1
     strike = round(spot / step) * step
-    return strike + n*sign*step
+    return strike + n * sign * step
+
 
 def get_itm(spot: float, opt: str, step: float = 100.0, n=0) -> float:
     """
@@ -669,14 +670,14 @@ def get_itm(spot: float, opt: str, step: float = 100.0, n=0) -> float:
     1) If opt is neither call or put, 0 is returned
     """
     opt = opt.lower()[0]
-    sign = 1 if opt == 'p' else -1
+    sign = 1 if opt == "p" else -1
     if spot % step == 0:
-        return spot + n*sign*step
+        return spot + n * sign * step
     elif opt == "c":
         strike = int(spot / step) * step
-        return strike + n*sign*step
+        return strike + n * sign * step
     elif opt == "p":
         strike = (int(spot / step) * step) + step
-        return strike + n*sign*step
+        return strike + n * sign * step
     else:
         return 0.0

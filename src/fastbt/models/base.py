@@ -111,7 +111,6 @@ class BaseSystem(TradingSystem):
         broker: Any = None,
         **kwargs
     ):
-
         """
         Initialize the strategy.
         The initialize sets up sensible defaults

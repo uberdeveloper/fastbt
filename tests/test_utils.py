@@ -8,8 +8,9 @@ import context
 
 from fastbt.utils import *
 
+
 def equation(a, b, c, x, y):
-    return a * x ** 2 + b * y + c
+    return a * x**2 + b * y + c
 
 
 def test_multiargs_simple():
@@ -504,28 +505,32 @@ class TestStockMockParser(unittest.TestCase):
         args = stockmock_parser(self.url)
         assert args == self.result
 
-@pytest.mark.parametrize("test_input, expected",
-        [
-            (dict(spot=12344),12300),
-            (dict(spot=12344,opt='p'),12300),
-            (dict(spot=248,step=5),250),
-            (dict(spot=248,step=5,n=3),235),
-            (dict(spot=248,step=5,opt='put',n=3),265)
-        ]
-        )
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [
+        (dict(spot=12344), 12300),
+        (dict(spot=12344, opt="p"), 12300),
+        (dict(spot=248, step=5), 250),
+        (dict(spot=248, step=5, n=3), 235),
+        (dict(spot=248, step=5, opt="put", n=3), 265),
+    ],
+)
 def test_get_atm(test_input, expected):
     assert get_atm(**test_input) == expected
 
-@pytest.mark.parametrize("test_input, expected",
-        [
-            (dict(spot=12344,opt='c'),12300),
-            (dict(spot=12344,opt='p'),12400),
-            (dict(spot=248,opt='c',step=5),245),
-            (dict(spot=248,opt='call',step=5,n=3),230),
-            (dict(spot=248,step=5,opt='put',n=3),265),
-            (dict(spot=13000,opt='c',n=2),12800),
-            (dict(spot=13000,opt='p',n=2),13200)
-        ]
-        )
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [
+        (dict(spot=12344, opt="c"), 12300),
+        (dict(spot=12344, opt="p"), 12400),
+        (dict(spot=248, opt="c", step=5), 245),
+        (dict(spot=248, opt="call", step=5, n=3), 230),
+        (dict(spot=248, step=5, opt="put", n=3), 265),
+        (dict(spot=13000, opt="c", n=2), 12800),
+        (dict(spot=13000, opt="p", n=2), 13200),
+    ],
+)
 def test_get_itm(test_input, expected):
     assert get_itm(**test_input) == expected

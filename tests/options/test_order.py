@@ -115,6 +115,7 @@ def bracket_order():
         )
     return bracket_order
 
+
 @pytest.fixture
 def trailing_stop_order():
     with patch("fastbt.brokers.zerodha.Zerodha") as broker:
@@ -125,14 +126,15 @@ def trailing_stop_order():
             price=930,
             order_type="LIMIT",
             trigger_price=850,
-            trail_by=(10,5),
+            trail_by=(10, 5),
             broker=broker,
         )
         order.orders[0].filled_quantity = 100
-        order.orders[0].pending_quantity = 0 
-        order.orders[0].status = 'COMPLETE'
+        order.orders[0].pending_quantity = 0
+        order.orders[0].status = "COMPLETE"
         order.orders[0].average_price = 930
         return order
+
 
 def test_order_simple():
     order = Order(symbol="aapl", side="buy", quantity=10, timezone="Europe/Paris")
@@ -941,44 +943,46 @@ def test_option_strategy_can_exit_strategy(compound_order_average_prices):
     strategy.update_ltp({"aapl": 1000, "goog": 800})
     assert strategy.can_exit_strategy is True
 
+
 def test_trailing_stop_order_update_mtm(trailing_stop_order):
     order = trailing_stop_order
     order._update_maxmtm()
     assert order.maxmtm == 0
 
-    order.update_ltp({'aapl':940})
+    order.update_ltp({"aapl": 940})
     order._update_maxmtm()
     assert order.maxmtm == 1000
 
-    order.update_ltp({'aapl':920})
+    order.update_ltp({"aapl": 920})
     order._update_maxmtm()
     assert order.maxmtm == 1000
     assert order.total_mtm == -1000
-    
+
 
 def test_trailing_stop_update_stop(trailing_stop_order):
     order = trailing_stop_order
-    order.update_ltp({'aapl':940})
+    order.update_ltp({"aapl": 940})
     order._update_maxmtm()
     order._update_stop()
     assert order.maxmtm == 1000
     assert order.stop == 855
 
-    order.update_ltp({'aapl':990})
+    order.update_ltp({"aapl": 990})
     order._update_maxmtm()
     order._update_stop()
     assert order.stop == 880
 
-    order.update_ltp({'aapl':900})
+    order.update_ltp({"aapl": 900})
     order._update_maxmtm()
     order._update_stop()
     assert order.stop == 880
     assert order.maxmtm == 6000
     assert order.total_mtm == -3000
 
+
 def test_trailing_stop_update_stop_two(trailing_stop_order):
     order = trailing_stop_order
-    order.update_ltp({'aapl':940})
+    order.update_ltp({"aapl": 940})
     order._update_maxmtm()
     order._update_stop()
     assert order.maxmtm == 1000
@@ -987,15 +991,16 @@ def test_trailing_stop_update_stop_two(trailing_stop_order):
     # Change trailing order settings
     order.trail_big = 10
     order.trail_small = 10
-    order.update_ltp({'aapl':990})
+    order.update_ltp({"aapl": 990})
     order._update_maxmtm()
     order._update_stop()
     assert order.stop == 910
 
+
 def test_trailing_stop_watch(trailing_stop_order):
     order = trailing_stop_order
     broker = order.broker
-    order.update_ltp({'aapl':1000})
+    order.update_ltp({"aapl": 1000})
     order.trail_big = 10
     order.trail_small = 10
     order.watch()
@@ -1008,21 +1013,20 @@ def test_trailing_stop_watch(trailing_stop_order):
 
 def test_stop_limit_order():
     broker = Broker()
-    order= StopLimitOrder(
-            symbol="aapl",
-            side="buy",
-            quantity=100,
-            trigger_price=850,
-            broker=broker,
-        )
+    order = StopLimitOrder(
+        symbol="aapl",
+        side="buy",
+        quantity=100,
+        trigger_price=850,
+        broker=broker,
+    )
     assert order.orders[-1].price == 850
-    order= StopLimitOrder(
-            symbol="aapl",
-            side="buy",
-            quantity=100,
-            trigger_price=850,
-            stop_limit_price=855,
-            broker=broker
-            )
+    order = StopLimitOrder(
+        symbol="aapl",
+        side="buy",
+        quantity=100,
+        trigger_price=850,
+        stop_limit_price=855,
+        broker=broker,
+    )
     assert order.orders[-1].price == 855
-

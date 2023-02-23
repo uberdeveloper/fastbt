@@ -186,7 +186,9 @@ class MasterTrust(Broker):
         WebDriverWait(driver, 45).until(
             EC.presence_of_element_located((By.CLASS_NAME, "btn-container"))
         )
-        driver.find_element_by_xpath('//input[@type="password"]').send_keys(pyotp.TOTP(self._pin).now())
+        driver.find_element_by_xpath('//input[@type="password"]').send_keys(
+            pyotp.TOTP(self._pin).now()
+        )
         driver.find_element_by_xpath('//button[@type="submit"]').click()
         time.sleep(2)
         current_url = driver.current_url

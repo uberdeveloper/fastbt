@@ -181,7 +181,6 @@ def low_breach(s):
 
 
 class ExcelSource(DataSource):
-
     container = "dataframe"
     name = "excel_loader"
     version = "0.0.1"
@@ -430,9 +429,9 @@ class Catalog:
         **filetypes** is a dictionary with the file type as
         key and a sub-dictionary with driver and extensions
         as keys and the corresponding driver and extensions
-        as values. 
+        as values.
         It is a logical structure that maps a file type to
-        its intake driver since each file type can have more 
+        its intake driver since each file type can have more
         than one extension. This dictionary is looped to get
         the self._mappers for each extension.
         **Assumed each filetype has a single driver but more than

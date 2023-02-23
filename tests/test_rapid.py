@@ -61,7 +61,6 @@ class TestRapidFetchData(unittest.TestCase):
 
 
 class TestRapidPrepareData(unittest.TestCase):
-
     # TO DO: return in case of Empty dataframe
     def setUp(self):
         from sqlalchemy import create_engine

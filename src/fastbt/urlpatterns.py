@@ -33,42 +33,42 @@ file_patterns = {
     ),
     "indices": (
         "https://www1.nseindia.com/content/indices/ind_close_all_{date}.csv",
-        lambda x: {"date": x.strftime("%d%m%Y")}
-        ),
+        lambda x: {"date": x.strftime("%d%m%Y")},
+    ),
     "top10marketcap": (
         "https://www1.nseindia.com/content/indices/top10nifty50_{date}.csv",
-        lambda x: {"date": x.strftime("%d%m%y")}
-        ),
+        lambda x: {"date": x.strftime("%d%m%y")},
+    ),
     "fii_stats": (
         "https://www1.nseindia.com/content/fo/fii_stats_{date}.xls",
-        lambda x: {"date": x.strftime("%d-%b-%Y")}
-        ),
-    "fno_participant":(
+        lambda x: {"date": x.strftime("%d-%b-%Y")},
+    ),
+    "fno_participant": (
         "https://www1.nseindia.com/content/nsccl/fao_participant_vol_{date}.csv",
-        lambda x: {"date": x.strftime("%d%m%Y")}
-        ),
-    "fno_category":(
+        lambda x: {"date": x.strftime("%d%m%Y")},
+    ),
+    "fno_category": (
         "https://www1.nseindia.com/archives/fo/cat/fo_cat_turnover_{date}.xls",
-        lambda x: {"date": x.strftime("%d%m%y")}
-        ),
-    "fno_oi_participant":(
+        lambda x: {"date": x.strftime("%d%m%y")},
+    ),
+    "fno_oi_participant": (
         "https://www1.nseindia.com/content/nsccl/fao_participant_oi_{date}.csv",
-        lambda x: {"date": x.strftime("%d%m%Y")}
-        ),
+        lambda x: {"date": x.strftime("%d%m%Y")},
+    ),
     "equity_info": (
-            "https://www.nseindia.com/api/quote-equity?symbol={symbol}",
-            lambda x: {"symbol": x}
-            ),
+        "https://www.nseindia.com/api/quote-equity?symbol={symbol}",
+        lambda x: {"symbol": x},
+    ),
     "trade_info": (
-            "https://www.nseindia.com/api/quote-equity?symbol={symbol}&section=trade_info",
-            lambda x: {"symbol": x}
-            ),
+        "https://www.nseindia.com/api/quote-equity?symbol={symbol}&section=trade_info",
+        lambda x: {"symbol": x},
+    ),
     "ipo_eq": (
-            "https://www.nseindia.com/api/ipo-detail?symbol={symbol}&series=EQ",
-            lambda x: {"symbol": x}
-            ),
+        "https://www.nseindia.com/api/ipo-detail?symbol={symbol}&series=EQ",
+        lambda x: {"symbol": x},
+    ),
     "ipo_bid": (
-            "https://www.nseindia.com/api/ipo-bid-details?symbol={symbol}",
-            lambda x: {"symbol": x}
-            ),
+        "https://www.nseindia.com/api/ipo-bid-details?symbol={symbol}",
+        lambda x: {"symbol": x},
+    ),
 }

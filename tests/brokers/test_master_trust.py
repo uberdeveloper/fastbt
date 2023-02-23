@@ -303,7 +303,7 @@ def test_broker_place_bracket_order(mock_broker):
 
 def test_broker_dict_filter(mock_broker):
     broker = mock_broker
-    some_array = [{"a": i, "b": i ** 2} for i in range(10)]
+    some_array = [{"a": i, "b": i**2} for i in range(10)]
     result = broker.filter(some_array, b=4)
     expected = [{"a": 2, "b": 4}]
     assert result == expected

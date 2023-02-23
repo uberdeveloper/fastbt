@@ -26,7 +26,7 @@ class TestMetaPipeline(unittest.TestCase):
                 self.number = self.number / 2
 
             def pow_2(self):
-                self.number = self.number ** 2
+                self.number = self.number**2
 
             # The following functions are to check
             # positional and keyword arguments support

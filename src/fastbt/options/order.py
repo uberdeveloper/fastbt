@@ -595,6 +595,7 @@ class StopOrder(CompoundOrder):
             disclosed_quantity=disclosed_quantity,
         )
 
+
 class StopLimitOrder(CompoundOrder):
     def __init__(
         self,
@@ -602,7 +603,7 @@ class StopLimitOrder(CompoundOrder):
         side: str,
         trigger_price: float,
         price: float = 0.0,
-        stop_limit_price:float = 0.0,
+        stop_limit_price: float = 0.0,
         quantity: int = 1,
         order_type="MARKET",
         disclosed_quantity: int = 0,
@@ -630,6 +631,7 @@ class StopLimitOrder(CompoundOrder):
             order_type="SL",
             disclosed_quantity=disclosed_quantity,
         )
+
 
 class BracketOrder(StopOrder):
     def __init__(self, target: float, **kwargs):
@@ -892,20 +894,22 @@ class OptionOrder(CompoundOrder):
         for g in gen:
             self._orders.append(g)
 
+
 @dataclass
 class TrailingStopOrder(StopLimitOrder):
     """
     Trailing stop order
     """
-    def __init__(self, trail_by:Tuple[float, float],**kwargs):
-        self.trail_big:float = trail_by[0]
-        self.trail_small:float = trail_by[-1]
+
+    def __init__(self, trail_by: Tuple[float, float], **kwargs):
+        self.trail_big: float = trail_by[0]
+        self.trail_small: float = trail_by[-1]
         super(TrailingStopOrder, self).__init__(**kwargs)
-        self._maxmtm:float = 0
-        self._stop:float = kwargs.get('trigger_price', 0)
+        self._maxmtm: float = 0
+        self._stop: float = kwargs.get("trigger_price", 0)
         self.initial_stop = self._stop
-        self.symbol:str = kwargs.get('symbol')
-        self.quantity:int = kwargs.get('quantity',1)
+        self.symbol: str = kwargs.get("symbol")
+        self.quantity: int = kwargs.get("quantity", 1)
 
     @property
     def stop(self):
@@ -914,25 +918,22 @@ class TrailingStopOrder(StopLimitOrder):
     @property
     def maxmtm(self):
         return self._maxmtm
-    
+
     def _update_maxmtm(self):
         self._maxmtm = max(self.total_mtm, self._maxmtm)
 
     def _update_stop(self):
-        mtm_per_unit = self.maxmtm/self.quantity
-        multiplier = self.trail_small/self.trail_big
-        self._stop = self.initial_stop + (mtm_per_unit*multiplier)
-        
+        mtm_per_unit = self.maxmtm / self.quantity
+        multiplier = self.trail_small / self.trail_big
+        self._stop = self.initial_stop + (mtm_per_unit * multiplier)
+
     def watch(self):
         self._update_maxmtm()
         self._update_stop()
         ltp = self.ltp.get(self.symbol)
         if ltp:
-            #TODO: Implement for sell also
+            # TODO: Implement for sell also
             if ltp < self.stop:
                 order = self.orders[-1]
                 order.order_type = "MARKET"
                 order.modify(broker=self.broker)
-
-
-
