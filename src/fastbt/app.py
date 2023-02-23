@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
-from fastbt.rapid import *
+from fastbt.rapid import backtest
+import pandas as pd
 
 
 class CustomFlask(Flask):

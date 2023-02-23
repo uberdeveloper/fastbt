@@ -15,7 +15,8 @@ def walk_forward(
     ascending: bool = False,
 ) -> pd.DataFrame:
     """
-    Do a simple walk forward test based on constant train and test period on a pandas dataframe
+    Do a simple walk forward test based on constant train
+    and test period on a pandas dataframe
     data
         data as a pandas dataframe
     period

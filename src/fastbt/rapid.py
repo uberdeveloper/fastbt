@@ -349,7 +349,10 @@ def backtest(
     """
     if (data is None) and ((tablename is None) or (connection is None)):
         raise ValueError(
-            "No proper data source.\nEither specify a database connection and tablename or provide a dataframe"
+            """
+            No proper data source.
+            Either specify a database connection and tablename or provide a dataframe
+            """
         )
 
     if data is None:

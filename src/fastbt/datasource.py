@@ -7,7 +7,7 @@ Requirements
 1) Input type should be a pandas dataframe
 2) Input should have both symbol and timestamp columns
 3) Indexes are reset and existing index dropped. So, if symbol or
-   timestamp is in the index, convert them into columns  
+   timestamp is in the index, convert them into columns
 4) All columns are renamed to lower case
 """
 
@@ -165,7 +165,8 @@ class DataSource(object):
         kwargs
             kwargs for the pandas window function
         This is just a wrapper for
-        >>> df.groupby(groupby)[on].transform(lambda x: x.rolling(**kwargs).agg(function))
+        >>> df.groupby(groupby)[on].transform(
+                lambda x: x.rolling(**kwargs).agg(function))
         """
         grouped = self.data.groupby(groupby)
         if col_name == "auto":

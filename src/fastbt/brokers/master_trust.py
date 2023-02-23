@@ -208,7 +208,7 @@ class MasterTrust(Broker):
                 return resp
             else:
                 return resp["data"]
-        except:
+        except Exception as e:
             return {}
 
     def _get_instrument_token(self, symbol, exchange="NSE", contracts=None):

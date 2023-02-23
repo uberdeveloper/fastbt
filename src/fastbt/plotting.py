@@ -3,6 +3,8 @@ A plotting module for easy plotting of financial charts
 """
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource
+import pandas as pd
+from math import pi
 
 
 def candlestick_plot(data, title="Candlestick", interval="5min"):

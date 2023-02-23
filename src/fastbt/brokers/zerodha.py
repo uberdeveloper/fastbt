@@ -168,7 +168,7 @@ class Zerodha(Broker):
             self.ticker = KiteTicker(
                 api_key=self._api_key, access_token=self.kite.access_token
             )
-        except:
+        except Exception as e:
             print("Unknown Exception")
             self._login()
             self._shortcuts()
