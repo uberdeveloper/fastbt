@@ -55,4 +55,20 @@ file_patterns = {
         "https://www1.nseindia.com/content/nsccl/fao_participant_oi_{date}.csv",
         lambda x: {"date": x.strftime("%d%m%Y")}
         ),
+    "equity_info": (
+            "https://www.nseindia.com/api/quote-equity?symbol={symbol}",
+            lambda x: {"symbol": x}
+            ),
+    "trade_info": (
+            "https://www.nseindia.com/api/quote-equity?symbol={symbol}&section=trade_info",
+            lambda x: {"symbol": x}
+            ),
+    "ipo_eq": (
+            "https://www.nseindia.com/api/ipo-detail?symbol={symbol}&series=EQ",
+            lambda x: {"symbol": x}
+            ),
+    "ipo_bid": (
+            "https://www.nseindia.com/api/ipo-bid-details?symbol={symbol}",
+            lambda x: {"symbol": x}
+            ),
 }
