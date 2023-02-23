@@ -89,7 +89,7 @@ class DataLoader(object):
     def _initialize_HDF_file(self):
         import hashlib
 
-        hash = hashlib.sha1().hexdigest()
+        hashlib.sha1().hexdigest()
         with pd.HDFStore(self.engine) as store:
             s = pd.Series(["hash" * 2])
             if len(store.keys()) == 0:
@@ -269,7 +269,6 @@ class DataLoader(object):
                     {"adj_value": row.at["to"] / row.at["from"], "cols": ["volume"]}
                 )
                 temp = apply_adjustment(temp, **params)
-                cols = ["open", "high", "low", "close", "volume"]
                 temp.index = df.loc[df[symbol] == row.at[symbol]].index
                 df.loc[temp.index] = temp
             df.to_sql(self.tablename, self.engine, if_exists="replace", index=False)
@@ -291,7 +290,6 @@ class DataLoader(object):
                     {"adj_value": row.at["to"] / row.at["from"], "cols": ["volume"]}
                 )
                 temp = apply_adjustment(temp, **params)
-                cols = ["open", "high", "low", "close", "volume"]
                 temp.index = df.loc[df[symbol] == row.at[symbol]].index
                 df.loc[temp.index] = temp
             df.to_hdf(

@@ -5,11 +5,9 @@ are derived
 from fastbt.tradebook import TradeBook
 from fastbt.utils import tick
 from collections import namedtuple, Counter, defaultdict
-from itertools import groupby
 from enum import Enum
 import inspect
 import datetime
-import os
 import yaml
 
 
@@ -190,7 +188,7 @@ class ExtTradingSystem(TradingSystem):
     def __init__(self, name="trading_system", symbol=None, **kwargs):
         # Default arguments and values
         date = datetime.datetime.today().strftime("%Y-%m-%d")
-        Time = namedtuple("Time", "hour,minute")
+        namedtuple("Time", "hour,minute")
         self.date = date
         self.log = {}
         self._symbol = symbol
@@ -333,8 +331,7 @@ class Broker:
             "order_cancel": {},
             "order_modify": {},
         }
-        override = kwargs.pop("is_override", True)
-        name = self.__class__.__name__
+        kwargs.pop("is_override", True)
         file_path = inspect.getfile(self.__class__)[:-3]
         override_file = kwargs.pop("override_file", f"{file_path}.yaml")
         try:

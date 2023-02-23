@@ -7,7 +7,7 @@ import numpy as np
 import os
 
 try:
-    import pyfolio as pf
+    pass
 except ImportError:
     print("pyfolio not installed")
 

@@ -3,7 +3,6 @@ A plotting module for easy plotting of financial charts
 """
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource
-from bokeh.layouts import gridplot, row, column, layout
 
 
 def candlestick_plot(data, title="Candlestick", interval="5min"):

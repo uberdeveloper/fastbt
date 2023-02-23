@@ -1,8 +1,7 @@
 import pendulum
-from typing import List, Tuple, Optional, Dict, Sequence, Any
+from typing import List, Tuple, Optional, Dict, Any
 from fastbt.Meta import TradingSystem
-from pydantic import BaseModel, ValidationError, validator
-from collections import defaultdict
+from pydantic import BaseModel
 from copy import deepcopy
 
 # Declare global variables

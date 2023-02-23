@@ -11,7 +11,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from numba import jit, njit
 import os
-from fastbt.utils import multi_args
 import inspect
 
 
@@ -36,7 +35,7 @@ def v_cusum(array):
     returns
         pos and neg arrays
     """
-    L = len(array)
+    len(array)
     pos = [0]
     neg = [0]
     pos_val = 0
@@ -519,7 +518,7 @@ def candlestick_plot(data):
     https://bokeh.pydata.org/en/latest/docs/gallery/candlestick.html
     """
     from math import pi
-    from bokeh.plotting import figure, show, output_file
+    from bokeh.plotting import figure
     from bokeh.models import ColumnDataSource
 
     df = data.copy()
@@ -651,14 +650,10 @@ def summary_plot(data):
     from bokeh.models import (
         TextInput,
         Button,
-        Select,
         MultiSelect,
-        ColumnDataSource,
         PreText,
-        Paragraph,
     )
-    from bokeh.plotting import figure
-    from bokeh.layouts import row, column, layout
+    from bokeh.layouts import layout
 
     df = data.copy()
 
@@ -692,15 +687,12 @@ def slider_plot(data, cols):
         columns for which sliders are to be created
     """
     from bokeh.models import (
-        TextInput,
         Button,
         RangeSlider,
         MultiSelect,
-        ColumnDataSource,
         PreText,
     )
-    from bokeh.plotting import figure
-    from bokeh.layouts import row, column, layout, gridplot
+    from bokeh.layouts import column, layout
 
     df = data.copy()
 
@@ -1349,7 +1341,7 @@ def clean_ticks(price, threshold=10):
 
 class WalkForward:
     def __init__(self, data, lb=120, rb=30, factor=None, column=None):
-        from collections import defaultdict, namedtuple
+        from collections import defaultdict
 
         self.data = data
         self.lb = lb

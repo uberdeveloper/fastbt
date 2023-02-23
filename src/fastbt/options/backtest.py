@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from typing import List, Tuple
 
 
@@ -37,8 +36,13 @@ class OptionsBacktest:
         option_strikes = []
         for k, v in prices.items():
             strike = (int(v / 100) * 100) + 100
-            opt_type = lambda x: "CE" if x == "CALL" else "PE"
-            sign = lambda x: 1 if x == "BUY" else -1
+
+            def opt_type(x):
+                return "CE" if x == "CALL" else "PE"
+
+            def sign(x):
+                return 1 if x == "BUY" else -1
+
             for ctx in contracts:
                 side, opt, strk = ctx
                 tup = (k.date(), strike + (strk * 100), opt_type(opt), sign(side))

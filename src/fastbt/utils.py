@@ -2,13 +2,12 @@ import pandas as pd
 import numpy as np
 import itertools as it
 import functools as ft
-from numpy import zeros, arange
-from collections import defaultdict
+from numpy import arange
 from typing import List, Dict, Any
 import urllib.parse as parse
 
 try:
-    from numba import jit, njit, float64
+    from numba import njit
 except ImportError:
     print("Install numba")
 
@@ -582,14 +581,6 @@ def stockmock_parser(url: str) -> Dict[str, Any]:
     """
 
     def parse_positions(position):
-        mapper = {
-            "SLP": "stop_loss",
-            "TPP": "target",
-            "CW": "expiry",
-            "TSLP": "trailing_stop",
-            "WP": "wait_premium",
-        }
-        pos = []
         dct = {}
         args = [p.split("_") for p in position]
         dct["instrument"] = args[0][0]

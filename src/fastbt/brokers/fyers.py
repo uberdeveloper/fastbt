@@ -1,4 +1,3 @@
-import pandas as pd
 from fastbt.Meta import Broker, pre, post
 from selenium import webdriver
 from selenium.webdriver.common.by import By

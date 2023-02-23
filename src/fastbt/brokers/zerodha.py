@@ -1,22 +1,17 @@
 import pandas as pd
 import pyotp
-from fastbt.Meta import Broker, Status, pre, post
+from fastbt.Meta import Broker, pre, post
 
 from kiteconnect import KiteConnect
 from kiteconnect import KiteTicker
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from kiteconnect.exceptions import (
     TokenException,
-    NetworkException,
-    GeneralException,
-    KiteException,
-    InputException,
 )
 
 

@@ -207,7 +207,6 @@ def metrics(data, capital=100000, benchmark=0.0):
     This is just to check results
     """
     grouped = data.groupby("timestamp")
-    cols = ["profit", "commission", "slippage", "net_profit"]
     profit = data.profit.sum()
     commission = data.commission.sum()
     slippage = data.slippage.sum()
@@ -364,7 +363,8 @@ def backtest(
         )
 
     # Check whether any data is available
-    isNotEmpty = lambda x: True if len(data) > 0 else False
+    def isNotEmpty(x):
+        return True if len(data) > 0 else False
 
     if isNotEmpty(data):
         data = prepare_data(data, columns)

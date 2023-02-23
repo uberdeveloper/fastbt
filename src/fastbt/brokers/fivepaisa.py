@@ -1,13 +1,10 @@
-from fastbt.Meta import Broker, Status, pre, post
+from fastbt.Meta import Broker, pre, post
 from py5paisa import FivePaisaClient
 from py5paisa.order import (
     Order,
     Exchange,
     ExchangeSegment,
-    OrderFor,
     OrderType,
-    OrderValidity,
-    AHPlaced,
 )
 
 
@@ -89,7 +86,7 @@ class FivePaisa(Broker):
         kwargs.update(defaults)
         symbol = kwargs.pop("symbol")
         exchange = kwargs.pop("exchange")
-        side = kwargs.pop("side", "BUY")
+        kwargs.pop("side", "BUY")
         scrip_code = self._get_instrument_token(symbol=symbol, exchange=exchange)
         order = Order(
             order_type=self.side.get("BUY"),

@@ -1,12 +1,11 @@
 import os
 import requests
 import pyotp
-from fastbt.Meta import Broker, Status, pre, post
+from fastbt.Meta import Broker, post
 from requests_oauthlib import OAuth2Session
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -716,7 +715,6 @@ class MasterTrust(Broker):
         Modify all orders by the given condition
         """
         responses = []
-        url = f"{self.base_url}/api/v1/orders"
         orders = self.pending_orders()
         orders = self.filter(orders, **kwargs)
         if len(orders) == 0:
