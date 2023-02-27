@@ -1,6 +1,16 @@
 from fastbt.options.utils import *
 import pytest
 import pendulum
+import random
+
+
+@pytest.fixture
+def expiry_dates():
+    date = pendulum.date(2021, 1, 31)
+    dates = []
+    for i in range(18):
+        dates.append(date.add(months=i))
+    return dates
 
 
 @pytest.mark.parametrize(
@@ -24,3 +34,19 @@ def test_get_atm(test_input, expected):
 )
 def test_get_itm(test_input, expected):
     assert get_itm(**test_input) == expected
+
+
+def test_get_expiry(expiry_dates):
+    assert get_expiry(expiry_dates, sort=False) == pendulum.date(2021, 1, 31)
+    assert get_expiry(expiry_dates, 2, sort=False) == pendulum.date(2021, 3, 31)
+    assert get_expiry(expiry_dates, -1, sort=False) == pendulum.date(2022, 6, 30)
+
+
+def test_get_expiry_unsorted(expiry_dates):
+    dates = expiry_dates[:]
+    random.shuffle(dates)
+    # Make sure the first date is not the least expiry
+    assert dates[0] != pendulum.date(2021, 1, 31)
+    assert get_expiry(dates) == pendulum.date(2021, 1, 31)
+    assert get_expiry(dates, 2) == pendulum.date(2021, 3, 31)
+    assert get_expiry(dates, -1) == pendulum.date(2022, 6, 30)
