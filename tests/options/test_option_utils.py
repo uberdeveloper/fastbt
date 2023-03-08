@@ -83,3 +83,17 @@ def test_get_yearly_expiry(expiry_dates2):
 def test_get_all_single_expiry_date():
     dates = [pendulum.today()]
     assert get_expiry(dates) == get_monthly_expiry(dates) == get_yearly_expiry(dates)
+
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [
+        ((2021, 2, 2), (2021, 2, 12)),
+        ((2023, 8, 0), (2023, 8, 4)),
+        ((2023, 8, 1), (2023, 8, 4)),
+        ((2024, 7, -1), (2024, 7, 26)),
+    ],
+)
+def test_get_expiry_by(test_input, expected, expiry_dates2):
+    dates = expiry_dates2
+    assert get_expiry_by(dates, *test_input) == pendulum.date(*expected)
