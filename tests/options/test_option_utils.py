@@ -24,7 +24,7 @@ def expiry_dates2():
     dates = []
     for p in period.range("weeks"):
         dates.append(p)
-    return dates
+    return sorted(dates)
 
 
 @pytest.mark.parametrize(
@@ -85,6 +85,14 @@ def test_get_all_single_expiry_date():
     assert get_expiry(dates) == get_monthly_expiry(dates) == get_yearly_expiry(dates)
 
 
+def test_get_expiry_by_no_args(expiry_dates2):
+    dates = expiry_dates2
+    assert get_expiry_by(dates) == dates[0]
+    assert get_expiry_by(dates, n=10) == dates[9]
+    assert get_expiry_by(dates, n=101) == dates[100]
+    assert get_expiry_by(dates, n=-1) == dates[-1]
+
+
 @pytest.mark.parametrize(
     "test_input, expected",
     [
@@ -92,6 +100,8 @@ def test_get_all_single_expiry_date():
         ((2023, 8, 0), (2023, 8, 4)),
         ((2023, 8, 1), (2023, 8, 4)),
         ((2024, 7, -1), (2024, 7, 26)),
+        ((2024, 0, 10), (2024, 3, 8)),
+        ((0, 0, -7), (2024, 7, 19)),
     ],
 )
 def test_get_expiry_by(test_input, expected, expiry_dates2):

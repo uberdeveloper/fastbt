@@ -24,6 +24,7 @@ def get_expiry(
     1) expiries start at 1 (not 0)
     """
     n = n if n < 1 else n - 1
+    print("int0")
     if sort:
         return sorted(expiries)[n]
     else:
@@ -91,8 +92,8 @@ def get_yearly_expiry(
 
 def get_expiry_by(
     expiries: List[pendulum.DateTime],
-    year=int,
-    month=int,
+    year: int = 0,
+    month: int = 0,
     n: int = 1,
     sort: bool = True,
 ) -> pendulum.DateTime:
@@ -102,20 +103,34 @@ def get_expiry_by(
     expiries
         list of sorted expiries
     year
-        year to filter
+        year to filter, if 0 all years are taken
     month
-        month to filter
+        month to filter, if 0 all months are taken
     n
         number of expiry to return in the above filter
     sorted
         if True, the list is sorted and then values are returned.
+
+    Note
+    -----
+    1) If month and year are both zero, the nth expiry is returned
     """
-    n = n if n < 1 else n - 1
     if len(expiries) == 1:
         return expiries[0]
     if sort:
         expiries = sorted(expiries)
-    filtered = [
-        expiry for expiry in expiries if (expiry.year == year and expiry.month == month)
-    ]
+
+    if (month == 0) and (year == 0):
+        return get_expiry(expiries, n=n)
+    elif month == 0:
+        filtered = [expiry for expiry in expiries if expiry.year == year]
+    elif year == 0:
+        filtered = [expiry for expiry in expiries if expiry.month == month]
+    else:
+        filtered = [
+            expiry
+            for expiry in expiries
+            if (expiry.year == year and expiry.month == month)
+        ]
+    n = n if n < 1 else n - 1
     return filtered[n]
