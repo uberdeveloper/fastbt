@@ -1,6 +1,6 @@
 import fastbt.utils as utils
 import pendulum
-from typing import List, Union
+from typing import List, Union, Optional
 
 get_itm = utils.get_itm
 get_atm = utils.get_atm
@@ -32,10 +32,11 @@ def get_expiry(
 
 def get_monthly_expiry(
     expiries: List[pendulum.DateTime], n: int = 1, sort: bool = True
-) -> pendulum.DateTime:
+) -> Optional[pendulum.DateTime]:
     """
     get the nth monthly expiry from the list of expiries
     returns the last expiry in the month
+    expiries start at 1 (not 0)
     expiries
         list of sorted expiries
     n
@@ -45,9 +46,10 @@ def get_monthly_expiry(
         if True, the list is sorted and then values are returned.
     Note
     ----
-    1) expiries start at 1 (not 0)
-    2) the last expiry in the month is returned
+    1) returns None if the expiry cannot be found
     """
+    if len(expiries) == 1:
+        return expiries[0]
     if sort:
         expiries = sorted(expiries)
     i = 1
@@ -57,3 +59,33 @@ def get_monthly_expiry(
             i += 1
             if i > n:
                 return prev
+    return date
+
+
+def get_yearly_expiry(
+    expiries: List[pendulum.DateTime], n: int = 1, sort: bool = True
+) -> Optional[pendulum.DateTime]:
+    """
+    get the nth yearly expiry from the list of expiries
+    returns the last expiry in the year
+    expiries start at 1 (not 0)
+    expiries
+        list of sorted expiries
+    n
+        number of expiry to return
+        this is just a simple python list index
+    sorted
+        if True, the list is sorted and then values are returned.
+    """
+    if len(expiries) == 1:
+        return expiries[0]
+    if sort:
+        expiries = sorted(expiries)
+    i = 1
+    prev = expiries[0]
+    for prev, date in zip(expiries[:-1], expiries[1:]):
+        if prev.year != date.year:
+            i += 1
+            if i > n:
+                return prev
+    return date

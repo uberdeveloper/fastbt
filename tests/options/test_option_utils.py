@@ -71,3 +71,15 @@ def test_get_monthly_expiry(expiry_dates2):
     assert get_monthly_expiry(dates) == pendulum.date(2021, 1, 29)
     assert get_monthly_expiry(dates, 5) == pendulum.date(2021, 5, 28)
     assert get_monthly_expiry(dates, 27) == pendulum.date(2023, 3, 31)
+
+
+def test_get_yearly_expiry(expiry_dates2):
+    dates = expiry_dates2
+    assert get_yearly_expiry(dates) == pendulum.date(2021, 12, 31)
+    assert get_yearly_expiry(dates, 2) == pendulum.date(2022, 12, 30)
+    assert get_yearly_expiry(dates, 4) == pendulum.date(2024, 8, 30)
+
+
+def test_get_all_single_expiry_date():
+    dates = [pendulum.today()]
+    assert get_expiry(dates) == get_monthly_expiry(dates) == get_yearly_expiry(dates)
