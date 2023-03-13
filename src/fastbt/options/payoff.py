@@ -91,7 +91,7 @@ class OptionPayoff(BaseModel):
         contract = OptionContract(
             strike=strike, option=opt_type, side=side, premium=premium, quantity=qty
         )
-        self._options.add(contract)
+        self._options.append(contract)
 
     @property
     def options(self) -> List[OptionContract]:
