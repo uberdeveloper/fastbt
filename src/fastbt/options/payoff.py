@@ -2,9 +2,9 @@
 The options payoff module
 """
 from typing import List, Dict, Optional, Union, Any
-from dataclasses import dataclass, field
 from collections import namedtuple
 from enum import Enum
+from pydantic import BaseModel, PrivateAttr, Field
 
 
 class Opt(str, Enum):
@@ -17,8 +17,7 @@ class Side(Enum):
     SELL = -1
 
 
-@dataclass
-class OptionContract:
+class OptionContract(BaseModel):
     strike: Union[int, float]
     option: Opt
     side: Side
@@ -26,8 +25,7 @@ class OptionContract:
     quantity: int
 
 
-@dataclass
-class OptionPayoff:
+class OptionPayoff(BaseModel):
     """
     A simple class for calculating option payoffs
     given spot prices and options
@@ -43,7 +41,7 @@ class OptionPayoff:
     """
 
     spot: float = 0.0
-    _options: List[OptionContract] = field(default_factory=list)
+    _options: List[OptionContract] = PrivateAttr(default_factory=list)
 
     def _payoff(self, strike: float, option: str, position: str, **kwargs) -> float:
         """
@@ -62,11 +60,17 @@ class OptionPayoff:
         else:
             return 0
 
-    def add(
+    def add(self, contract: OptionContract):
+        """
+        Add an option contract
+        """
+        self._options.append(contract)
+
+    def add_contract(
         self,
         strike: float,
-        opt_type: str = "C",
-        position: str = "B",
+        opt_type: Opt = Opt.CALL,
+        side: Side = Side.BUY,
         premium: float = 0.0,
         qty: int = 1,
     ) -> None:
@@ -75,7 +79,7 @@ class OptionPayoff:
         strike
             strike price of the options
         opt_type
-            option type - C for call and P for put
+            option type - c for call and p for put
         position
             whether you are Buying or Selling the option
             B for buy and S for sell
@@ -84,21 +88,13 @@ class OptionPayoff:
         qty
             quantity of options contract
         """
-        if position.upper() == "B":
-            premium = 0 - abs(premium)
-        elif position.upper() == "S":
-            qty = 0 - abs(qty)
-        self._options.append(
-            {
-                "strike": strike,
-                "option": opt_type,
-                "position": position,
-                "premium": premium,
-                "qty": qty,
-            }
+        contract = OptionContract(
+            strike=strike, option=opt_type, side=side, premium=premium, quantity=qty
         )
+        self._options.add(contract)
 
-    def options(self) -> List[Dict]:
+    @property
+    def options(self) -> List[OptionContract]:
         """
         return the list of options
         """
