@@ -4,6 +4,14 @@ from fastbt.Meta import Broker
 import uuid
 import pendulum
 from collections import Counter, defaultdict
+import warnings
+
+DEPRECIATION_WARNING = """
+This module would be removed from version 0.7.0
+Use omspy for live order placement with brokers
+*OptionPayoff* is moved to `omspy.options.backtest`
+"""
+warnings.warn(DEPRECIATION_WARNING, DeprecationWarning, stacklevel=2)
 
 
 def get_option(spot: float, num: int = 0, step: float = 100.0) -> float:

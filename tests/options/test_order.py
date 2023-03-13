@@ -1,12 +1,26 @@
 import pytest
 from unittest.mock import patch, call
-from fastbt.options.order import *
 from fastbt.Meta import Broker
 from collections import Counter
 import pendulum
 import yaml
 from copy import deepcopy
 from fastbt.brokers.zerodha import Zerodha
+import warnings
+
+warnings.simplefilter("always")
+
+with warnings.catch_warnings(record=True) as w:
+    from fastbt.options.order import *
+
+    message = str(w[-1].message)
+    assert len(w) == 1
+    assert issubclass(w[-1].category, DeprecationWarning)
+    assert DEPRECIATION_WARNING == message
+    assert "omspy" in message
+
+
+from fastbt.options.order import *
 
 with open("tests/data/option_strategies.yaml") as f:
     test_data = yaml.safe_load(f)
