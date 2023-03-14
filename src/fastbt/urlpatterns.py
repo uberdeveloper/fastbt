@@ -57,18 +57,22 @@ file_patterns = {
     ),
     "equity_info": (
         "https://www.nseindia.com/api/quote-equity?symbol={symbol}",
-        lambda x: {"symbol": x},
+        lambda x: {"symbol": x.upper()},
     ),
     "trade_info": (
         "https://www.nseindia.com/api/quote-equity?symbol={symbol}&section=trade_info",
-        lambda x: {"symbol": x},
+        lambda x: {"symbol": x.upper()},
     ),
     "ipo_eq": (
         "https://www.nseindia.com/api/ipo-detail?symbol={symbol}&series=EQ",
-        lambda x: {"symbol": x},
+        lambda x: {"symbol": x.upper()},
     ),
     "ipo_bid": (
         "https://www.nseindia.com/api/ipo-bid-details?symbol={symbol}",
-        lambda x: {"symbol": x},
+        lambda x: {"symbol": x.upper()},
+    ),
+    "hist_data": (
+        "https://www.nseindia.com/api/historical/cm/equity?symbol={symbol}",
+        lambda x: {"symbol": x.upper()},
     ),
 }
