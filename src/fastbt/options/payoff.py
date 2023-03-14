@@ -23,22 +23,36 @@ class OptionContract(BaseModel):
     A basic option contract
     Could also include futures and holdings
     strike
-        strike price of the contract
+        strike price of the contract.
+        For futures/holdings, enter the price at which the
+        contract is entered into
     option
         type of option contract could be call,put,future or holding
     side
         buy or sell/ 1 for buy and -1 for sell
     premium
-        premium in case of an option, price in case of future or holding
+        premium in case of an option
     quantity
         quantity of the contract
     """
 
-    strike: Optional[Union[int, float]]
+    strike: Union[int, float]
     option: Opt
     side: Side
-    premium: float
+    premium: Optional[float]
     quantity: int = 1
+
+    def value(self, spot: float):
+        """
+        Calculate the value of this contract given the spot
+        at expiry for a single quantity
+        """
+        if self.option == Opt.CALL:
+            return max(spot - self.strike, 0)
+        elif self.option == Opt.PUT:
+            return max(self.strike - spot, 0)
+        else:
+            return spot - self.strike
 
 
 class OptionPayoff(BaseModel):

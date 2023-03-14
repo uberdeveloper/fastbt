@@ -17,10 +17,10 @@ def test_option_contract_defaults():
 
 
 def test_option_contract_option_types():
-    contract = OptionContract(option="h", side=1, premium=15000)
-    assert contract.strike is None
+    contract = OptionContract(option="h", side=1, strike=15000)
+    assert contract.premium is None
     assert contract.option == Opt.HOLDING
-    assert contract.premium == 15000
+    assert contract.strike == 15000
     assert contract.side == Side.BUY
     assert contract.quantity == 1
 
@@ -41,11 +41,11 @@ def test_payoff_add_contract(simple):
     assert p.options[0].option == Opt.CALL
 
 
-def test_add_payoff_add(simple):
+def test_payoff_add(simple):
     p = simple
     kwargs = dict(strike=12000, option="p", side=1, premium=100, quantity=50)
     kwargs2 = dict(strike=12400, option="c", side=-1, premium=100, quantity=50)
-    kwargs3 = dict(option="f", side=-1, premium=12500, quantity=50)
+    kwargs3 = dict(option="f", side=-1, strike=12500, quantity=50)
     p.add(OptionContract(**kwargs))
     p.add(OptionContract(**kwargs2))
     p.add(OptionContract(**kwargs3))
@@ -53,3 +53,33 @@ def test_add_payoff_add(simple):
     assert p.options[0].side.value == 1
     assert p.options[0].option == "p"
     assert p.options[2].option == Opt.FUTURE
+
+
+def test_payoff_clear(simple):
+    p = simple
+    kwargs = dict(strike=12000, option="p", side=1, premium=100, quantity=50)
+    kwargs2 = dict(strike=12400, option="c", side=-1, premium=100, quantity=50)
+    kwargs3 = dict(option="f", side=-1, strike=12500, quantity=50)
+    p.add(OptionContract(**kwargs))
+    p.add(OptionContract(**kwargs2))
+    p.add(OptionContract(**kwargs3))
+    assert len(p.options) == 3
+    p.clear()
+    assert len(p.options) == 0
+
+
+@pytest.mark.parametrize(
+    "strike,option,spot,expected",
+    [
+        (18200, "c", 18178, 0),
+        (18200, "p", 18178, 22),
+        (18200, "f", 18395, 195),
+        (18200, "f", 18100, -100),
+        (18200, "h", 18100, -100),
+    ],
+)
+def test_option_contract_value(strike, option, spot, expected):
+    contract = OptionContract(
+        strike=strike, option=option, side=Side.BUY, premium=150, quantity=1
+    )
+    assert contract.value(spot=spot) == expected
