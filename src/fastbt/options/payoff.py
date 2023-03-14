@@ -1,15 +1,16 @@
 """
 The options payoff module
 """
-from typing import List, Dict, Optional, Union, Any
-from collections import namedtuple
+from typing import List, Optional, Union
 from enum import Enum
-from pydantic import BaseModel, PrivateAttr, Field
+from pydantic import BaseModel, PrivateAttr
 
 
 class Opt(str, Enum):
     CALL = "c"
     PUT = "p"
+    FUTURE = "f"
+    HOLDING = "h"
 
 
 class Side(Enum):
@@ -18,11 +19,26 @@ class Side(Enum):
 
 
 class OptionContract(BaseModel):
-    strike: Union[int, float]
+    """
+    A basic option contract
+    Could also include futures and holdings
+    strike
+        strike price of the contract
+    option
+        type of option contract could be call,put,future or holding
+    side
+        buy or sell/ 1 for buy and -1 for sell
+    premium
+        premium in case of an option, price in case of future or holding
+    quantity
+        quantity of the contract
+    """
+
+    strike: Optional[Union[int, float]]
     option: Opt
     side: Side
     premium: float
-    quantity: int
+    quantity: int = 1
 
 
 class OptionPayoff(BaseModel):

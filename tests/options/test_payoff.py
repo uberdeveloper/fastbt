@@ -16,6 +16,15 @@ def test_option_contract_defaults():
     assert contract.quantity == 1
 
 
+def test_option_contract_option_types():
+    contract = OptionContract(option="h", side=1, premium=15000)
+    assert contract.strike is None
+    assert contract.option == Opt.HOLDING
+    assert contract.premium == 15000
+    assert contract.side == Side.BUY
+    assert contract.quantity == 1
+
+
 def test_payoff_defaults(simple):
     p = simple
     assert p.spot == 0
@@ -36,8 +45,11 @@ def test_add_payoff_add(simple):
     p = simple
     kwargs = dict(strike=12000, option="p", side=1, premium=100, quantity=50)
     kwargs2 = dict(strike=12400, option="c", side=-1, premium=100, quantity=50)
+    kwargs3 = dict(option="f", side=-1, premium=12500, quantity=50)
     p.add(OptionContract(**kwargs))
     p.add(OptionContract(**kwargs2))
-    assert len(p.options) == 2
+    p.add(OptionContract(**kwargs3))
+    assert len(p.options) == 3
     assert p.options[0].side.value == 1
     assert p.options[0].option == "p"
+    assert p.options[2].option == Opt.FUTURE
