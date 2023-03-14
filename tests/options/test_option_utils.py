@@ -107,3 +107,22 @@ def test_get_expiry_by_no_args(expiry_dates2):
 def test_get_expiry_by(test_input, expected, expiry_dates2):
     dates = expiry_dates2
     assert get_expiry_by(dates, *test_input) == pendulum.date(*expected)
+
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [
+        (7, (2021, 1, 8)),
+        (100, (2021, 4, 16)),
+        (1000, (2023, 9, 29)),
+    ],
+)
+def test_get_expiry_by_days(test_input, expected, expiry_dates2):
+    dates = expiry_dates2
+    known = pendulum.datetime(2021, 1, 1)
+    with pendulum.test(known):
+        assert get_expiry_by_days(dates, test_input) == pendulum.date(*expected)
+
+
+def test_get_expiry_by_dates_no_matching_date(expiry_dates2):
+    assert get_expiry_by_days(expiry_dates2, 10000) is None

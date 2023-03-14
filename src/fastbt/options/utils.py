@@ -108,7 +108,7 @@ def get_expiry_by(
         month to filter, if 0 all months are taken
     n
         number of expiry to return in the above filter
-    sorted
+    sort
         if True, the list is sorted and then values are returned.
 
     Note
@@ -134,3 +134,34 @@ def get_expiry_by(
         ]
     n = n if n < 1 else n - 1
     return filtered[n]
+
+
+def get_expiry_by_days(
+    expiries: List[pendulum.DateTime], days: int, sort: bool = True
+) -> pendulum.DateTime:
+    """
+    Get the nearest expiry from current date till the given number of days
+    expiries
+        list of expiries
+    days
+        number of days to hold the option
+    sort
+        if True, the list is sorted and then expiry is calculated
+    Note
+    ----
+    1) returns the nearest matching expiry exceeding the given number of days
+    2) if the last expiry is less than the given days, no value is returned
+    """
+    if len(expiries) == 1:
+        return expiries[0]
+    if sort:
+        expiries = sorted(expiries)
+    today = pendulum.today(tz="local").date()
+    target_date = today.add(days=days)
+    if expiries[-1] < target_date:
+        # return None if the target date is greater than last expiry
+        return
+    for i, expiry in enumerate(expiries):
+        if expiry >= target_date:
+            return expiry
+    return expiry
