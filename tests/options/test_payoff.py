@@ -83,3 +83,25 @@ def test_option_contract_value(strike, option, spot, expected):
         strike=strike, option=option, side=Side.BUY, premium=150, quantity=1
     )
     assert contract.value(spot=spot) == expected
+
+
+@pytest.mark.parametrize(
+    "strike,option,side,premium,quantity,spot,expected",
+    [
+        (18200, "c", Side.BUY, 120, 1, 18175, -120),
+        (18200, "c", Side.SELL, 120, 1, 18175, 120),
+        (18234, "f", -1, 120, 1, 18245, -11),
+        (18234, "h", 1, 0, 1, 18245, 11),
+        (18200, "c", 1, 120, 1, 18290, -30),
+        (18200, "p", 1, 100, 1, 18290, -100),
+        (18200, "p", Side.SELL, 100, 1, 18200, 100),
+        (18200, "p", Side.BUY, 100, 10, 18200, -1000),
+    ],
+)
+def test_option_contract_net_value(
+    strike, option, side, premium, quantity, spot, expected
+):
+    contract = OptionContract(
+        strike=strike, option=option, side=side, premium=premium, quantity=quantity
+    )
+    assert contract.net_value(spot=spot) == expected

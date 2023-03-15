@@ -42,7 +42,7 @@ class OptionContract(BaseModel):
     premium: Optional[float]
     quantity: int = 1
 
-    def value(self, spot: float):
+    def value(self, spot: float) -> float:
         """
         Calculate the value of this contract given the spot
         at expiry for a single quantity
@@ -53,6 +53,17 @@ class OptionContract(BaseModel):
             return max(self.strike - spot, 0)
         else:
             return spot - self.strike
+
+    def net_value(self, spot: float) -> float:
+        """
+        Return the net value for this contract given the
+        spot price at expiry
+        """
+        val = self.value(spot=spot)
+        if self.option in (Opt.CALL, Opt.PUT):
+            return (val - self.premium) * self.side.value * self.quantity
+        else:
+            return val * self.side.value * self.quantity
 
 
 class OptionPayoff(BaseModel):
