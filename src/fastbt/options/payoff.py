@@ -4,6 +4,7 @@ The options payoff module
 from typing import List, Optional, Union
 from enum import Enum
 from pydantic import BaseModel, PrivateAttr
+import logging
 
 
 class Opt(str, Enum):
@@ -84,24 +85,7 @@ class OptionPayoff(BaseModel):
     spot: float = 0.0
     _options: List[OptionContract] = PrivateAttr(default_factory=list)
 
-    def _payoff(self, strike: float, option: str, position: str, **kwargs) -> float:
-        """
-        calculate the payoff for the option
-        """
-        comb = (option, position)
-        spot = kwargs.get("spot", self.spot)
-        if comb == ("C", "B"):
-            return max(spot - strike, 0)
-        elif comb == ("P", "B"):
-            return max(strike - spot, 0)
-        elif comb == ("C", "S"):
-            return min(0, strike - spot)
-        elif comb == ("P", "S"):
-            return min(0, spot - strike)
-        else:
-            return 0
-
-    def add(self, contract: OptionContract):
+    def add(self, contract: OptionContract) -> None:
         """
         Add an option contract
         """
@@ -147,14 +131,13 @@ class OptionPayoff(BaseModel):
         """
         self._options = []
 
-    def calc(self, spot: Optional[float] = None) -> Union[List, None]:
+    def payoff(self, spot: Optional[float] = None) -> float:
         """
         Calculate the payoff
         """
-        if not (spot):
+        if not spot:
             spot = self.spot
-        payoffs = []
-        for opt in self.options:
-            profit = (self._payoff(**opt, spot=spot) + opt["premium"]) * abs(opt["qty"])
-            payoffs.append(profit)
-        return payoffs
+        if len(self.options) == 0:
+            logging.debug("No contracts added, nothing to calculate")
+            return 0.0
+        return sum([contract.net_value(spot) for contract in self.options])

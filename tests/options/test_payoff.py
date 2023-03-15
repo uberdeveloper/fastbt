@@ -7,6 +7,18 @@ def simple():
     return OptionPayoff()
 
 
+@pytest.fixture
+def contracts_list():
+    contracts = [
+        dict(strike=16000, option="c", side=1, premium=100, quantity=1),
+        dict(strike=16000, option="p", side=1, premium=100, quantity=1),
+        dict(strike=15900, option="p", side=-1, premium=85, quantity=1),
+        dict(strike=15985, option="h", side=1, premium=0, quantity=1),
+        dict(strike=16030, option="f", side=-1, premium=0, quantity=1),
+    ]
+    return [OptionContract(**kwargs) for kwargs in contracts]
+
+
 def test_option_contract_defaults():
     contract = OptionContract(strike=18000, option="c", side=1, premium=150, quantity=1)
     assert contract.strike == 18000
@@ -105,3 +117,27 @@ def test_option_contract_net_value(
         strike=strike, option=option, side=side, premium=premium, quantity=quantity
     )
     assert contract.net_value(spot=spot) == expected
+
+
+def test_payoff_payoff(contracts_list):
+    c = contracts_list
+    p = OptionPayoff(spot=16000)
+    # No contract
+    assert p.payoff() == 0
+    assert p.payoff(17000) == 0
+    # Simple holding
+    p.add(c[3])
+    assert p.payoff() == 15
+    assert p.payoff(16150) == 165
+    # Add a future
+    p.add(c[4])
+    assert p.payoff(16150) == 45
+    # Add a call option
+    p.add(c[0])
+    assert p.payoff(16150) == 95
+    # Add 2 put options
+    p.add(c[1])
+    p.add(c[2])
+    assert p.payoff(16150) == 80
+
+    # Add a future hedge
