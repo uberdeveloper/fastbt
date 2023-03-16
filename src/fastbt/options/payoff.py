@@ -3,7 +3,7 @@ The options payoff module
 """
 from typing import List, Optional, Union
 from enum import Enum
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, PrivateAttr, root_validator
 import logging
 
 
@@ -40,8 +40,18 @@ class OptionContract(BaseModel):
     strike: Union[int, float]
     option: Opt
     side: Side
-    premium: Optional[float]
+    premium: float = 0.0
     quantity: int = 1
+
+    @root_validator
+    def premium_check(cls, values):
+        # Premium mandatory for call and put options
+        option = values.get("option")
+        premium = values.get("premium")
+        if option in (Opt.CALL, Opt.PUT):
+            if premium == 0.0:
+                raise ValueError(f"Premium mandatory for {option} option")
+        return values
 
     def value(self, spot: float) -> float:
         """
@@ -133,7 +143,7 @@ class OptionPayoff(BaseModel):
 
     def payoff(self, spot: Optional[float] = None) -> float:
         """
-        Calculate the payoff
+        Calculate the payoff given the spot price
         """
         if not spot:
             spot = self.spot

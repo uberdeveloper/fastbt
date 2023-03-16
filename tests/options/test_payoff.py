@@ -30,7 +30,7 @@ def test_option_contract_defaults():
 
 def test_option_contract_option_types():
     contract = OptionContract(option="h", side=1, strike=15000)
-    assert contract.premium is None
+    assert contract.premium == 0
     assert contract.option == Opt.HOLDING
     assert contract.strike == 15000
     assert contract.side == Side.BUY
@@ -140,4 +140,13 @@ def test_payoff_payoff(contracts_list):
     p.add(c[2])
     assert p.payoff(16150) == 80
 
-    # Add a future hedge
+
+def test_option_contract_validate_premium():
+    # Raise error when no premium
+    with pytest.raises(ValueError):
+        contract = OptionContract(strike=16000, option="c", side=1)
+    with pytest.raises(ValueError):
+        contract = OptionContract(strike=16000, option="p", side=1)
+    # Raise no error when futures or holdings
+    contract = OptionContract(strike=16000, option="f", side=1)
+    contract = OptionContract(strike=16000, option="h", side=1)
