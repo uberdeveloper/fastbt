@@ -152,7 +152,7 @@ class OptionPayoff(BaseModel):
             return 0.0
         return sum([contract.net_value(spot) for contract in self.options])
 
-    def simulate(self, spot: [List[Union[int, float]]]) -> List[float]:
+    def simulate(self, spot: Union[List[float], List[int]]) -> List[float]:
         """
         Simulate option payoff for different spot prices
         """
