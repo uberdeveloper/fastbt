@@ -193,3 +193,13 @@ def test_payoff_net_positions(contracts_list):
     p.lot_size = 50
     p.options[-1].quantity = 2
     assert p.net_positions == Counter(c=50, p=0, h=100, f=-100)
+
+
+def test_payoff_has_naked_positions(contracts_list):
+    c = contracts_list
+    p = OptionPayoff()
+    for contract in contracts_list:
+        p.add(contract)
+    assert p.has_naked_positions is False
+    p.add(c[2])
+    assert p.has_naked_positions is True

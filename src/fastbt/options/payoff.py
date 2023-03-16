@@ -141,6 +141,35 @@ class OptionPayoff(BaseModel):
         """
         return self._options
 
+    @property
+    def net_positions(self) -> Counter:
+        """
+        returns the net positions for each type of contract
+        call,put,futures,holdings
+        """
+        positions: Counter = Counter()
+        for contract in self.options:
+            quantity = contract.quantity * contract.side.value * self.lot_size
+            positions[contract.option] += quantity
+        return positions
+
+    @property
+    def has_naked_positions(self) -> bool:
+        """
+        returns True if there is a naked position
+        Note
+        -----
+        1) Positions are considered naked if there are outstanding sell contracts
+        2) Only CALL and PUT options are considered. Use `is_fully_hedged` to include futures and short selling
+        """
+        positions = self.net_positions
+        if positions[Opt.CALL] < 0:
+            return True
+        elif positions[Opt.PUT] < 0:
+            return True
+        else:
+            return False
+
     def clear(self) -> None:
         """
         Clear all options
@@ -165,11 +194,3 @@ class OptionPayoff(BaseModel):
         Simulate option payoff for different spot prices
         """
         return [self.payoff(spot=price) for price in spot]
-
-    @property
-    def net_positions(self) -> Counter:
-        positions: Counter = Counter()
-        for contract in self.options:
-            quantity = contract.quantity * contract.side.value * self.lot_size
-            positions[contract.option] += quantity
-        return positions
