@@ -158,3 +158,23 @@ def test_payoff_simulate(contracts_list):
     p.add(c[0])
     p.add(c[2])
     assert p.simulate(range(15000, 17500, 500)) == [-915, -415, -15, 485, 985]
+
+
+def test_payoff_lot_size(contracts_list):
+    c = contracts_list
+    p = OptionPayoff(spot=16000, lot_size=100)
+    # Simple holding
+    p.add(c[3])
+    assert p.payoff() == 1500
+    assert p.payoff(16150) == 16500
+    # Add a future
+    p.add(c[4])
+    assert p.payoff(16150) == 4500
+    # Add a call option
+    p.add(c[0])
+    # Add 2 put options
+    p.add(c[1])
+    p.add(c[2])
+    # Change lot size
+    p.lot_size = 50
+    assert p.payoff(16150) == 4000

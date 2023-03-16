@@ -90,9 +90,14 @@ class OptionPayoff(BaseModel):
     doesn't include any calculations for volatility or duration.
     It's assumed that the option is exercised at expiry and it
     doesn't have any time value
+    spot
+        spot price of the instrument
+    lot_size
+        lot size of the instrument for futures and options contract
     """
 
     spot: float = 0.0
+    lot_size: Union[int, float] = 1
     _options: List[OptionContract] = PrivateAttr(default_factory=list)
 
     def add(self, contract: OptionContract) -> None:
@@ -150,7 +155,9 @@ class OptionPayoff(BaseModel):
         if len(self.options) == 0:
             logging.debug("No contracts added, nothing to calculate")
             return 0.0
-        return sum([contract.net_value(spot) for contract in self.options])
+        return sum(
+            [contract.net_value(spot) * self.lot_size for contract in self.options]
+        )
 
     def simulate(self, spot: Union[List[float], List[int]]) -> List[float]:
         """
