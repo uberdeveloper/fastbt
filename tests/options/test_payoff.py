@@ -150,3 +150,11 @@ def test_option_contract_validate_premium():
     # Raise no error when futures or holdings
     contract = OptionContract(strike=16000, option="f", side=1)
     contract = OptionContract(strike=16000, option="h", side=1)
+
+
+def test_payoff_simulate(contracts_list):
+    p = OptionPayoff()
+    c = contracts_list
+    p.add(c[0])
+    p.add(c[2])
+    assert p.simulate(range(15000, 17500, 500)) == [-915, -415, -15, 485, 985]
