@@ -5,6 +5,7 @@ from typing import List, Optional, Union
 from enum import Enum
 from pydantic import BaseModel, PrivateAttr, root_validator
 import logging
+from collections import Counter
 
 
 class Opt(str, Enum):
@@ -97,7 +98,7 @@ class OptionPayoff(BaseModel):
     """
 
     spot: float = 0.0
-    lot_size: Union[int, float] = 1
+    lot_size: int = 1
     _options: List[OptionContract] = PrivateAttr(default_factory=list)
 
     def add(self, contract: OptionContract) -> None:
@@ -164,3 +165,11 @@ class OptionPayoff(BaseModel):
         Simulate option payoff for different spot prices
         """
         return [self.payoff(spot=price) for price in spot]
+
+    @property
+    def net_positions(self) -> Counter:
+        positions: Counter = Counter()
+        for contract in self.options:
+            quantity = contract.quantity * contract.side.value * self.lot_size
+            positions[contract.option] += quantity
+        return positions

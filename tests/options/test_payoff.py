@@ -1,4 +1,5 @@
 import pytest
+from collections import Counter
 from fastbt.options.payoff import *
 
 
@@ -178,3 +179,17 @@ def test_payoff_lot_size(contracts_list):
     # Change lot size
     p.lot_size = 50
     assert p.payoff(16150) == 4000
+
+
+def test_payoff_net_positions(contracts_list):
+    c = contracts_list
+    p = OptionPayoff()
+    assert p.net_positions == Counter()
+    p.add(c[3])
+    assert p.net_positions == Counter(h=1)
+    for contract in contracts_list:
+        p.add(contract)
+    assert p.net_positions == Counter(c=1, p=0, h=2, f=-1)
+    p.lot_size = 50
+    p.options[-1].quantity = 2
+    assert p.net_positions == Counter(c=50, p=0, h=100, f=-100)
