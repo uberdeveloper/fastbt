@@ -160,12 +160,33 @@ class OptionPayoff(BaseModel):
         Note
         -----
         1) Positions are considered naked if there are outstanding sell contracts
-        2) Only CALL and PUT options are considered. Use `is_fully_hedged` to include futures and short selling
+        2) Only CALL and PUT options are considered for naked positions
         """
         positions = self.net_positions
         if positions[Opt.CALL] < 0:
             return True
         elif positions[Opt.PUT] < 0:
+            return True
+        else:
+            return False
+
+    @property
+    def is_zero(self) -> bool:
+        """
+        returns True if the sum of individual call and put
+        options are zero and the combination of futures and
+        holdings is zero
+        Note
+        ----
+        1) If `is_zero` is True, we may assume that all
+        positions are hedged
+        2) If a future is hedged against option, then `is_zero` would return False
+        """
+        positions = self.net_positions
+        comb = positions[Opt.FUTURE] + positions[Opt.HOLDING]
+        call = positions[Opt.CALL]
+        put = positions[Opt.PUT]
+        if (comb == 0) and (call == 0) and (put == 0):
             return True
         else:
             return False

@@ -203,3 +203,23 @@ def test_payoff_has_naked_positions(contracts_list):
     assert p.has_naked_positions is False
     p.add(c[2])
     assert p.has_naked_positions is True
+
+
+def test_payoff_is_zero(contracts_list):
+    c = contracts_list
+    p = OptionPayoff()
+    # Holdings vs futures
+    assert p.is_zero is True
+    p.add(c[3])
+    assert p.is_zero is False
+    p.add(c[4])
+    assert p.is_zero is True
+    for contract in contracts_list:
+        p.add(contract)
+    assert p.is_zero is False
+    # SELL 2 calls
+    p.add_contract(16200, "c", -1, 200, 2)
+    assert p.is_zero is False
+    # BUY anotther call
+    p.add_contract(16400, "c", 1, 200, 1)
+    assert p.is_zero is True
