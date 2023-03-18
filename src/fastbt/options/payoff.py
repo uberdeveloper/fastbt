@@ -101,6 +101,35 @@ class OptionPayoff(BaseModel):
     lot_size: int = 1
     _options: List[OptionContract] = PrivateAttr(default_factory=list)
 
+    @staticmethod
+    def _parse(text: str) -> Optional[OptionContract]:
+        """
+        Parse the text into a valid option contracts
+        returns None if no such contract could be found
+        """
+        for opt in ("c", "p", "h", "f"):
+            opt_parsed: List[str] = text.split(opt)
+            if len(opt_parsed) == 2:
+                strike, tail = opt_parsed
+                for side in ("b", "s"):
+                    tail_parsed = tail.split(side)
+                    if len(tail_parsed) == 2:
+                        premium, quantity = tail_parsed
+                        if not premium:
+                            premium = 0.0
+                        if not quantity:
+                            quantity = 1
+                        s = 1 if side == "b" else -1
+                        return OptionContract(
+                            strike=strike,
+                            option=opt,
+                            side=s,
+                            premium=premium,
+                            quantity=quantity,
+                        )
+                    logging.warning("No valid buy or sell identifier found")
+        logging.warning("No valid option contract found")
+
     def add(self, contract: OptionContract) -> None:
         """
         Add an option contract

@@ -1,6 +1,7 @@
 import pytest
 from collections import Counter
 from fastbt.options.payoff import *
+from pydantic import ValidationError
 
 
 @pytest.fixture
@@ -220,6 +221,36 @@ def test_payoff_is_zero(contracts_list):
     # SELL 2 calls
     p.add_contract(16200, "c", -1, 200, 2)
     assert p.is_zero is False
-    # BUY anotther call
+    # BUY another call
     p.add_contract(16400, "c", 1, 200, 1)
     assert p.is_zero is True
+
+
+def test_payoff_parse_valid():
+    p = OptionPayoff()
+    assert p._parse("16900c150b2") == OptionContract(
+        strike=16900, option=Opt.CALL, premium=150, side=Side.BUY, quantity=2
+    )
+    assert p._parse("16700p130.85s") == OptionContract(
+        strike=16700, option=Opt.PUT, premium=130.85, side=Side.SELL, quantity=1
+    )
+    assert p._parse("16000fs") == OptionContract(
+        strike=16000, option=Opt.FUTURE, side=Side.SELL
+    )
+    assert p._parse("16000h120s10") == OptionContract(
+        strike=16000, option=Opt.HOLDING, premium=120, side=Side.SELL, quantity=10
+    )
+
+
+@pytest.mark.parametrize("test_input", ["16900k150b2", "16900c120x15", "c15200"])
+def test_payoff_parse_invalid(test_input):
+    p = OptionPayoff()
+    assert p._parse(test_input) is None
+
+
+@pytest.mark.parametrize("test_input", ["14250cb", "h120s"])
+def test_payoff_parse_error(test_input):
+    p = OptionPayoff()
+    with pytest.raises(ValidationError):
+        print(p._parse(test_input))
+        p._parse(test_input)
