@@ -252,5 +252,20 @@ def test_payoff_parse_invalid(test_input):
 def test_payoff_parse_error(test_input):
     p = OptionPayoff()
     with pytest.raises(ValidationError):
-        print(p._parse(test_input))
         p._parse(test_input)
+
+
+def test_payoff_a(contracts_list):
+    p = OptionPayoff()
+    p.a("16000c100b")
+    p.a("16000p100b1")
+    p.a("15900p85s1")
+    p.a("15985hb")
+    p.a("16030fs")
+    print(p.options)
+    p2 = OptionPayoff()
+    for contract in contracts_list:
+        p2.add(contract)
+    assert p.options == p2.options
+    assert p.payoff(17150) == p2.payoff(17150)
+    assert p.net_positions == p2.net_positions

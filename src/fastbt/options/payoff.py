@@ -130,6 +130,16 @@ class OptionPayoff(BaseModel):
                     logging.warning("No valid buy or sell identifier found")
         logging.warning("No valid option contract found")
 
+    def a(self, text: str) -> None:
+        """
+        shortcut to add contract in text format
+        contract should be in format `{strike}{opt}{premium}{side}{quantity}`
+        *6500c150s2* is parsed as SELL 6500 CALL 2 lots at 150 premium
+        """
+        contract = self._parse(text)
+        if contract:
+            self._options.append(contract)
+
     def add(self, contract: OptionContract) -> None:
         """
         Add an option contract
