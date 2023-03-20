@@ -95,10 +95,15 @@ class OptionPayoff(BaseModel):
         spot price of the instrument
     lot_size
         lot size of the instrument for futures and options contract
+    sim_range
+        percentage range for running a simulation.
+        This value would be used to automatically generate
+        spot values for running a simulation
     """
 
     spot: float = 0.0
     lot_size: int = 1
+    sim_range: Union[int, float] = 5
     _options: List[Contract] = PrivateAttr(default_factory=list)
 
     @staticmethod
@@ -254,8 +259,22 @@ class OptionPayoff(BaseModel):
             [contract.net_value(spot) * self.lot_size for contract in self.options]
         )
 
-    def simulate(self, spot: Union[List[float], List[int]]) -> List[float]:
+    def simulate(
+        self, spot: Optional[Union[List[float], List[int]]] = None
+    ) -> Optional[List[float]]:
         """
         Simulate option payoff for different spot prices
+        spot
+            list of spot prices to run a simulation
+            if None, would use the `sim_range` attribute
         """
+        if spot is None:
+            a = int(self.spot * (1 - self.sim_range * 0.01))
+            b = int(self.spot * (1 + self.sim_range * 0.01))
+            if a == b:
+                logging.warning(
+                    "Cannot generate values for simulation, provide spot values manually"
+                )
+                return
+            spot = range(a, b)
         return [self.payoff(spot=price) for price in spot]

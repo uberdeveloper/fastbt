@@ -279,3 +279,26 @@ def test_payoff_a(contracts_list):
     assert p.options == p2.options
     assert p.payoff(17150) == p2.payoff(17150)
     assert p.net_positions == p2.net_positions
+
+
+def test_payoff_simulate_auto():
+    p = OptionPayoff(spot=100)
+    p.a("102c3b")
+    p.a("98p3b")
+    sim = p.simulate()
+    assert len(sim) == 10
+    assert sim == p.simulate(range(95, 105))
+    p.sim_range = 10
+    sim = p.simulate()
+    assert len(sim) == 20
+    assert sim == p.simulate(range(90, 110))
+
+
+def test_payoff_simulate_auto():
+    p = OptionPayoff(spot=0.85)
+    p.a("0.9c0.03b")
+    p.a("0.9p0.02b")
+    sim = p.simulate()
+    assert sim is None
+    sim = p.simulate([x * 0.01 for x in range(80, 120)])
+    assert len(sim) == 40
