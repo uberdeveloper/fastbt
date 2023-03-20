@@ -302,3 +302,15 @@ def test_payoff_simulate_auto():
     assert sim is None
     sim = p.simulate([x * 0.01 for x in range(80, 120)])
     assert len(sim) == 40
+
+
+def test_payoff_approx_margin():
+    p = OptionPayoff(spot=700, lot_size=10)
+    p.a("750c25s5")
+    assert p.margin_approx == 7000
+    p.a("780p21s10")
+    assert p.margin_approx == 21000
+    p.a("780h0s100")
+    assert p.margin_approx == 21000
+    p.margin_percentage = 0.4
+    assert p.margin_approx == 42000

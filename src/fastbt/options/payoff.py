@@ -36,6 +36,8 @@ class Contract(BaseModel):
         premium in case of an option
     quantity
         quantity of the contract
+    margin
+        margin required for selling one lot of this contract
     """
 
     strike: Union[int, float]
@@ -99,11 +101,16 @@ class OptionPayoff(BaseModel):
         percentage range for running a simulation.
         This value would be used to automatically generate
         spot values for running a simulation
+    margin_percentage
+        margin percentage of the spot price required for selling a contract.
+        This would be applied for SELL contracts and futures contracts.
+        If a contract has got a specific margin, that would be taken instead of this value
     """
 
     spot: float = 0.0
     lot_size: int = 1
     sim_range: Union[int, float] = 5
+    margin_percentage: float = 0.2
     _options: List[Contract] = PrivateAttr(default_factory=list)
 
     @staticmethod
@@ -239,6 +246,20 @@ class OptionPayoff(BaseModel):
             return True
         else:
             return False
+
+    @property
+    def margin_approx(self) -> float:
+        """
+        Approximate margin required for the set of contracts
+        Margin is calculated based on the outstanding number of naked positions and futures
+        """
+        positions = self.net_positions
+        naked: int = 0
+        for k, v in positions.items():
+            if k is not Opt.HOLDING:
+                if v < 0:
+                    naked += abs(v)
+        return self.spot * naked * self.margin_percentage
 
     def clear(self) -> None:
         """
