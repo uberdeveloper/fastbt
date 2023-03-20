@@ -127,7 +127,7 @@ class OptionPayoff(BaseModel):
                             premium=premium,
                             quantity=quantity,
                         )
-                    logging.warning("No valid buy or sell identifier found")
+                logging.warning("No valid buy or sell identifier found")
         logging.warning("No valid option contract found")
 
     def a(self, text: str) -> None:
