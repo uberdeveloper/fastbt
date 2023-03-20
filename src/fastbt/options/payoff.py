@@ -296,6 +296,6 @@ class OptionPayoff(BaseModel):
                 logging.warning(
                     "Cannot generate values for simulation, provide spot values manually"
                 )
-                return
-            spot = range(a, b)
+                return None
+            spot = list(range(a, b))
         return [self.payoff(spot=price) for price in spot]
