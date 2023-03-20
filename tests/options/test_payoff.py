@@ -18,11 +18,11 @@ def contracts_list():
         dict(strike=15985, option="h", side=1, premium=0, quantity=1),
         dict(strike=16030, option="f", side=-1, premium=0, quantity=1),
     ]
-    return [OptionContract(**kwargs) for kwargs in contracts]
+    return [Contract(**kwargs) for kwargs in contracts]
 
 
 def test_option_contract_defaults():
-    contract = OptionContract(strike=18000, option="c", side=1, premium=150, quantity=1)
+    contract = Contract(strike=18000, option="c", side=1, premium=150, quantity=1)
     assert contract.strike == 18000
     assert contract.option == Opt.CALL
     assert contract.side == Side.BUY
@@ -31,7 +31,7 @@ def test_option_contract_defaults():
 
 
 def test_option_contract_option_types():
-    contract = OptionContract(option="h", side=1, strike=15000)
+    contract = Contract(option="h", side=1, strike=15000)
     assert contract.premium == 0
     assert contract.option == Opt.HOLDING
     assert contract.strike == 15000
@@ -60,9 +60,9 @@ def test_payoff_add(simple):
     kwargs = dict(strike=12000, option="p", side=1, premium=100, quantity=50)
     kwargs2 = dict(strike=12400, option="c", side=-1, premium=100, quantity=50)
     kwargs3 = dict(option="f", side=-1, strike=12500, quantity=50)
-    p.add(OptionContract(**kwargs))
-    p.add(OptionContract(**kwargs2))
-    p.add(OptionContract(**kwargs3))
+    p.add(Contract(**kwargs))
+    p.add(Contract(**kwargs2))
+    p.add(Contract(**kwargs3))
     assert len(p.options) == 3
     assert p.options[0].side.value == 1
     assert p.options[0].option == "p"
@@ -74,9 +74,9 @@ def test_payoff_clear(simple):
     kwargs = dict(strike=12000, option="p", side=1, premium=100, quantity=50)
     kwargs2 = dict(strike=12400, option="c", side=-1, premium=100, quantity=50)
     kwargs3 = dict(option="f", side=-1, strike=12500, quantity=50)
-    p.add(OptionContract(**kwargs))
-    p.add(OptionContract(**kwargs2))
-    p.add(OptionContract(**kwargs3))
+    p.add(Contract(**kwargs))
+    p.add(Contract(**kwargs2))
+    p.add(Contract(**kwargs3))
     assert len(p.options) == 3
     p.clear()
     assert len(p.options) == 0
@@ -93,7 +93,7 @@ def test_payoff_clear(simple):
     ],
 )
 def test_option_contract_value(strike, option, spot, expected):
-    contract = OptionContract(
+    contract = Contract(
         strike=strike, option=option, side=Side.BUY, premium=150, quantity=1
     )
     assert contract.value(spot=spot) == expected
@@ -115,7 +115,7 @@ def test_option_contract_value(strike, option, spot, expected):
 def test_option_contract_net_value(
     strike, option, side, premium, quantity, spot, expected
 ):
-    contract = OptionContract(
+    contract = Contract(
         strike=strike, option=option, side=side, premium=premium, quantity=quantity
     )
     assert contract.net_value(spot=spot) == expected
@@ -146,12 +146,12 @@ def test_payoff_payoff(contracts_list):
 def test_option_contract_validate_premium():
     # Raise error when no premium
     with pytest.raises(ValueError):
-        contract = OptionContract(strike=16000, option="c", side=1)
+        contract = Contract(strike=16000, option="c", side=1)
     with pytest.raises(ValueError):
-        contract = OptionContract(strike=16000, option="p", side=1)
+        contract = Contract(strike=16000, option="p", side=1)
     # Raise no error when futures or holdings
-    contract = OptionContract(strike=16000, option="f", side=1)
-    contract = OptionContract(strike=16000, option="h", side=1)
+    contract = Contract(strike=16000, option="f", side=1)
+    contract = Contract(strike=16000, option="h", side=1)
 
 
 def test_payoff_simulate(contracts_list):
@@ -228,16 +228,16 @@ def test_payoff_is_zero(contracts_list):
 
 def test_payoff_parse_valid():
     p = OptionPayoff()
-    assert p._parse("16900c150b2") == OptionContract(
+    assert p._parse("16900c150b2") == Contract(
         strike=16900, option=Opt.CALL, premium=150, side=Side.BUY, quantity=2
     )
-    assert p._parse("16700p130.85s") == OptionContract(
+    assert p._parse("16700p130.85s") == Contract(
         strike=16700, option=Opt.PUT, premium=130.85, side=Side.SELL, quantity=1
     )
-    assert p._parse("16000fs") == OptionContract(
+    assert p._parse("16000fs") == Contract(
         strike=16000, option=Opt.FUTURE, side=Side.SELL
     )
-    assert p._parse("16000h120s10") == OptionContract(
+    assert p._parse("16000h120s10") == Contract(
         strike=16000, option=Opt.HOLDING, premium=120, side=Side.SELL, quantity=10
     )
 

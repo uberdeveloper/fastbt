@@ -20,9 +20,9 @@ class Side(Enum):
     SELL = -1
 
 
-class OptionContract(BaseModel):
+class Contract(BaseModel):
     """
-    A basic option contract
+    A basic contract
     Could also include futures and holdings
     strike
         strike price of the contract.
@@ -99,10 +99,10 @@ class OptionPayoff(BaseModel):
 
     spot: float = 0.0
     lot_size: int = 1
-    _options: List[OptionContract] = PrivateAttr(default_factory=list)
+    _options: List[Contract] = PrivateAttr(default_factory=list)
 
     @staticmethod
-    def _parse(text: str) -> Optional[OptionContract]:
+    def _parse(text: str) -> Optional[Contract]:
         """
         Parse the text into a valid option contracts
         returns None if no such contract could be found
@@ -120,7 +120,7 @@ class OptionPayoff(BaseModel):
                         if not quantity:
                             quantity = 1
                         s = 1 if side == "b" else -1
-                        return OptionContract(
+                        return Contract(
                             strike=strike,
                             option=opt,
                             side=s,
@@ -140,7 +140,7 @@ class OptionPayoff(BaseModel):
         if contract:
             self._options.append(contract)
 
-    def add(self, contract: OptionContract) -> None:
+    def add(self, contract: Contract) -> None:
         """
         Add an option contract
         """
@@ -149,32 +149,32 @@ class OptionPayoff(BaseModel):
     def add_contract(
         self,
         strike: float,
-        opt_type: Opt = Opt.CALL,
+        option: Opt = Opt.CALL,
         side: Side = Side.BUY,
         premium: float = 0.0,
-        qty: int = 1,
+        quantity: int = 1,
     ) -> None:
         """
         Add an option
         strike
             strike price of the options
-        opt_type
+        option
             option type - c for call and p for put
-        position
+        side
             whether you are Buying or Selling the option
             B for buy and S for sell
         premium
             option premium
-        qty
+        quantity
             quantity of options contract
         """
-        contract = OptionContract(
-            strike=strike, option=opt_type, side=side, premium=premium, quantity=qty
+        contract = Contract(
+            strike=strike, option=option, side=side, premium=premium, quantity=quantity
         )
         self._options.append(contract)
 
     @property
-    def options(self) -> List[OptionContract]:
+    def options(self) -> List[Contract]:
         """
         return the list of options
         """
