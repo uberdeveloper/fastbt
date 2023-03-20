@@ -107,28 +107,33 @@ class OptionPayoff(BaseModel):
         Parse the text into a valid option contracts
         returns None if no such contract could be found
         """
+        text = text.lower()
         for opt in ("c", "p", "h", "f"):
             opt_parsed: List[str] = text.split(opt)
             if len(opt_parsed) == 2:
                 strike, tail = opt_parsed
                 for side in ("b", "s"):
-                    tail_parsed = tail.split(side)
+                    tail_parsed: List[str] = tail.split(side)
                     if len(tail_parsed) == 2:
+                        # Mypy type hints
+                        premium: Union[str, float]
+                        quantity: Union[str, int]
                         premium, quantity = tail_parsed
                         if not premium:
                             premium = 0.0
                         if not quantity:
                             quantity = 1
-                        s = 1 if side == "b" else -1
+                        s = Side.BUY if side == "b" else Side.SELL
                         return Contract(
                             strike=strike,
                             option=opt,
                             side=s,
-                            premium=premium,
-                            quantity=quantity,
+                            premium=float(premium),
+                            quantity=int(quantity),
                         )
-                logging.warning("No valid buy or sell identifier found")
-        logging.warning("No valid option contract found")
+                logging.warning(f"No valid buy or sell identifier found for {text}")
+        logging.warning(f"No valid option contract found for {text}")
+        return None
 
     def a(self, text: str) -> None:
         """

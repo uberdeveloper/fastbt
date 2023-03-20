@@ -242,6 +242,16 @@ def test_payoff_parse_valid():
     )
 
 
+def test_payoff_parse_valid_upper_case():
+    p = OptionPayoff()
+    assert p._parse("16900C150B2") == Contract(
+        strike=16900, option=Opt.CALL, premium=150, side=Side.BUY, quantity=2
+    )
+    assert p._parse("16700P130.85s") == Contract(
+        strike=16700, option=Opt.PUT, premium=130.85, side=Side.SELL, quantity=1
+    )
+
+
 @pytest.mark.parametrize("test_input", ["16900k150b2", "16900c120x15", "c15200"])
 def test_payoff_parse_invalid(test_input):
     p = OptionPayoff()
