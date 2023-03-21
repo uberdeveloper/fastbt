@@ -314,3 +314,17 @@ def test_payoff_approx_margin():
     assert p.margin_approx == 21000
     p.margin_percentage = 0.4
     assert p.margin_approx == 42000
+
+
+def test_payoff_pnl():
+    p = OptionPayoff(spot=1000, sim_range=10, lot_size=10)
+    p.a("1000c12b")
+    pnl = p.pnl()
+    assert round(pnl.avg_return, 2) == 131.24
+    assert round(pnl.avg_win, 2) == 440
+    assert round(pnl.avg_loss, 2) == -114.11
+    assert pnl.median == -120
+    assert pnl.max_loss == -120
+    assert pnl.max_profit == 880
+    assert round(pnl.win_rate, 2) == 0.44
+    assert round(pnl.loss_rate, 2) == 0.56

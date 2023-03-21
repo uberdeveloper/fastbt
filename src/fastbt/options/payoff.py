@@ -6,6 +6,7 @@ from enum import Enum
 from pydantic import BaseModel, PrivateAttr, root_validator
 import logging
 from collections import Counter
+import statistics
 
 
 class Opt(str, Enum):
@@ -18,6 +19,24 @@ class Opt(str, Enum):
 class Side(Enum):
     BUY = 1
     SELL = -1
+
+
+class PayoffPnl(BaseModel):
+    """
+    A simple class to hold pnl results
+    """
+
+    avg_return: float
+    avg_win: float
+    avg_loss: float
+    median: float
+    max_profit: float
+    max_loss: float
+    win_rate: float
+    loss_rate: float
+
+    class Config:
+        frozen = True
 
 
 class Contract(BaseModel):
@@ -297,5 +316,38 @@ class OptionPayoff(BaseModel):
                     "Cannot generate values for simulation, provide spot values manually"
                 )
                 return None
-            spot = list(range(a, b))
+            spot = list(range(a, b + 1))
         return [self.payoff(spot=price) for price in spot]
+
+    def pnl(self, spot: Optional[List[float]] = None) -> Optional[PayoffPnl]:
+        """
+        Simulate pnl for different spot prices
+        spot
+            list of spot prices to run a simulation
+            if None, would use the `sim_range` attribute
+        """
+        payoff = self.simulate(spot)
+        if payoff:
+            length = len(payoff)
+            wins = len([x for x in payoff if x >= 0])
+            avg_return = statistics.mean(payoff)
+            avg_win = statistics.mean([x for x in payoff if x >= 0])
+            avg_loss = statistics.mean([x for x in payoff if x < 0])
+            median = statistics.median(payoff)
+            max_profit = max(payoff)
+            max_loss = min(payoff)
+            win_rate = round(wins / length, 4)
+            loss_rate = 1 - win_rate
+            return PayoffPnl(
+                avg_return=avg_return,
+                avg_win=avg_win,
+                avg_loss=avg_loss,
+                median=median,
+                max_profit=max_profit,
+                max_loss=max_loss,
+                win_rate=win_rate,
+                loss_rate=loss_rate,
+            )
+        else:
+            logging.warning("No payoff generated for this option")
+            return None
