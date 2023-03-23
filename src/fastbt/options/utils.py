@@ -138,7 +138,7 @@ def get_expiry_by(
 
 def get_expiry_by_days(
     expiries: List[pendulum.DateTime], days: int, sort: bool = True
-) -> pendulum.DateTime:
+) -> Optional[pendulum.DateTime]:
     """
     Get the nearest expiry from current date till the given number of days
     expiries
@@ -160,7 +160,7 @@ def get_expiry_by_days(
     target_date = today.add(days=days)
     if expiries[-1] < target_date:
         # return None if the target date is greater than last expiry
-        return
+        return None
     for i, expiry in enumerate(expiries):
         if expiry >= target_date:
             return expiry

@@ -59,7 +59,7 @@ class Contract(BaseModel):
         margin required for selling one lot of this contract
     """
 
-    strike: Union[int, float]
+    strike: float
     option: Opt
     side: Side
     premium: float = 0.0
@@ -128,7 +128,7 @@ class OptionPayoff(BaseModel):
 
     spot: float = 0.0
     lot_size: int = 1
-    sim_range: Union[int, float] = 5
+    sim_range: float = 5
     margin_percentage: float = 0.2
     _options: List[Contract] = PrivateAttr(default_factory=list)
 
