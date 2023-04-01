@@ -1,6 +1,14 @@
 =========
 History
 =========
+v0.5.0
+------
+* `OptionExpiry` class added to calculate option payoffs based on expiry
+
+v0.4.0
+-------
+* Brokers module deprecation warning added
+* Options module revamped
 
 v0.3.0 (2019-03-15)
 --------------------
