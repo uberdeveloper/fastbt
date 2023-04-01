@@ -99,9 +99,9 @@ class Contract(BaseModel):
             return val * self.side.value * self.quantity
 
 
-class OptionPayoff(BaseModel):
+class ExpiryPayoff(BaseModel):
     """
-    A simple class for calculating option payoffs
+    A simple class for calculating option payoffs on expiry
     given spot prices and options
     1) Add your options with the add method
     2) Provide a spot price

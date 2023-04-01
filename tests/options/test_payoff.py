@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 @pytest.fixture
 def simple():
-    return OptionPayoff()
+    return ExpiryPayoff()
 
 
 @pytest.fixture
@@ -123,7 +123,7 @@ def test_option_contract_net_value(
 
 def test_payoff_payoff(contracts_list):
     c = contracts_list
-    p = OptionPayoff(spot=16000)
+    p = ExpiryPayoff(spot=16000)
     # No contract
     assert p.payoff() == 0
     assert p.payoff(17000) == 0
@@ -155,7 +155,7 @@ def test_option_contract_validate_premium():
 
 
 def test_payoff_simulate(contracts_list):
-    p = OptionPayoff()
+    p = ExpiryPayoff()
     c = contracts_list
     p.add(c[0])
     p.add(c[2])
@@ -164,7 +164,7 @@ def test_payoff_simulate(contracts_list):
 
 def test_payoff_lot_size(contracts_list):
     c = contracts_list
-    p = OptionPayoff(spot=16000, lot_size=100)
+    p = ExpiryPayoff(spot=16000, lot_size=100)
     # Simple holding
     p.add(c[3])
     assert p.payoff() == 1500
@@ -184,7 +184,7 @@ def test_payoff_lot_size(contracts_list):
 
 def test_payoff_net_positions(contracts_list):
     c = contracts_list
-    p = OptionPayoff()
+    p = ExpiryPayoff()
     assert p.net_positions == Counter()
     p.add(c[3])
     assert p.net_positions == Counter(h=1)
@@ -198,7 +198,7 @@ def test_payoff_net_positions(contracts_list):
 
 def test_payoff_has_naked_positions(contracts_list):
     c = contracts_list
-    p = OptionPayoff()
+    p = ExpiryPayoff()
     for contract in contracts_list:
         p.add(contract)
     assert p.has_naked_positions is False
@@ -208,7 +208,7 @@ def test_payoff_has_naked_positions(contracts_list):
 
 def test_payoff_is_zero(contracts_list):
     c = contracts_list
-    p = OptionPayoff()
+    p = ExpiryPayoff()
     # Holdings vs futures
     assert p.is_zero is True
     p.add(c[3])
@@ -227,7 +227,7 @@ def test_payoff_is_zero(contracts_list):
 
 
 def test_payoff_parse_valid():
-    p = OptionPayoff()
+    p = ExpiryPayoff()
     assert p._parse("16900c150b2") == Contract(
         strike=16900, option=Opt.CALL, premium=150, side=Side.BUY, quantity=2
     )
@@ -243,7 +243,7 @@ def test_payoff_parse_valid():
 
 
 def test_payoff_parse_valid_upper_case():
-    p = OptionPayoff()
+    p = ExpiryPayoff()
     assert p._parse("16900C150B2") == Contract(
         strike=16900, option=Opt.CALL, premium=150, side=Side.BUY, quantity=2
     )
@@ -254,26 +254,26 @@ def test_payoff_parse_valid_upper_case():
 
 @pytest.mark.parametrize("test_input", ["16900k150b2", "16900c120x15", "c15200"])
 def test_payoff_parse_invalid(test_input):
-    p = OptionPayoff()
+    p = ExpiryPayoff()
     assert p._parse(test_input) is None
 
 
 @pytest.mark.parametrize("test_input", ["14250cb", "h120s"])
 def test_payoff_parse_error(test_input):
-    p = OptionPayoff()
+    p = ExpiryPayoff()
     with pytest.raises(ValidationError):
         p._parse(test_input)
 
 
 def test_payoff_a(contracts_list):
-    p = OptionPayoff()
+    p = ExpiryPayoff()
     p.a("16000c100b")
     p.a("16000p100b1")
     p.a("15900p85s1")
     p.a("15985hb")
     p.a("16030fs")
     print(p.options)
-    p2 = OptionPayoff()
+    p2 = ExpiryPayoff()
     for contract in contracts_list:
         p2.add(contract)
     assert p.options == p2.options
@@ -282,7 +282,7 @@ def test_payoff_a(contracts_list):
 
 
 def test_payoff_simulate_auto():
-    p = OptionPayoff(spot=100)
+    p = ExpiryPayoff(spot=100)
     p.a("102c3b")
     p.a("98p3b")
     sim = p.simulate()
@@ -295,7 +295,7 @@ def test_payoff_simulate_auto():
 
 
 def test_payoff_simulate_auto():
-    p = OptionPayoff(spot=0.85)
+    p = ExpiryPayoff(spot=0.85)
     p.a("0.9c0.03b")
     p.a("0.9p0.02b")
     sim = p.simulate()
@@ -305,7 +305,7 @@ def test_payoff_simulate_auto():
 
 
 def test_payoff_approx_margin():
-    p = OptionPayoff(spot=700, lot_size=10)
+    p = ExpiryPayoff(spot=700, lot_size=10)
     p.a("750c25s5")
     assert p.margin_approx == 7000
     p.a("780p21s10")
@@ -317,7 +317,7 @@ def test_payoff_approx_margin():
 
 
 def test_payoff_pnl():
-    p = OptionPayoff(spot=1000, sim_range=10, lot_size=10)
+    p = ExpiryPayoff(spot=1000, sim_range=10, lot_size=10)
     p.a("1000c12b")
     pnl = p.pnl()
     assert round(pnl.avg_return, 2) == 131.24

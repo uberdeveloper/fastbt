@@ -9,7 +9,7 @@ import warnings
 DEPRECIATION_WARNING = """
 This module would be removed from version 0.7.0
 Use omspy for live order placement with brokers
-*OptionPayoff* is moved to `omspy.options.backtest`
+*OptionPayoff* is moved to `omspy.options.payoff`
 """
 warnings.warn(DEPRECIATION_WARNING, DeprecationWarning, stacklevel=2)
 
