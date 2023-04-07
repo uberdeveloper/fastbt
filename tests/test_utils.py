@@ -9,6 +9,17 @@ import context
 from fastbt.utils import *
 
 
+@pytest.fixture
+def nifty_bhav():
+    df = pd.read_csv("tests/data/bhav_nifty.csv", parse_dates=["date"])
+    df["pret"] = df.eval("(open/prevclose)-1")
+    return df
+
+
+def sort_df(df):
+    return df.sort_values(by=["date", "symbol"]).reset_index(drop=True)
+
+
 def equation(a, b, c, x, y):
     return a * x**2 + b * y + c
 
@@ -534,3 +545,25 @@ def test_get_atm(test_input, expected):
 )
 def test_get_itm(test_input, expected):
     assert get_itm(**test_input) == expected
+
+
+def test_top(nifty_bhav):
+    df = nifty_bhav
+    df2 = top(df, s="pret")
+    df3 = df.sort_values(by="pret", ascending=False).groupby("date").head(5)
+    pd.testing.assert_frame_equal(sort_df(df2), sort_df(df3))
+
+    df2 = top(df, s="open", g="symbol", n=10)
+    df3 = df.sort_values(by="open", ascending=False).groupby("symbol").head(10)
+    pd.testing.assert_frame_equal(sort_df(df2), sort_df(df3))
+
+
+def test_bottom(nifty_bhav):
+    df = nifty_bhav
+    df2 = bottom(df, s="pret")
+    df3 = df.sort_values(by="pret", ascending=False).groupby("date").tail(5)
+    pd.testing.assert_frame_equal(sort_df(df2), sort_df(df3))
+
+    df2 = bottom(df, s="open", g="symbol", n=10)
+    df3 = df.sort_values(by="open", ascending=False).groupby("symbol").tail(10)
+    pd.testing.assert_frame_equal(sort_df(df2), sort_df(df3))

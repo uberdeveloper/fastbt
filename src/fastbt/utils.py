@@ -3,7 +3,7 @@ import numpy as np
 import itertools as it
 import functools as ft
 from numpy import arange
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 import urllib.parse as parse
 
 try:
@@ -470,10 +470,10 @@ def streak(values):
     2) Calculates the streak based on number of consecutive
     values that appear in the array
     """
-    l = len(values)
-    arr = np.ones(l, dtype=np.int32)
+    length = len(values)
+    arr = np.ones(length, dtype=np.int32)
     cnt = 1
-    for i in arange(1, l):
+    for i in arange(1, length):
         if values[i] == values[i - 1]:
             cnt += 1
         else:
@@ -672,3 +672,51 @@ def get_itm(spot: float, opt: str, step: float = 100.0, n=0) -> float:
         return strike + n * sign * step
     else:
         return 0.0
+
+
+def top(
+    data: pd.DataFrame,
+    s: Union[str, List],
+    g: Union[str, List] = "date",
+    n: int = 5,
+    ascending=False,
+) -> pd.DataFrame:
+    """
+    get the top items from a dataframe grouped by a column
+    this is equivalent to
+    `df.sort_values(s).groupby(g).head(n)`
+        pandas dataframe
+    s
+        sort values by this column before grouping
+    g
+        group by this column/columns
+    n
+        number of items to returns
+    ascending
+        whether to sort value in ascending or descending order
+    """
+    return data.sort_values(s, ascending=ascending).groupby(g).head(n)
+
+
+def bottom(
+    data: pd.DataFrame,
+    s: Union[str, List],
+    g: Union[str, List] = "date",
+    n: int = 5,
+    ascending=False,
+) -> pd.DataFrame:
+    """
+    get the bottom items from a dataframe grouped by a column
+    this is equivalent to
+    `df.sort_values(s).groupby(g).tail(n)`
+        pandas dataframe
+    s
+        sort values by this column before grouping
+    g
+        group by this column/columns
+    n
+        number of items to returns
+    ascending
+        whether to sort value in ascending or descending order
+    """
+    return data.sort_values(s, ascending=ascending).groupby(g).tail(n)
