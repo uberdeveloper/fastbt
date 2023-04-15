@@ -67,4 +67,20 @@ file_patterns = {
         "https://www.nseindia.com/api/historical/cm/equity?symbol={symbol}",
         lambda x: {"symbol": x.upper()},
     ),
+    "nse_oi": (
+        "https://archives.nseindia.com/archives/nsccl/mwpl/nseoi_{date}.zip",
+        lambda x: {"date": x.strftime("%d%m%Y")},
+    ),
+    "oi_cli_limit": (
+        "https://archives.nseindia.com/content/nsccl/oi_cli_limit_{date}.lst",
+        lambda x: {"date": x.strftime("%d-%b-%Y").upper()},
+    ),
+    "fo": (
+        "https://archives.nseindia.com/archives/fo/mkt/fo{date}.zip",
+        lambda x: {"date": x.strftime("%d%m%Y")},
+    ),
+    "fo_volt": (
+        "https://archives.nseindia.com/archives/nsccl/volt/FOVOLT_{date}.csv",
+        lambda x: {"date": x.strftime("%d%m%Y")},
+    ),
 }
