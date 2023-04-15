@@ -12,11 +12,11 @@ file_patterns = {
         lambda x: {"date": x.strftime("%d%m%Y")},
     ),
     "bhav_pr": (
-        "https://www.nseindia.com/archives/equities/bhavcopy/pr/PR{date}.zip",
-        lambda x: {"date": x.strftime("%d%m%Y")},
+        "https://archives.nseindia.com/archives/equities/bhavcopy/pr/PR{date}.zip",
+        lambda x: {"date": x.strftime("%d%m%y")},
     ),
     "derivatives": (
-        "https://www.nseindia.com/content/historical/DERIVATIVES/{year}/{month}/fo{date}bhav.csv.zip",
+        "https://archives.nseindia.com/content/historical/DERIVATIVES/{year}/{month}/fo{date}bhav.csv.zip",
         lambda x: {
             "year": x.year,
             "month": x.strftime("%b").upper(),
@@ -26,10 +26,6 @@ file_patterns = {
     "bhav_sec": (
         "https://archives.nseindia.com/products/content/sec_bhavdata_full_{date}.csv",
         lambda x: {"date": x.strftime("%d%m%Y")},
-    ),
-    "derivatives_zip": (
-        "https://archives.nseindia.com/content/archives/fo/bhav/fo{date}.zip",
-        lambda x: {"date": x.strftime("%d%m%y")},
     ),
     "indices": (
         "https://archives.nseindia.com/content/indices/ind_close_all_{date}.csv",
@@ -65,10 +61,6 @@ file_patterns = {
     ),
     "ipo_eq": (
         "https://www.nseindia.com/api/ipo-detail?symbol={symbol}&series=EQ",
-        lambda x: {"symbol": x.upper()},
-    ),
-    "ipo_bid": (
-        "https://www.nseindia.com/api/ipo-bid-details?symbol={symbol}",
         lambda x: {"symbol": x.upper()},
     ),
     "hist_data": (
