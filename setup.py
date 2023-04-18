@@ -35,7 +35,7 @@ EXTRAS_REQUIRE = dict(
 
 setup(
     name="fastbt",
-    version="0.5.0",
+    version="0.5.1",
     license="MIT license",
     description="A simple framework for fast and dirty backtesting",
     long_description="%s\n%s"
