@@ -1,6 +1,10 @@
 =========
 History
 =========
+v0.5.1
+------
+* Simple bug fixes added
+
 v0.5.0
 ------
 * `OptionExpiry` class added to calculate option payoffs based on expiry
