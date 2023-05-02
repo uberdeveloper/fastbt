@@ -565,23 +565,23 @@ def get_nearest_premium(
     1. nearest premium is calculated on the basis of absolute difference
     """
     if instrument_map is None:
-            return []
+        return None
     
-    if isinstance(instrument_map,dict):  
+    elif isinstance(instrument_map,dict):  
         
-        difference=None
+        diff=None
         latest_symbol=None
         for symbols,ltp in instrument_map.items():
             last_trade_price=int(float(ltp))
             d=abs(premium-last_trade_price)
-            if difference is None:
-                difference=d
+            if diff is None:
+                diff=d
                 latest_symbol=symbols
-            elif d < difference:
-                difference=d
+            elif d < diff:
+                diff=d
                 latest_symbol=symbols
         return latest_symbol
-    if isinstance(instrument_map,list):
+    elif isinstance(instrument_map,list):
         diff = None
         latest_symbol = None
         for inst in instrument_map:
