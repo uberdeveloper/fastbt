@@ -564,15 +564,36 @@ def get_nearest_premium(
     ----
     1. nearest premium is calculated on the basis of absolute difference
     """
-    diff = 1e10
-    latest_symbol = None
-    for inst in instrument_map:
-        price = inst.get(last_price)
-        d = abs(premium - price)
-        if d < diff:
-            diff = d
-            latest_symbol = inst.get(symbol)
-    return latest_symbol
+    if instrument_map is None:
+            return []
+    
+    if isinstance(instrument_map,dict):  
+        
+        difference=None
+        latest_symbol=None
+        for symbols,ltp in instrument_map.items():
+            last_trade_price=int(float(ltp))
+            d=abs(premium-last_trade_price)
+            if difference is None:
+                difference=d
+                latest_symbol=symbols
+            elif d < difference:
+                difference=d
+                latest_symbol=symbols
+        return latest_symbol
+    if isinstance(instrument_map,list):
+        diff = None
+        latest_symbol = None
+        for inst in instrument_map:
+            price = inst.get(last_price)
+            d = abs(premium - price)
+            if diff is None:
+                diff = d
+                latest_symbol = inst.get(symbol)
+            elif d< diff:
+                diff=d
+                latest_symbol=inst.get(symbol)
+        return latest_symbol
 
 
 def stockmock_parser(url: str) -> Dict[str, Any]:
