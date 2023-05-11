@@ -572,7 +572,7 @@ def get_nearest_premium(
         diff=None
         latest_symbol=None
         for symbols,ltp in instrument_map.items():
-            last_trade_price=int(float(ltp))
+            last_trade_price=float(ltp)
             d=abs(premium-last_trade_price)
             if diff is None:
                 diff=d
