@@ -567,3 +567,14 @@ def test_bottom(nifty_bhav):
     df2 = bottom(df, s="open", g="symbol", n=10)
     df3 = df.sort_values(by="open", ascending=False).groupby("symbol").tail(10)
     pd.testing.assert_frame_equal(sort_df(df2), sort_df(df3))
+
+
+def test_get_nearest_premium2():
+    instrument_map = [
+        {"symbol": "aaa", "last_price": 100.4},
+        {"symbol": "bbb", "last_price": 99.4},
+        {"symbol": "ccc", "last_price": 98.4},
+    ]
+    instrument_map2 = dict(aaa=99.8, bbb=99.4, ccc=101)
+    assert get_nearest_premium(99.95, instrument_map) == "aaa"
+    assert get_nearest_premium(99.5, instrument_map2) == "bbb"

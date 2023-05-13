@@ -546,7 +546,7 @@ def stop_loss_step_decimal(
 
 def get_nearest_premium(
     premium: float,
-    instrument_map: List[Dict],
+    instrument_map: Union[List[Dict], Dict],
     symbol: str = "symbol",
     last_price: str = "last_price",
 ) -> str:
@@ -566,22 +566,21 @@ def get_nearest_premium(
     """
     if instrument_map is None:
         return None
-    
-    elif isinstance(instrument_map,dict):  
-        
-        diff=None
-        latest_symbol=None
-        for symbols,ltp in instrument_map.items():
-            last_trade_price=float(ltp)
-            d=abs(premium-last_trade_price)
+
+    elif isinstance(instrument_map, dict):
+        diff = None
+        latest_symbol = None
+        for symbols, ltp in instrument_map.items():
+            last_trade_price = float(ltp)
+            d = abs(premium - last_trade_price)
             if diff is None:
-                diff=d
-                latest_symbol=symbols
+                diff = d
+                latest_symbol = symbols
             elif d < diff:
-                diff=d
-                latest_symbol=symbols
+                diff = d
+                latest_symbol = symbols
         return latest_symbol
-    elif isinstance(instrument_map,list):
+    elif isinstance(instrument_map, list):
         diff = None
         latest_symbol = None
         for inst in instrument_map:
@@ -590,9 +589,9 @@ def get_nearest_premium(
             if diff is None:
                 diff = d
                 latest_symbol = inst.get(symbol)
-            elif d< diff:
-                diff=d
-                latest_symbol=inst.get(symbol)
+            elif d < diff:
+                diff = d
+                latest_symbol = inst.get(symbol)
         return latest_symbol
 
 
@@ -741,70 +740,3 @@ def bottom(
         whether to sort value in ascending or descending order
     """
     return data.sort_values(s, ascending=ascending).groupby(g).tail(n)
-
-
-            
-    
-def order_fill_price(market_depth,quantity,bid="buy",ask="sell"):
-    tradebookqty=0
-    for item in market_depth[bid]:
-        tradebookqty=tradebookqty+item["quantity"]
-    print("total qty is :",tradebookqty)
-    remaining_quantity=quantity
-    value=0
-    
-    for order in market_depth[bid]:
-        trade_qty=min(remaining_quantity,order["quantity"])
-        if trade_qty>0:
-            remaining_quantity=remaining_quantity-order["quantity"]
-            value=value+order["price"]*trade_qty
-            if remaining_quantity<0:
-                remaining_quantity=0
-        if trade_qty==0:
-            break
-    print("rem qty is :",remaining_quantity)
-    print("actual_qty is :",quantity)
-    initial_price=market_depth[bid][0]["price"]
-    final_price=market_depth[bid][-1]["price"]
-    spread=initial_price-final_price
-    multiplier=1
-    v=0
-    print("ttv is ",value/tradebookqty)
-
-    if remaining_quantity>0:
-        print("value is ",value)
-        v=total_traded_value(initial_price,spread,remaining_quantity,tradebookqty,n=2,ivalue=0)
-    print("v is ",v)
-    tv=v+value
-    print(tv)
-    ttv=tv/quantity
-    return ttv
-        
-        
-            
-            
-def total_traded_value(intialprice,spread,remaining_qty,qty,n=2,ivalue=0):
-        mult=2
-        add_on=qty
-        #initial_price=initialprice
-        additionalqty=min(remaining_qty,add_on)
-        remaining_qty=remaining_qty-additionalqty
-        ivalue=ivalue+intialprice*spread*n*additionalqty
-        print("ival is ",ivalue,"multiplier is ",n,"rem is ",remaining_qty)
-        n=n*(mult)
-        if remaining_qty>0:
-            value=total_traded_value(intialprice,spread,remaining_qty,add_on,n,ivalue)
-            
-        return ivalue
-        
-        
-        
-        
-        
-                
-
-            
-            
-            
-    
-    
