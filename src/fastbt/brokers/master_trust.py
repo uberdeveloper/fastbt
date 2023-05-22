@@ -662,13 +662,14 @@ class MasterTrust(Broker):
                 symbol = position["symbol"]
                 product = position["product"]
                 side = self._sides[position["side"]]
+                exchange = position["exchange"]
                 if qty > 0:
                     self.order_place(
                         symbol=symbol,
                         quantity=qty,
                         order_type="MARKET",
                         side=side,
-                        exchange=self.exchange,
+                        exchange=exchange,
                         product=product,
                         validity="DAY",
                     )
