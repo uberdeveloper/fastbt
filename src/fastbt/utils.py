@@ -799,7 +799,7 @@ def total_traded_value(side,intialprice,spread,remaining_qty,qty,n=2,ivalue=0):
         print("ival is ",ivalue,"multiplier is ",n,"rem is ",remaining_qty)
         n=n*(mult)
         if remaining_qty>0:
-            value=total_traded_value(s,intialprice,spread,remaining_qty,add_on,n,ivalue)
+            ivalue=total_traded_value(s,intialprice,spread,remaining_qty,add_on,n,ivalue)
             
         return ivalue
         
