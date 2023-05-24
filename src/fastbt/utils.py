@@ -768,7 +768,7 @@ def order_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
     v=0
 
     if remaining_quantity>0:
-        v=total_traded_value(side_,final_price,spread,remaining_quantity,tradebookqty,n=2,ivalue=0)
+        v=total_traded_value(side_,initial_price,spread,remaining_quantity,tradebookqty,n=2,ivalue=0)
     tv=v+value
     print(tv)
     ttv=tv/quantity
