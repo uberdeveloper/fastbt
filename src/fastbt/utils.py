@@ -747,11 +747,9 @@ def bottom(
     
 def order_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
     side= ask if side_==1 else bid
-    print(f'side is {side}')
     tradebookqty=0
     for item in market_depth[side]:
         tradebookqty=tradebookqty+item["quantity"]
-    print("total qty is :",tradebookqty)
     remaining_quantity=quantity
     value=0
     
@@ -764,20 +762,13 @@ def order_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
                 remaining_quantity=0
         if trade_qty==0:
             break
-    print("rem qty is :",remaining_quantity)
-    print("actual_qty is :",quantity)
     initial_price=market_depth[side][0]["price"] 
     final_price=market_depth[side][-1]["price"]
     spread=abs(initial_price-final_price) 
-    print(f' spread is {final_price,initial_price,spread}')
-    multiplier=1
     v=0
-    print("ttv is ",value/tradebookqty)
 
     if remaining_quantity>0:
-        print("value is ",value)
         v=total_traded_value(side_,final_price,spread,remaining_quantity,tradebookqty,n=2,ivalue=0)
-    print("v is ",v)
     tv=v+value
     print(tv)
     ttv=tv/quantity
@@ -795,8 +786,6 @@ def total_traded_value(side,intialprice,spread,remaining_qty,qty,n=2,ivalue=0):
         remaining_qty=remaining_qty-additionalqty
         u=(intialprice+spread*n)*additionalqty if side==1 else (intialprice-spread*n)*additionalqty
         ivalue=ivalue+u
-        
-        print("ival is ",ivalue,"multiplier is ",n,"rem is ",remaining_qty)
         n=n*(mult)
         if remaining_qty>0:
             ivalue=total_traded_value(s,intialprice,spread,remaining_qty,add_on,n,ivalue)
