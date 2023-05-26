@@ -793,8 +793,66 @@ def total_traded_value(side,intialprice,spread,remaining_qty,qty,n=2,ivalue=0):
         return ivalue
         
         
+            
+    
+def o_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
+    side= ask if side_==1 else bid
+    print(f'side is {side}')
+    tradebookqty=0
+    for item in market_depth[side]:
+        tradebookqty=tradebookqty+item["quantity"]
+    print("total qty  of depth is :",tradebookqty)
+    remaining_quantity=quantity
+    value=0
+    
+    for order in market_depth[side]:
+        trade_qty=min(remaining_quantity,order["quantity"])
+        if trade_qty>0:
+            remaining_quantity=remaining_quantity-order["quantity"]
+            value=value+order["price"]*trade_qty
+            if remaining_quantity<0:
+                remaining_quantity=0
+        if trade_qty==0:
+            break
+    initial_price=market_depth[side][0]["price"] 
+    final_price=market_depth[side][-1]["price"]
+    spread=abs(initial_price-final_price) 
+    multiplier=1
+    v=0
+    first_value=value/tradebookqty
+    if remaining_quantity>0:
+        ratio=(remaining_quantity)/tradebookqty
+        if isinstance(ratio,int):
+            r=ratio
+        elif isinstance(ratio,float):
+            r=ratio+1
+        ivalue=0
+        n=2
+        mult=2
+        add_on=tradebookqty
+        vos=remaining_quantity
+        for leng in range(0,int(r)+1):
+            additional_qty=min(vos,add_on)
+            if additional_qty>0:
+                vos=vos-additional_qty
+                u=(initial_price+spread**n)*additional_qty if side_==1 else (initial_price-spread*n)*additional_qty
+                ivalue=ivalue+u
+                n=n+1       
+    ttv=(value+ivalue)/quantity
+    return ttv   
         
         
+            
+            
+
+        
+                
+
+            
+            
+            
+    
+       
         
                 
 
