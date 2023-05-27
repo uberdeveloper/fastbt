@@ -820,6 +820,7 @@ def o_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
     multiplier=1
     v=0
     first_value=value/tradebookqty
+    ivalue=0
     if remaining_quantity>0:
         ratio=(remaining_quantity)/tradebookqty
         if isinstance(ratio,int):
