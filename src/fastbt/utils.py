@@ -784,7 +784,7 @@ def total_traded_value(side,intialprice,spread,remaining_qty,qty,n=2,ivalue=0):
         
         additionalqty=min(remaining_qty,add_on)
         remaining_qty=remaining_qty-additionalqty
-        u=(intialprice+spread*n)*additionalqty if side==1 else (intialprice-spread*n)*additionalqty
+        u=(intialprice+spread*n)*additionalqty if side==1 else (intialprice-spread**n)*additionalqty
         ivalue=ivalue+u
         n=n*(mult)
         if remaining_qty>0:
@@ -856,7 +856,7 @@ def o_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
             additional_qty=min(vos,add_on)
             if additional_qty>0:
                 vos=vos-additional_qty
-                u=(initial_price+spread**n)*additional_qty if side_==1 else (initial_price-spread*n)*additional_qty
+                u=(initial_price+spread**n)*additional_qty if side_==1 else (initial_price-spread**n)*additional_qty
                 ivalue=ivalue+u
                 n=n+1  
     ttv=(value+ivalue)/quantity
