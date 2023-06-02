@@ -797,18 +797,25 @@ def total_traded_value(side,intialprice,spread,remaining_qty,qty,n=2,ivalue=0):
     
             
     
+            
+    
+            
+    
 def o_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
     side= ask if side_==1 else bid
-    print(f'side is {side}')
     tradebookqty=0
     for item in market_depth[side]:
         tradebookqty=tradebookqty+item["quantity"]
-    print("total qty  of depth is :",tradebookqty)
+    
     remaining_quantity=quantity
     value=0
     
     if tradebookqty==0:
-        return "No qty to place orders"
+        print("Warning: No qty in the orderbook")
+        return None
+    if quantity >tradebookqty*1000:
+        print("Warning:qty exceeding too much with the tradebook qty")
+        return None
     
     for order in market_depth[side]:
         trade_qty=min(remaining_quantity,order["quantity"])
@@ -821,7 +828,15 @@ def o_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
             break
     initial_price=market_depth[side][0]["price"] 
     final_price=market_depth[side][-1]["price"]
-    spread=abs(initial_price-final_price) 
+    
+    f= ask if side==bid else bid
+    
+    if len(market_depth[side])<2 and (len(market_depth[f])>=2):
+        spread=abs(market_depth[f][0]["price"]-market_depth[f][-1]["price"])
+    elif (len(market_depth[f])<2) and (len(market_depth[side])<2):
+        spread=abs(market_depth[f][0]["price"]-market_depth[side][0]["price"])*2
+    else:
+        spread=abs(initial_price-final_price)
     multiplier=1
     v=0
     first_value=value/tradebookqty
@@ -843,10 +858,35 @@ def o_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
                 vos=vos-additional_qty
                 u=(initial_price+spread**n)*additional_qty if side_==1 else (initial_price-spread*n)*additional_qty
                 ivalue=ivalue+u
-                n=n+1       
+                n=n+1  
     ttv=(value+ivalue)/quantity
     return ttv   
         
+        
+            
+            
+
+        
+                
+
+            
+            
+            
+    
+    
+        
+        
+            
+            
+
+        
+                
+
+            
+            
+            
+    
+    
         
             
             
