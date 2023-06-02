@@ -795,6 +795,8 @@ def total_traded_value(side,intialprice,spread,remaining_qty,qty,n=2,ivalue=0):
         
             
     
+            
+    
 def o_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
     side= ask if side_==1 else bid
     print(f'side is {side}')
@@ -804,6 +806,9 @@ def o_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
     print("total qty  of depth is :",tradebookqty)
     remaining_quantity=quantity
     value=0
+    
+    if tradebookqty==0:
+        return "No qty to place orders"
     
     for order in market_depth[side]:
         trade_qty=min(remaining_quantity,order["quantity"])
@@ -842,6 +847,18 @@ def o_fill_price(side_,market_depth,quantity,bid="buy",ask="sell"):
     ttv=(value+ivalue)/quantity
     return ttv   
         
+        
+            
+            
+
+        
+                
+
+            
+            
+            
+    
+    
         
             
             
