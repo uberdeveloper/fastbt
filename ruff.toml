@@ -1,3 +1,4 @@
 # Never enforce `E501` (line length violations).
-ignore = ["E501"]
+# E743 -> Checks for the use of the characters 'l', 'O', or 'I' as function names.
+ignore = ["E501", "E743"]
 exclude = ["tests"]
