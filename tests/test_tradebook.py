@@ -220,3 +220,47 @@ def test_remove_trade_multiple_symbols():
     tb.remove_trade("xom")
     assert tb.positions == dict(aapl=-10, goog=0)
     assert tb.values == dict(aapl=1000, goog=0)
+
+
+def test_mtm_no_positions():
+    tb = TradeBook()
+    assert tb.mtm(prices=dict()) == dict()
+    tb.add_trade("2023-01-01", "goog", 100, 10, "B")
+    tb.add_trade("2023-01-01", "goog", 110, 10, "S")
+    assert tb.mtm(prices=dict()) == dict(goog=100)
+    assert tb.mtm(prices=dict(goog=125)) == dict(goog=100)
+
+
+def test_mtm_long_positions():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "goog", 100, 10, "B")
+    # assert tb.mtm(dict(goog=120)) == dict(goog=200)
+    print("res is", tb.mtm(dict(goog=90)))
+    assert tb.mtm(dict(goog=90)) == dict(goog=-100)
+    tb.remove_trade("goog")
+    assert tb.mtm(dict(goog=120)) == dict(goog=0)
+    tb.clear()
+    assert tb.mtm(dict(goog=120)) == dict()
+
+
+def test_mtm_short_positions():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "goog", 100, 10, "S")
+    assert tb.mtm(dict(goog=120)) == dict(goog=-200)
+    assert tb.mtm(dict(goog=90)) == dict(goog=100)
+
+
+def test_mtm_multiple_positions():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 180, 5, "B")
+    tb.add_trade("2023-01-01", "goog", 100, 10, "S")
+    assert tb.mtm(dict(aapl=180, goog=100)) == dict(aapl=0, goog=0)
+    assert tb.mtm(dict(aapl=200, goog=130)) == dict(aapl=100, goog=-300)
+
+
+def test_mtm_raise_error():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 180, 5, "B")
+    tb.add_trade("2023-01-01", "goog", 100, 10, "S")
+    with pytest.raises(ValueError):
+        assert tb.mtm(dict(apl=180, goog=100)) == dict(aapl=0, goog=0)

@@ -81,7 +81,7 @@ class TradeBook:
         price: float,
         qty: float,
         order: str,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Add a trade to the tradebook
@@ -135,3 +135,21 @@ class TradeBook:
                 value = q * trade["price"] * -1
                 self._positions.update({symbol: q})
                 self._values.update({symbol: value})
+
+    def mtm(self, prices: Dict[str, float]):
+        """
+        Calculate the mtm for the given positions given
+        the current prices
+        price
+            current prices of the symbols
+        """
+        values: Dict[str, float] = Counter()
+        for k, v in self.positions.items():
+            if abs(v) > 0:
+                ltp = prices.get(k)
+                if ltp is None:
+                    raise ValueError(f"{k} not given in prices")
+                else:
+                    values[k] = v * ltp
+        values.update(self.values)
+        return values
