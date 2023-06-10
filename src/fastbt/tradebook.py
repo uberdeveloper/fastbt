@@ -110,3 +110,12 @@ class TradeBook:
         self._positions.update({symbol: q})
         value = q * price * -1
         self._values.update({symbol: value})
+
+    def clear(self):
+        """
+        clear all existing entries
+        """
+        self._trades = defaultdict(list)
+        self._values = Counter()
+        self._positions = Counter()
+        self._trades = defaultdict(list)

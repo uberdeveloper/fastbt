@@ -155,3 +155,11 @@ class TestValues(unittest.TestCase):
     def test_values_pnl_two(self):
         self.tb.add_trade(3, "XXX", 80, 100, "B")
         assert self.tb.values["XXX"] == -200
+
+    def test_clear(self):
+        assert len(self.tb.positions) > 0
+        self.tb.clear()
+        assert len(self.tb.positions) == 0
+        assert self.tb.positions == Counter()
+        assert self.tb.values == Counter()
+        assert self.tb.trades == dict()
