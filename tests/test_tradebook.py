@@ -6,6 +6,16 @@ from fastbt.tradebook import TradeBook
 from collections import Counter
 
 
+@pytest.fixture
+def simple():
+    tb = TradeBook(name="tb")
+    tb.add_trade("2023-01-01", "aapl", 120, 10, "B")
+    tb.add_trade("2023-01-01", "goog", 100, 10, "B")
+    tb.add_trade("2023-01-05", "aapl", 120, 20, "S")
+    tb.add_trade("2023-01-07", "goog", 100, 10, "B")
+    return tb
+
+
 def test_name():
     tb = TradeBook()
     assert tb.name == "tradebook"
@@ -163,3 +173,50 @@ class TestValues(unittest.TestCase):
         assert self.tb.positions == Counter()
         assert self.tb.values == Counter()
         assert self.tb.trades == dict()
+
+
+def test_remove_trade_buy():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 100, 10, "B")
+    tb.add_trade("2023-01-02", "aapl", 100, 20, "B")
+    tb.add_trade("2023-01-03", "aapl", 100, 30, "B")
+    assert tb.positions == dict(aapl=60)
+    assert tb.values == dict(aapl=-6000)
+    tb.remove_trade("aapl")
+    assert tb.positions == dict(aapl=30)
+    assert tb.values == dict(aapl=-3000)
+    tb.add_trade("2023-01-02", "aapl", 100, 20, "B")
+    assert tb.positions == dict(aapl=50)
+    assert tb.values == dict(aapl=-5000)
+    for i in range(10):
+        tb.remove_trade("aapl")
+    assert tb.positions == tb.values == dict(aapl=0)
+
+
+def test_remove_trade_sell():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 100, 10, "S")
+    tb.add_trade("2023-01-02", "aapl", 100, 20, "S")
+    tb.add_trade("2023-01-03", "aapl", 100, 30, "S")
+    assert tb.positions == dict(aapl=-60)
+    assert tb.values == dict(aapl=6000)
+    tb.remove_trade("aapl")
+    assert tb.positions == dict(aapl=-30)
+    assert tb.values == dict(aapl=3000)
+    for i in range(10):
+        tb.remove_trade("aapl")
+    assert tb.positions == tb.values == dict(aapl=0)
+
+
+def test_remove_trade_multiple_symbols():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 100, 10, "S")
+    tb.add_trade("2023-01-01", "goog", 100, 10, "B")
+    assert tb.positions == dict(aapl=-10, goog=10)
+    assert tb.values == dict(aapl=1000, goog=-1000)
+    tb.remove_trade("goog")
+    assert tb.positions == dict(aapl=-10, goog=0)
+    assert tb.values == dict(aapl=1000, goog=0)
+    tb.remove_trade("xom")
+    assert tb.positions == dict(aapl=-10, goog=0)
+    assert tb.values == dict(aapl=1000, goog=0)

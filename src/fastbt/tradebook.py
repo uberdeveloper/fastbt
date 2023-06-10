@@ -99,7 +99,6 @@ class TradeBook:
                 any other arguments as a dictionary
         """
         o = {"B": 1, "S": -1}
-
         q = qty * o[order]
         dct = {
             "ts": timestamp,
@@ -122,3 +121,17 @@ class TradeBook:
         self._values = Counter()
         self._positions = Counter()
         self._trades = defaultdict(list)
+
+    def remove_trade(self, symbol: str):
+        """
+        Remove the last trade for the given symbol
+        and adjust the positions and values
+        """
+        trades = self._trades.get(symbol)
+        if trades:
+            if len(trades) > 0:
+                trade = trades.pop()
+                q = trade["qty"] * -1
+                value = q * trade["price"] * -1
+                self._positions.update({symbol: q})
+                self._values.update({symbol: value})
