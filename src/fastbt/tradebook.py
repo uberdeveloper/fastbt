@@ -154,3 +154,24 @@ class TradeBook:
                     values[k] = v * ltp
         values.update(self.values)
         return values
+
+    @property
+    def open_positions(self) -> Dict[str, float]:
+        """
+        return the list of open positions
+        """
+        return {k: v for k, v in self.positions.items() if abs(v) > 0}
+
+    @property
+    def long_positions(self) -> Dict[str, float]:
+        """
+        return the list of open positions
+        """
+        return {k: v for k, v in self.positions.items() if v > 0}
+
+    @property
+    def short_positions(self) -> Dict[str, float]:
+        """
+        return the list of open positions
+        """
+        return {k: v for k, v in self.positions.items() if v < 0}

@@ -242,14 +242,14 @@ def test_mtm_long_positions():
     assert tb.mtm(dict(goog=120)) == dict()
 
 
-def est_mtm_short_positions():
+def test_mtm_short_positions():
     tb = TradeBook()
     tb.add_trade("2023-01-01", "goog", 100, 10, "S")
     assert tb.mtm(dict(goog=120)) == dict(goog=-200)
     assert tb.mtm(dict(goog=90)) == dict(goog=100)
 
 
-def est_mtm_multiple_positions():
+def test_mtm_multiple_positions():
     tb = TradeBook()
     tb.add_trade("2023-01-01", "aapl", 180, 5, "B")
     tb.add_trade("2023-01-01", "goog", 100, 10, "S")
@@ -272,3 +272,23 @@ def test_add_trade_buy_sell():
     tb.add_trade("2023-01-05", "aapl", 120, 20, "sell")
     tb.add_trade("2023-01-07", "goog", 100, 10, "SELL")
     assert tb.positions == dict(aapl=-10, goog=0)
+
+
+def test_open_positions(simple):
+    assert simple.open_positions == dict(aapl=-10, goog=20)
+    simple.add_trade("2023-01-05", "aapl", 120, 10, "buy")
+    assert simple.open_positions == dict(goog=20)
+
+
+def test_long_positions(simple):
+    assert simple.long_positions == dict(goog=20)
+    simple.remove_trade("goog")
+    assert simple.long_positions == dict(goog=10)
+    simple.remove_trade("goog")
+    assert simple.long_positions == dict()
+
+
+def test_short_positions(simple):
+    assert simple.short_positions == dict(aapl=-10)
+    simple.clear()
+    assert simple.short_positions == dict()
