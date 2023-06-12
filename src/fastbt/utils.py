@@ -5,7 +5,6 @@ import functools as ft
 from numpy import arange
 from typing import List, Dict, Any, Union
 import urllib.parse as parse
-import logging
 
 try:
     from numba import njit
@@ -743,45 +742,33 @@ def bottom(
     return data.sort_values(s, ascending=ascending).groupby(g).tail(n)
 
 
-def total_traded_value(side, intialprice, spread, remaining_qty, qty, n=2, ivalue=0):
-    mult = 2
-    add_on = qty
-    s = side
-
-    additionalqty = min(remaining_qty, add_on)
-    remaining_qty = remaining_qty - additionalqty
-    u = (
-        (intialprice + spread * n) * additionalqty
-        if side == 1
-        else (intialprice - spread**n) * additionalqty
-    )
-    ivalue = ivalue + u
-    n = n * (mult)
-    if remaining_qty > 0:
-        ivalue = total_traded_value(
-            s, intialprice, spread, remaining_qty, add_on, n, ivalue
-        )
-
-    return ivalue
-
-
-def order_fill_price(side_, market_depth, quantity, bid="buy", ask="sell"):
-    side = ask if side_ == 1 else bid
+def order_fill_price(
+    side: str,
+    depth: Dict[str, List[Dict]],
+    quantity: int,
+    bid: str = "buy",
+    ask: str = "sell",
+) -> float:
+    """
+    Given an order book as market depth and quantity,
+    generate the average prices at which the orders would be filled
+    """
+    key = ask if side == 1 else bid
     tradebookqty = 0
-    for item in market_depth[side]:
+    for item in depth[key]:
         tradebookqty = tradebookqty + item["quantity"]
 
     remaining_quantity = quantity
     value = 0
 
     if tradebookqty == 0:
-        logging.info("Warning: No qty in the orderbook")
-        return None
-    if quantity > tradebookqty * 1000:
-        logging.info("Warning:qty exceeding too much with the tradebook qty")
-        return None
+        raise ValueError("Quantity is zero in the orderbook")
+    if quantity > tradebookqty * 800:
+        raise ValueError(
+            f"Quantity {quantity} give is too much when compared to the order book given"
+        )
 
-    for order in market_depth[side]:
+    for order in depth[key]:
         trade_qty = min(remaining_quantity, order["quantity"])
         if trade_qty > 0:
             remaining_quantity = remaining_quantity - order["quantity"]
@@ -790,15 +777,15 @@ def order_fill_price(side_, market_depth, quantity, bid="buy", ask="sell"):
                 remaining_quantity = 0
         if trade_qty == 0:
             break
-    initial_price = market_depth[side][0]["price"]
-    final_price = market_depth[side][-1]["price"]
+    initial_price = depth[key][0]["price"]
+    final_price = depth[key][-1]["price"]
 
-    f = ask if side == bid else bid
+    f = ask if key == bid else bid
 
-    if len(market_depth[side]) < 2 and (len(market_depth[f]) >= 2):
-        spread = abs(market_depth[f][0]["price"] - market_depth[f][-1]["price"])
-    elif (len(market_depth[f]) < 2) and (len(market_depth[side]) < 2):
-        spread = abs(market_depth[f][0]["price"] - market_depth[side][0]["price"]) * 2
+    if len(depth[key]) < 2 and (len(depth[f]) >= 2):
+        spread = abs(depth[f][0]["price"] - depth[f][-1]["price"])
+    elif (len(depth[f]) < 2) and (len(depth[key]) < 2):
+        spread = abs(depth[f][0]["price"] - depth[key][0]["price"]) * 2
     else:
         spread = abs(initial_price - final_price)
     ivalue = 0
@@ -818,7 +805,7 @@ def order_fill_price(side_, market_depth, quantity, bid="buy", ask="sell"):
                 vos = vos - additional_qty
                 u = (
                     (initial_price + spread**n) * additional_qty
-                    if side_ == 1
+                    if side == 1
                     else (initial_price - spread**n) * additional_qty
                 )
                 ivalue = ivalue + u
