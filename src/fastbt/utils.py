@@ -5,6 +5,7 @@ import functools as ft
 from numpy import arange
 from typing import List, Dict, Any, Union
 import urllib.parse as parse
+import logging
 
 try:
     from numba import njit
@@ -740,3 +741,87 @@ def bottom(
         whether to sort value in ascending or descending order
     """
     return data.sort_values(s, ascending=ascending).groupby(g).tail(n)
+
+
+def total_traded_value(side, intialprice, spread, remaining_qty, qty, n=2, ivalue=0):
+    mult = 2
+    add_on = qty
+    s = side
+
+    additionalqty = min(remaining_qty, add_on)
+    remaining_qty = remaining_qty - additionalqty
+    u = (
+        (intialprice + spread * n) * additionalqty
+        if side == 1
+        else (intialprice - spread**n) * additionalqty
+    )
+    ivalue = ivalue + u
+    n = n * (mult)
+    if remaining_qty > 0:
+        ivalue = total_traded_value(
+            s, intialprice, spread, remaining_qty, add_on, n, ivalue
+        )
+
+    return ivalue
+
+
+def order_fill_price(side_, market_depth, quantity, bid="buy", ask="sell"):
+    side = ask if side_ == 1 else bid
+    tradebookqty = 0
+    for item in market_depth[side]:
+        tradebookqty = tradebookqty + item["quantity"]
+
+    remaining_quantity = quantity
+    value = 0
+
+    if tradebookqty == 0:
+        logging.info("Warning: No qty in the orderbook")
+        return None
+    if quantity > tradebookqty * 1000:
+        logging.info("Warning:qty exceeding too much with the tradebook qty")
+        return None
+
+    for order in market_depth[side]:
+        trade_qty = min(remaining_quantity, order["quantity"])
+        if trade_qty > 0:
+            remaining_quantity = remaining_quantity - order["quantity"]
+            value = value + order["price"] * trade_qty
+            if remaining_quantity < 0:
+                remaining_quantity = 0
+        if trade_qty == 0:
+            break
+    initial_price = market_depth[side][0]["price"]
+    final_price = market_depth[side][-1]["price"]
+
+    f = ask if side == bid else bid
+
+    if len(market_depth[side]) < 2 and (len(market_depth[f]) >= 2):
+        spread = abs(market_depth[f][0]["price"] - market_depth[f][-1]["price"])
+    elif (len(market_depth[f]) < 2) and (len(market_depth[side]) < 2):
+        spread = abs(market_depth[f][0]["price"] - market_depth[side][0]["price"]) * 2
+    else:
+        spread = abs(initial_price - final_price)
+    ivalue = 0
+    if remaining_quantity > 0:
+        ratio = (remaining_quantity) / tradebookqty
+        if isinstance(ratio, int):
+            r = ratio
+        elif isinstance(ratio, float):
+            r = ratio + 1
+        ivalue = 0
+        n = 2
+        add_on = tradebookqty
+        vos = remaining_quantity
+        for leng in range(0, int(r) + 1):
+            additional_qty = min(vos, add_on)
+            if additional_qty > 0:
+                vos = vos - additional_qty
+                u = (
+                    (initial_price + spread**n) * additional_qty
+                    if side_ == 1
+                    else (initial_price - spread**n) * additional_qty
+                )
+                ivalue = ivalue + u
+                n = n + 1
+    ttv = (value + ivalue) / quantity
+    return ttv

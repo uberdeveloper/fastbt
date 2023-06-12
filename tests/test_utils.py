@@ -5,8 +5,25 @@ import unittest
 import datetime
 import sys
 import context
+from copy import deepcopy
 
 from fastbt.utils import *
+
+
+@pytest.fixture
+def orderbook_symmetric():
+    return dict(
+        bid=[
+            dict(price=101, quantity=10, count=6),
+            dict(price=100, quantity=10, count=6),
+            dict(price=99, quantity=10, count=6),
+        ],
+        ask=[
+            dict(price=102, quantity=10, count=6),
+            dict(price=103, quantity=10, count=6),
+            dict(price=104, quantity=10, count=6),
+        ],
+    )
 
 
 @pytest.fixture
@@ -578,3 +595,44 @@ def test_get_nearest_premium2():
     instrument_map2 = dict(aaa=99.8, bbb=99.4, ccc=101)
     assert get_nearest_premium(99.95, instrument_map) == "aaa"
     assert get_nearest_premium(99.5, instrument_map2) == "bbb"
+
+
+def test_order_fill_price_within_depth(orderbook_symmetric):
+    depth = orderbook_symmetric
+    assert order_fill_price(1, depth, 4, bid="bid", ask="ask") == 102
+    assert order_fill_price(-1, depth, 4, bid="bid", ask="ask") == 101
+    assert order_fill_price(1, depth, 30, bid="bid", ask="ask") == 103
+    assert order_fill_price(-1, depth, 30, bid="bid", ask="ask") == 100
+
+
+def test_order_fill_price_outside_depth(orderbook_symmetric):
+    depth = orderbook_symmetric
+    qty2_buy = order_fill_price(1, depth, 60, bid="bid", ask="ask")
+    qty2_sell = order_fill_price(-1, depth, 60, bid="bid", ask="ask")
+    assert qty2_buy == 104.5
+    assert qty2_sell == 98.5
+    assert (qty2_buy - depth["ask"][0]["price"]) == abs(
+        qty2_sell - depth["bid"][0]["price"]
+    )
+    for i in range(3, 10):
+        qty_buy = order_fill_price(1, depth, i * 30, bid="bid", ask="ask")
+        qty_sell = order_fill_price(-1, depth, i * 30, bid="bid", ask="ask")
+        assert round((qty_buy - depth["ask"][0]["price"]), 2) == round(
+            abs(qty_sell - depth["bid"][0]["price"]), 2
+        )
+    assert round(order_fill_price(1, depth, 31, "bid", "ask"), 2) == 103.1
+    assert round(order_fill_price(-1, depth, 31, "bid", "ask"), 2) == 99.9
+
+
+def test_order_fill_price_single_depth(orderbook_symmetric):
+    depth = deepcopy(orderbook_symmetric)
+    del depth["bid"][1:]
+    assert order_fill_price(-1, depth, 30, "bid", "ask") == 97
+    assert order_fill_price(-1, depth, 50, "bid", "ask") == 89
+    assert round(order_fill_price(-1, depth, 51, "bid", "ask"), 2) == 87.98
+
+    depth = deepcopy(orderbook_symmetric)
+    del depth["ask"][1:]
+    assert order_fill_price(1, depth, 30, "bid", "ask") == 106
+    assert order_fill_price(1, depth, 50, "bid", "ask") == 114
+    assert round(order_fill_price(1, depth, 51, "bid", "ask"), 2) == 115.02
