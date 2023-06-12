@@ -1,6 +1,14 @@
 =========
 History
 =========
+v0.6.0
+------
+* New methods added to `TradeBook` object
+ * mtm - to calculate mtm for open positions
+ * clear - to clear the existing entries
+ * helper attributes for positions
+* `order_fill_price` method added to utils to simulate order quantity
+
 v0.5.1
 ------
 * Simple bug fixes added
