@@ -94,11 +94,12 @@ class TradeBook:
         qty
                 quantity of the security
         order
-                B for B and S for SELL
+                B/BUY for B and S/SELL for SELL
         kwargs
                 any other arguments as a dictionary
         """
         o = {"B": 1, "S": -1}
+        order = order.upper()[0]
         q = qty * o[order]
         dct = {
             "ts": timestamp,
@@ -136,14 +137,14 @@ class TradeBook:
                 self._positions.update({symbol: q})
                 self._values.update({symbol: value})
 
-    def mtm(self, prices: Dict[str, float]):
+    def mtm(self, prices: Dict[str, float]) -> Dict[str, float]:
         """
         Calculate the mtm for the given positions given
         the current prices
         price
             current prices of the symbols
         """
-        values: Dict[str, float] = Counter()
+        values: Dict = Counter()
         for k, v in self.positions.items():
             if abs(v) > 0:
                 ltp = prices.get(k)

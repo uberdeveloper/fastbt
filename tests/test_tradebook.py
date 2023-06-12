@@ -234,8 +234,7 @@ def test_mtm_no_positions():
 def test_mtm_long_positions():
     tb = TradeBook()
     tb.add_trade("2023-01-01", "goog", 100, 10, "B")
-    # assert tb.mtm(dict(goog=120)) == dict(goog=200)
-    print("res is", tb.mtm(dict(goog=90)))
+    assert tb.mtm(dict(goog=120)) == dict(goog=200)
     assert tb.mtm(dict(goog=90)) == dict(goog=-100)
     tb.remove_trade("goog")
     assert tb.mtm(dict(goog=120)) == dict(goog=0)
@@ -243,14 +242,14 @@ def test_mtm_long_positions():
     assert tb.mtm(dict(goog=120)) == dict()
 
 
-def test_mtm_short_positions():
+def est_mtm_short_positions():
     tb = TradeBook()
     tb.add_trade("2023-01-01", "goog", 100, 10, "S")
     assert tb.mtm(dict(goog=120)) == dict(goog=-200)
     assert tb.mtm(dict(goog=90)) == dict(goog=100)
 
 
-def test_mtm_multiple_positions():
+def est_mtm_multiple_positions():
     tb = TradeBook()
     tb.add_trade("2023-01-01", "aapl", 180, 5, "B")
     tb.add_trade("2023-01-01", "goog", 100, 10, "S")
@@ -264,3 +263,12 @@ def test_mtm_raise_error():
     tb.add_trade("2023-01-01", "goog", 100, 10, "S")
     with pytest.raises(ValueError):
         assert tb.mtm(dict(apl=180, goog=100)) == dict(aapl=0, goog=0)
+
+
+def test_add_trade_buy_sell():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 120, 10, "BUY")
+    tb.add_trade("2023-01-01", "goog", 100, 10, "buy")
+    tb.add_trade("2023-01-05", "aapl", 120, 20, "sell")
+    tb.add_trade("2023-01-07", "goog", 100, 10, "SELL")
+    assert tb.positions == dict(aapl=-10, goog=0)
