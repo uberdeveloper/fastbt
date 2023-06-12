@@ -599,40 +599,53 @@ def test_get_nearest_premium2():
 
 def test_order_fill_price_within_depth(orderbook_symmetric):
     depth = orderbook_symmetric
-    assert order_fill_price(1, depth, 4, bid="bid", ask="ask") == 102
-    assert order_fill_price(-1, depth, 4, bid="bid", ask="ask") == 101
-    assert order_fill_price(1, depth, 30, bid="bid", ask="ask") == 103
-    assert order_fill_price(-1, depth, 30, bid="bid", ask="ask") == 100
+    assert order_fill_price("BUY", depth, 4, bid="bid", ask="ask") == 102
+    assert order_fill_price("SELL", depth, 4, bid="bid", ask="ask") == 101
+    assert order_fill_price("BUY", depth, 30, bid="bid", ask="ask") == 103
+    assert order_fill_price("SELL", depth, 30, bid="bid", ask="ask") == 100
 
 
 def test_order_fill_price_outside_depth(orderbook_symmetric):
     depth = orderbook_symmetric
-    qty2_buy = order_fill_price(1, depth, 60, bid="bid", ask="ask")
-    qty2_sell = order_fill_price(-1, depth, 60, bid="bid", ask="ask")
+    qty2_buy = order_fill_price("buy", depth, 60, bid="bid", ask="ask")
+    qty2_sell = order_fill_price("sell", depth, 60, bid="bid", ask="ask")
     assert qty2_buy == 104.5
     assert qty2_sell == 98.5
     assert (qty2_buy - depth["ask"][0]["price"]) == abs(
         qty2_sell - depth["bid"][0]["price"]
     )
     for i in range(3, 10):
-        qty_buy = order_fill_price(1, depth, i * 30, bid="bid", ask="ask")
-        qty_sell = order_fill_price(-1, depth, i * 30, bid="bid", ask="ask")
+        qty_buy = order_fill_price("buy", depth, i * 30, bid="bid", ask="ask")
+        qty_sell = order_fill_price("sell", depth, i * 30, bid="bid", ask="ask")
         assert round((qty_buy - depth["ask"][0]["price"]), 2) == round(
             abs(qty_sell - depth["bid"][0]["price"]), 2
         )
-    assert round(order_fill_price(1, depth, 31, "bid", "ask"), 2) == 103.1
-    assert round(order_fill_price(-1, depth, 31, "bid", "ask"), 2) == 99.9
+    assert round(order_fill_price("b", depth, 31, "bid", "ask"), 2) == 103.1
+    assert round(order_fill_price("s", depth, 31, "bid", "ask"), 2) == 99.9
 
 
 def test_order_fill_price_single_depth(orderbook_symmetric):
     depth = deepcopy(orderbook_symmetric)
     del depth["bid"][1:]
-    assert order_fill_price(-1, depth, 30, "bid", "ask") == 97
-    assert order_fill_price(-1, depth, 50, "bid", "ask") == 89
-    assert round(order_fill_price(-1, depth, 51, "bid", "ask"), 2) == 87.98
+    assert order_fill_price("S", depth, 30, "bid", "ask") == 97
+    assert order_fill_price("S", depth, 50, "bid", "ask") == 89
+    assert round(order_fill_price("S", depth, 51, "bid", "ask"), 2) == 87.98
 
     depth = deepcopy(orderbook_symmetric)
     del depth["ask"][1:]
-    assert order_fill_price(1, depth, 30, "bid", "ask") == 106
-    assert order_fill_price(1, depth, 50, "bid", "ask") == 114
-    assert round(order_fill_price(1, depth, 51, "bid", "ask"), 2) == 115.02
+    assert order_fill_price("B", depth, 30, "bid", "ask") == 106
+    assert order_fill_price("B", depth, 50, "bid", "ask") == 114
+    assert round(order_fill_price("B", depth, 51, "bid", "ask"), 2) == 115.02
+
+
+def test_order_fill_no_depth(orderbook_symmetric):
+    depth = deepcopy(orderbook_symmetric)
+    depth["bid"] = []
+    with pytest.raises(ValueError):
+        assert order_fill_price("SELL", depth, 30, "bid", "ask") == 97
+
+
+def test_order_fill_too_much_quantity(orderbook_symmetric):
+    depth = deepcopy(orderbook_symmetric)
+    with pytest.raises(ValueError):
+        assert order_fill_price("SELL", depth, 35000, "bid", "ask") == 97

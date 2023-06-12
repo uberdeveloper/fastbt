@@ -3,7 +3,7 @@ import numpy as np
 import itertools as it
 import functools as ft
 from numpy import arange
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Union, Optional
 import urllib.parse as parse
 
 try:
@@ -518,7 +518,7 @@ def generate_weights(n=2, size=1):
 
 
 def stop_loss_step_decimal(
-    price: float, side: str = "B", dec: float = 0.45, step: int = 2
+    price: float, side: str = "B", dec: float = 0.45, step: float = 2
 ) -> float:
     """
     Truncates down the stop loss value to the desired step
@@ -549,7 +549,7 @@ def get_nearest_premium(
     instrument_map: Union[List[Dict], Dict],
     symbol: str = "symbol",
     last_price: str = "last_price",
-) -> str:
+) -> Optional[str]:
     """
     Get the symbol with the nearest premium from the given list of instruments
     premium
@@ -585,17 +585,18 @@ def get_nearest_premium(
         latest_symbol = None
         for inst in instrument_map:
             price = inst.get(last_price)
-            d = abs(premium - price)
-            if diff is None:
-                diff = d
-                latest_symbol = inst.get(symbol)
-            elif d < diff:
-                diff = d
-                latest_symbol = inst.get(symbol)
+            if price:
+                d = abs(premium - price)
+                if diff is None:
+                    diff = d
+                    latest_symbol = inst.get(symbol)
+                elif d < diff:
+                    diff = d
+                    latest_symbol = inst.get(symbol)
         return latest_symbol
 
 
-def stockmock_parser(url: str) -> Dict[str, Any]:
+def stockmock_parser(url: str) -> Dict:
     """
     A parser for stock mock url strategies
     """
@@ -632,7 +633,7 @@ def stockmock_parser(url: str) -> Dict[str, Any]:
         return dct
 
     url_params = parse.parse_qsl(url)
-    params = {}
+    params: Dict = {}
     for k, v in url_params:
         if k == "et":
             s, e = v.split(",")
@@ -641,7 +642,7 @@ def stockmock_parser(url: str) -> Dict[str, Any]:
         elif k == "s":
             params["strategy"] = v
 
-    positions = url_params[0][1].split(",")
+    positions: List = url_params[0][1].split(",")
     positions = [x.split("::") for x in positions]
     pos = [parse_positions(p) for p in positions]
     params["positions"] = pos
@@ -752,8 +753,27 @@ def order_fill_price(
     """
     Given an order book as market depth and quantity,
     generate the average prices at which the orders would be filled
+    side
+        buy or sell
+    depth
+        order book in the required format with bid and ask as keys and values being list of dictionaries with keys price,quantity and count
+    quantity
+        quantity to be filled
+    bid
+        bid key in depth
+    ask
+        ask key in depth
+    returns the approximate fill price for this order
+    Note
+    ----
+    1) This simulates a MARKET fill, so if side is BUY, then the ask/sell side of the orderbook is taken for calculation and
+    for SELL, the bid/buy side is taken
+    2) If quantity is less than total orderbook quantity, fill price is calculated based on market depth
+    3) If quantity is greater than the total orderbook quantity, fill is done on an exponential basis
+    4) May generate negative values if the given quantity or spread is too high
+    5) Would raise an exception in case of too much quantity or no quantity in orderbook
     """
-    key = ask if side == 1 else bid
+    key = ask if side.lower()[0] == "b" else bid
     tradebookqty = 0
     for item in depth[key]:
         tradebookqty = tradebookqty + item["quantity"]
@@ -792,7 +812,7 @@ def order_fill_price(
     if remaining_quantity > 0:
         ratio = (remaining_quantity) / tradebookqty
         if isinstance(ratio, int):
-            r = ratio
+            r: float = ratio
         elif isinstance(ratio, float):
             r = ratio + 1
         ivalue = 0
@@ -805,7 +825,7 @@ def order_fill_price(
                 vos = vos - additional_qty
                 u = (
                     (initial_price + spread**n) * additional_qty
-                    if side == 1
+                    if side.lower()[0] == "b"
                     else (initial_price - spread**n) * additional_qty
                 )
                 ivalue = ivalue + u
