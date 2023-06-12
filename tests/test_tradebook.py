@@ -6,6 +6,16 @@ from fastbt.tradebook import TradeBook
 from collections import Counter
 
 
+@pytest.fixture
+def simple():
+    tb = TradeBook(name="tb")
+    tb.add_trade("2023-01-01", "aapl", 120, 10, "B")
+    tb.add_trade("2023-01-01", "goog", 100, 10, "B")
+    tb.add_trade("2023-01-05", "aapl", 120, 20, "S")
+    tb.add_trade("2023-01-07", "goog", 100, 10, "B")
+    return tb
+
+
 def test_name():
     tb = TradeBook()
     assert tb.name == "tradebook"
@@ -155,3 +165,102 @@ class TestValues(unittest.TestCase):
     def test_values_pnl_two(self):
         self.tb.add_trade(3, "XXX", 80, 100, "B")
         assert self.tb.values["XXX"] == -200
+
+    def test_clear(self):
+        assert len(self.tb.positions) > 0
+        self.tb.clear()
+        assert len(self.tb.positions) == 0
+        assert self.tb.positions == Counter()
+        assert self.tb.values == Counter()
+        assert self.tb.trades == dict()
+
+
+def test_remove_trade_buy():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 100, 10, "B")
+    tb.add_trade("2023-01-02", "aapl", 100, 20, "B")
+    tb.add_trade("2023-01-03", "aapl", 100, 30, "B")
+    assert tb.positions == dict(aapl=60)
+    assert tb.values == dict(aapl=-6000)
+    tb.remove_trade("aapl")
+    assert tb.positions == dict(aapl=30)
+    assert tb.values == dict(aapl=-3000)
+    tb.add_trade("2023-01-02", "aapl", 100, 20, "B")
+    assert tb.positions == dict(aapl=50)
+    assert tb.values == dict(aapl=-5000)
+    for i in range(10):
+        tb.remove_trade("aapl")
+    assert tb.positions == tb.values == dict(aapl=0)
+
+
+def test_remove_trade_sell():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 100, 10, "S")
+    tb.add_trade("2023-01-02", "aapl", 100, 20, "S")
+    tb.add_trade("2023-01-03", "aapl", 100, 30, "S")
+    assert tb.positions == dict(aapl=-60)
+    assert tb.values == dict(aapl=6000)
+    tb.remove_trade("aapl")
+    assert tb.positions == dict(aapl=-30)
+    assert tb.values == dict(aapl=3000)
+    for i in range(10):
+        tb.remove_trade("aapl")
+    assert tb.positions == tb.values == dict(aapl=0)
+
+
+def test_remove_trade_multiple_symbols():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 100, 10, "S")
+    tb.add_trade("2023-01-01", "goog", 100, 10, "B")
+    assert tb.positions == dict(aapl=-10, goog=10)
+    assert tb.values == dict(aapl=1000, goog=-1000)
+    tb.remove_trade("goog")
+    assert tb.positions == dict(aapl=-10, goog=0)
+    assert tb.values == dict(aapl=1000, goog=0)
+    tb.remove_trade("xom")
+    assert tb.positions == dict(aapl=-10, goog=0)
+    assert tb.values == dict(aapl=1000, goog=0)
+
+
+def test_mtm_no_positions():
+    tb = TradeBook()
+    assert tb.mtm(prices=dict()) == dict()
+    tb.add_trade("2023-01-01", "goog", 100, 10, "B")
+    tb.add_trade("2023-01-01", "goog", 110, 10, "S")
+    assert tb.mtm(prices=dict()) == dict(goog=100)
+    assert tb.mtm(prices=dict(goog=125)) == dict(goog=100)
+
+
+def test_mtm_long_positions():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "goog", 100, 10, "B")
+    # assert tb.mtm(dict(goog=120)) == dict(goog=200)
+    print("res is", tb.mtm(dict(goog=90)))
+    assert tb.mtm(dict(goog=90)) == dict(goog=-100)
+    tb.remove_trade("goog")
+    assert tb.mtm(dict(goog=120)) == dict(goog=0)
+    tb.clear()
+    assert tb.mtm(dict(goog=120)) == dict()
+
+
+def test_mtm_short_positions():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "goog", 100, 10, "S")
+    assert tb.mtm(dict(goog=120)) == dict(goog=-200)
+    assert tb.mtm(dict(goog=90)) == dict(goog=100)
+
+
+def test_mtm_multiple_positions():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 180, 5, "B")
+    tb.add_trade("2023-01-01", "goog", 100, 10, "S")
+    assert tb.mtm(dict(aapl=180, goog=100)) == dict(aapl=0, goog=0)
+    assert tb.mtm(dict(aapl=200, goog=130)) == dict(aapl=100, goog=-300)
+
+
+def test_mtm_raise_error():
+    tb = TradeBook()
+    tb.add_trade("2023-01-01", "aapl", 180, 5, "B")
+    tb.add_trade("2023-01-01", "goog", 100, 10, "S")
+    with pytest.raises(ValueError):
+        assert tb.mtm(dict(apl=180, goog=100)) == dict(aapl=0, goog=0)
