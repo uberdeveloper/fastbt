@@ -15,12 +15,24 @@ file_patterns = {
         "https://archives.nseindia.com/archives/equities/bhavcopy/pr/PR{date}.zip",
         lambda x: {"date": x.strftime("%d%m%y")},
     ),
-    "derivatives": (
+    "old_derivatives": (
         "https://archives.nseindia.com/content/historical/DERIVATIVES/{year}/{month}/fo{date}bhav.csv.zip",
         lambda x: {
             "year": x.year,
             "month": x.strftime("%b").upper(),
             "date": x.strftime("%d%b%Y").upper(),
+        },
+    ),
+    "derivatives": (
+        "https://nsearchives.nseindia.com/content/fo/BhavCopy_NSE_FO_0_0_0_{date}_F_0000.csv.zip",
+        lambda x: {
+            "date": x.strftime("%Y%m%d"),
+        },
+    ),
+    "combineoi_deleq": (
+        "https://nsearchives.nseindia.com/archives/nsccl/mwpl/combineoi_deleq_{date}.csv",
+        lambda x: {
+            "date": x.strftime("%d%m%Y"),
         },
     ),
     "bhav_sec": (
