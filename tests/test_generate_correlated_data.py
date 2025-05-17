@@ -370,3 +370,82 @@ def test_extreme_mixed_correlations():
     df = generate_correlated_data(correlations, n_samples=1000)  # Increased sample size
     actual_correlations = df.corr()["reference"][1:].values
     np.testing.assert_array_almost_equal(actual_correlations, correlations, decimal=1)
+
+
+def test_reference_data_maintains_original_values():
+    """Test that original reference data values are maintained in the output."""
+    # Create reference data with specific mean and standard deviation
+    n_samples = 100
+    mean_value = 10
+    std_value = 2
+    reference_data = np.random.normal(mean_value, std_value, n_samples)
+    correlations = [0.7, -0.7]
+
+    # Generate correlated data
+    df = generate_correlated_data(correlations, reference_data=reference_data)
+
+    # Check that the reference column exactly matches the input data
+    np.testing.assert_array_equal(df["reference"].values, reference_data)
+
+    # Check that correlations are still maintained
+    actual_correlations = df.corr()["reference"][1:].values
+    np.testing.assert_array_almost_equal(actual_correlations, correlations, decimal=1)
+
+    # Verify that the mean and std of reference column are preserved
+    np.testing.assert_almost_equal(df["reference"].mean(), np.mean(reference_data))
+    np.testing.assert_almost_equal(df["reference"].std(), np.std(reference_data))
+
+
+def test_reference_data_with_different_scales():
+    """Test that original reference data values are maintained with different scales."""
+    # Test cases with different scales
+    test_cases = [
+        (100, 20),  # Normal scale
+        (1000, 200),  # Large scale
+        (0.1, 0.02),  # Small scale
+        (-50, 10),  # Negative mean
+    ]
+
+    correlations = [0.7, -0.7]
+    n_samples = 100
+
+    for mean_value, std_value in test_cases:
+        reference_data = np.random.normal(mean_value, std_value, n_samples)
+        df = generate_correlated_data(correlations, reference_data=reference_data)
+
+        # Check that the reference column exactly matches the input data
+        np.testing.assert_array_equal(df["reference"].values, reference_data)
+
+        # Check that correlations are still maintained
+        actual_correlations = df.corr()["reference"][1:].values
+        np.testing.assert_array_almost_equal(
+            actual_correlations, correlations, decimal=1
+        )
+
+
+def test_reference_data_with_extreme_patterns():
+    """Test that original reference data values are maintained with extreme patterns."""
+    n_samples = 100
+    x = np.linspace(0, 10, n_samples)
+    correlations = [0.7, -0.7]
+
+    # Test different patterns
+    patterns = {
+        "exponential": np.exp(x),
+        "quadratic": x**2,
+        "sine": np.sin(x) * 100,  # Large amplitude
+        "constant": np.ones(n_samples) * 1000,  # Large constant value
+        "mixed": x**2 + np.sin(x) * 100 + np.exp(x / 2),
+    }
+
+    for pattern_name, reference_data in patterns.items():
+        df = generate_correlated_data(correlations, reference_data=reference_data)
+
+        # Check that the reference column exactly matches the input data
+        np.testing.assert_array_equal(df["reference"].values, reference_data)
+
+        # Check that correlations are still maintained
+        actual_correlations = df.corr()["reference"][1:].values
+        np.testing.assert_array_almost_equal(
+            actual_correlations, correlations, decimal=1
+        )

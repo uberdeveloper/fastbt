@@ -53,6 +53,7 @@ def generate_correlated_data(
     **dist_params: Any,
 ) -> pd.DataFrame:
     """
+    **This code is AI generated with Claude 3.5 Sonnet using copilot**
     Generate correlated data with specified correlations to the first column.
 
     This function generates a dataset where subsequent columns have specified
@@ -147,37 +148,26 @@ def generate_correlated_data(
         - Distribution parameters are passed directly to numpy's random functions
         - When seed is None, the function uses the current timestamp as seed,
           ensuring different results on each run
+        - When reference_data is provided, the output will maintain the original
+          reference data values in the first column while ensuring the specified
+          correlations are achieved with other columns.
     """
     # Validate inputs
     if not isinstance(correlations, (list, np.ndarray)):
         raise TypeError("correlations must be a list or numpy array")
 
-    # Convert correlations to numpy array for easier handling
     correlations = np.array(correlations, dtype=float)
 
-    # Validate correlation values
     if not all(isinstance(c, (int, float)) for c in correlations):
         raise TypeError("All correlations must be numbers")
     if not all(-1 <= c <= 1 for c in correlations):
         raise ValueError("All correlations must be between -1 and 1")
 
-    # Validate sample size
-    if n_samples < 10:  # Minimum sample size for reliable correlations
+    if n_samples < 10:
         raise ValueError("n_samples must be at least 10 for reliable correlations")
 
-    # Validate number of correlations
     if len(correlations) >= n_samples:
         raise ValueError("Number of correlations must be less than n_samples")
-
-    # Validate reference_data
-    if reference_data is not None:
-        if not isinstance(reference_data, (list, np.ndarray, pd.Series)):
-            raise TypeError(
-                "reference_data must be a list, numpy array, or pandas Series"
-            )
-        reference_data = np.array(reference_data, dtype=float)
-        if len(reference_data.shape) != 1:
-            raise ValueError("reference_data must be 1-dimensional")
 
     # Set random seed
     if seed is None:
@@ -185,7 +175,7 @@ def generate_correlated_data(
     else:
         np.random.seed(seed)
 
-    # Number of variables (correlations + 1 for the reference column)
+    # Number of variables
     n_vars = len(correlations) + 1
 
     # Dictionary of supported distributions and their sampling functions
@@ -222,15 +212,22 @@ def generate_correlated_data(
 
     random_generator = distribution_functions[distribution]
 
-    # Handle reference data if provided
+    # Handle reference data
+    original_reference = None
     if reference_data is not None:
-        reference_series = np.array(reference_data)
-        if len(reference_series.shape) > 1:
-            raise ValueError("reference_data must be a 1-dimensional array")
-        n_samples = len(reference_series)
-        # Standardize the reference data
-        reference_series = (reference_series - np.mean(reference_series)) / np.std(
-            reference_series
+        if not isinstance(reference_data, (list, np.ndarray, pd.Series)):
+            raise TypeError(
+                "reference_data must be a list, numpy array, or pandas Series"
+            )
+        reference_data = np.array(reference_data, dtype=float)
+        if len(reference_data.shape) != 1:
+            raise ValueError("reference_data must be 1-dimensional")
+        n_samples = len(reference_data)
+        # Store original reference data
+        original_reference = reference_data.copy()
+        # Standardize the reference data for correlation calculations
+        reference_series = (reference_data - np.mean(reference_data)) / np.std(
+            reference_data
         )
 
     # Create the correlation matrix
@@ -287,5 +284,9 @@ def generate_correlated_data(
     # Create DataFrame
     columns = ["reference"] + [f"var_{i+1}" for i in range(len(correlations))]
     df = pd.DataFrame(correlated, columns=columns)
+
+    # If original reference data exists, replace the standardized version
+    if original_reference is not None:
+        df["reference"] = original_reference
 
     return df
