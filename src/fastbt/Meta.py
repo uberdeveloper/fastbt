@@ -9,6 +9,24 @@ from enum import Enum
 import inspect
 import datetime
 import yaml
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    Union,
+    Type,
+    DefaultDict,
+    NamedTuple,
+)
+
+# Define a TypeVar for functions that can be decorated by pre/post
+F = TypeVar("F", bound=Callable[..., Any])
+# Define a TypeVar for 'self' in pre/post, expecting get_override and rename methods
+T = TypeVar("T", bound="Broker")  # Assuming Broker or similar interface for these methods
 
 
 class Status(Enum):
@@ -19,48 +37,48 @@ class Status(Enum):
     CANCELED = 5
 
 
-def pre(func):
+def pre(func: F) -> F:
     name = func.__name__
 
-    def f(*args, **kwargs):
-        self = args[0]
-        override = self.get_override(name)
+    def f(*args: Any, **kwargs: Any) -> Any:
+        # Assuming the first argument is 'self' which has get_override and rename
+        self_obj: Any = args[0]
+        override: Optional[Dict[str, str]] = self_obj.get_override(name)
         if override:
-            kwargs = self.rename(kwargs, override)
+            kwargs = self_obj.rename(kwargs, override)
         return func(*args, **kwargs)
 
-    return f
+    return f  # type: ignore # Decorator typing can be complex
 
 
-def post(func):
+def post(func: F) -> F:
     name = func.__name__
 
-    def f(*args, **kwargs):
-        self = args[0]
-        override = self.get_override(name)
-        response = func(*args, **kwargs)
+    def f(*args: Any, **kwargs: Any) -> Any:
+        self_obj: Any = args[0]
+        override: Optional[Dict[str, str]] = self_obj.get_override(name)
+        response: Any = func(*args, **kwargs)
         if override:
             if isinstance(response, list):
-                return [self.rename(r, override) for r in response]
+                return [self_obj.rename(r, override) for r in response if isinstance(r, dict)]
             elif isinstance(response, dict):
-                return self.rename(response, override)
+                return self_obj.rename(response, override)
         return response
 
-    return f
+    return f  # type: ignore # Decorator typing can be complex
 
 
 class TradingSystem:
-    def __init__(self, auth=None, tradebook=None):
+    def __init__(self, auth: Any = None, tradebook: Optional[TradeBook] = None) -> None:
         """
         Initialize the system
         """
-        self.auth = auth
-        self._cycle = 0
-        self._data = []
-        # Pipeline is a list of 3-tuples with function
-        # name being the first element, args the
-        # second element and kwargs the third element
-        self._pipeline = [
+        self.auth: Any = auth
+        self._cycle: int = 0
+        self._data: List[Any] = []  # Define more specific type if possible
+        # Pipeline is a list of 2-tuples with function
+        # name being the first element, and kwargs the second element
+        self._pipeline: List[Tuple[str, Dict[str, Any]]] = [
             ("dummy", {}),
             ("fetch", {}),
             ("process", {}),
@@ -69,36 +87,39 @@ class TradingSystem:
             ("order", {}),
         ]
         if tradebook is None:
-            self.tb = TradeBook(name="TradingSystem")
+            self.tb: TradeBook = TradeBook(name="TradingSystem")
         else:
             self.tb = tradebook
         # List of options for the system
-        self._options = {"max_positions": 20, "cycle": 1e6}
+        self._options: Dict[str, Union[int, float]] = {
+            "max_positions": 20,
+            "cycle": 1e6,
+        }
 
     @property
-    def options(self):
+    def options(self) -> Dict[str, Union[int, float]]:
         return self._options.copy()
 
     @property
-    def data(self):
+    def data(self) -> List[Any]:
         return self._data.copy()
 
     @property
-    def cycle(self):
+    def cycle(self) -> int:
         return self._cycle
 
     @property
-    def pipeline(self):
+    def pipeline(self) -> List[Tuple[str, Dict[str, Any]]]:
         return self._pipeline
 
-    def fetch(self):
+    def fetch(self) -> None:
         """
         Data fetcher.
         Use this method to fetch data
         """
         pass
 
-    def process(self):
+    def process(self) -> None:
         """
         preprocess data before storing it
         This method should update the data property
@@ -106,25 +127,27 @@ class TradingSystem:
         """
         pass
 
-    def entry(self):
+    def entry(self) -> None:
         """
         Entry conditions checking must go here
         """
         pass
 
-    def exit(self):
+    def exit(self) -> None:
         """
         Exit conditions checking must go here
         """
         pass
 
-    def order(self):
+    def order(self) -> None:
         """
         Order placement should go here and adjust tradebook
         """
         pass
 
-    def add_to_pipeline(self, method, position=None, **kwargs):
+    def add_to_pipeline(
+        self, method: str, position: Optional[int] = None, **kwargs: Any
+    ) -> None:
         """
         Add a method to the existing pipeline
         method
@@ -141,12 +164,12 @@ class TradingSystem:
         and the position argument is a call to the
         insert method of the list object
         """
-        if not (position):
+        if position is None: # Check for None explicitly
             position = len(self._pipeline)
-        if getattr(self, method, None):
+        if getattr(self, method, None) is not None:
             self._pipeline.insert(position, (method, kwargs))
 
-    def run(self):
+    def run(self) -> None:
         """
         This should be the only method to call at a high level.
         This method calls every method in the pipeline
@@ -157,21 +180,8 @@ class TradingSystem:
         """
         for method, fkwargs in self._pipeline:
             # Returns None if method not found
-            getattr(self, method, lambda: None)(**fkwargs)
-            # Check whether the function is given any
-            # positional or keyword arguments
-            """
-            isArgs = len(fargs) > 0
-            isKwargs = len(fkwargs) > 0
-            if isArgs and isKwargs:
-                func(*fargs, **fkwargs)
-            elif isArgs:
-                func(*fargs)
-            elif isKwargs:
-                func(**fkwargs)
-            else:
-                func()
-            """
+            func_to_call = getattr(self, method, lambda **k: None) # Ensure kwargs are accepted
+            func_to_call(**fkwargs)
         self._cycle += 1
 
 
@@ -185,16 +195,21 @@ class ExtTradingSystem(TradingSystem):
     some condition
     """
 
-    def __init__(self, name="trading_system", symbol=None, **kwargs):
+    def __init__(
+        self, name: str = "trading_system", symbol: Optional[str] = None, **kwargs: Any
+    ) -> None:
         # Default arguments and values
-        date = datetime.datetime.today().strftime("%Y-%m-%d")
-        namedtuple("Time", "hour,minute")
-        self.date = date
-        self.log = {}
-        self._symbol = symbol
-        self._timestamp = datetime.datetime.now()
-        self.name = name
-        default_args = {
+        date_str: str = datetime.datetime.today().strftime("%Y-%m-%d")
+        # namedtuple("Time", "hour,minute") # This line doesn't seem to be used
+        self.date: str = date_str
+        self.log: Dict[Any, Any] = {} # Define more specific type if possible
+        self._symbol: Optional[str] = symbol
+        self._timestamp: datetime.datetime = datetime.datetime.now()
+        self.name: str = name
+        # Attributes that will be set by kwargs or defaults
+        self.MAX_GLOBAL_POSITIONS: int
+        self.MAX_QTY: int
+        default_args: Dict[str, int] = {
             "MAX_GLOBAL_POSITIONS": 1,  # maximum global positions
             "MAX_QTY": 100,  # maximum open quantity per stock
         }
@@ -203,14 +218,14 @@ class ExtTradingSystem(TradingSystem):
                 setattr(self, k, kwargs.pop(k))
             else:
                 setattr(self, k, v)
-        super(ExtTradingSystem, self).__init__()
+        super(ExtTradingSystem, self).__init__(**kwargs) # Pass remaining kwargs
 
     @property
-    def timestamp(self):
+    def timestamp(self) -> datetime.datetime:
         return self._timestamp
 
     @property
-    def isEntry(self):
+    def isEntry(self) -> bool:
         """
         conditions to check before entering into a position.
         returns True/False
@@ -223,12 +238,14 @@ class ExtTradingSystem(TradingSystem):
         # List of conditions to check
         if self.tb.o >= self.MAX_GLOBAL_POSITIONS:
             return False
-        elif abs(self.tb.positions.get(self._symbol, 0)) >= self.MAX_QTY:
+        # Assuming tb.positions is Dict[Optional[str], Union[int, float]]
+        current_pos: Union[int, float] = self.tb.positions.get(self._symbol, 0)
+        if abs(current_pos) >= self.MAX_QTY:
             return False
         else:
             return True
 
-    def add_trade(self, string, **kwargs):
+    def add_trade(self, string: str, **kwargs: Any) -> None:
         """
         A simple shortcut to add trade
         string
@@ -242,23 +259,28 @@ class ExtTradingSystem(TradingSystem):
         Even if price and order are provided in keyword
         arguments, they are overridden by the string argument
         """
-        dct = {"timestamp": self._timestamp, "symbol": self._symbol, "qty": 1}
+        dct: Dict[str, Any] = {
+            "timestamp": self._timestamp,
+            "symbol": self._symbol,
+            "qty": 1,
+        }
         dct.update(**kwargs)
-        order, price = string[0], float(string[1:])
-        dct.update({"price": price, "order": order})
+        order_type: str = string[0]
+        price: float = float(string[1:])
+        dct.update({"price": price, "order": order_type})
         self.tb.add_trade(**dct)
 
-    def run(self):
+    def run(self) -> None:
         """
         run function overriden
         """
         for method, fkwargs in self._pipeline:
-            # Returns None if method not found
             if method == "entry":
                 if self.isEntry:
                     self.entry(**fkwargs)
             else:
-                getattr(self, method, lambda: None)(**fkwargs)
+                func_to_call = getattr(self, method, lambda **k: None)
+                func_to_call(**fkwargs)
         self._cycle += 1
 
 
@@ -268,32 +290,38 @@ class CandleStickSystem(TradingSystem):
     """
 
     def __init__(
-        self, pattern=None, entry_price=None, exit_price=None, symbol="symbol"
-    ):
+        self,
+        pattern: Any = None,
+        entry_price: Optional[float] = None,
+        exit_price: Optional[float] = None,
+        symbol: str = "symbol",
+        **kwargs: Any, # Added to catch auth/tradebook from super
+    ) -> None:
         print("Hello world")
-        self.pattern = pattern
-        self.entry_price = entry_price
-        self.exit_price = exit_price
-        self.signal = None  # to be one of LONG/SHORT/None
-        self.symbol = symbol
-        self.c = Counter()
-        self.MAX_TRADES = 2
-        self._cycle = 0
-        self.timestamp = None
-        super(CandleStickSystem, self).__init__()
+        self.pattern: Any = pattern # Define more specific type if possible
+        self.entry_price: Optional[float] = entry_price
+        self.exit_price: Optional[float] = exit_price
+        self.signal: Optional[str] = None  # to be one of LONG/SHORT/None
+        self.symbol: str = symbol
+        self.c: Counter[Any] = Counter()
+        self.MAX_TRADES: int = 2
+        # self._cycle = 0 # Already initialized in TradingSystem
+        self.timestamp: Optional[datetime.datetime] = None # Or datetime.datetime
+        super(CandleStickSystem, self).__init__(**kwargs)
 
-    def add_trade(self, **kwargs):
+
+    def add_trade(self, **kwargs: Any) -> None:
         """
         Enter into a trade
         kwargs
             kwargs for the tradebook
         """
-        defaults = {
+        defaults: Dict[str, Any] = {
             "timestamp": self.timestamp,
             "symbol": self.symbol,
             "price": 0,
             "qty": 1,
-            "order": "B",
+            "order": "B", # Default order type
             "cycle": self.cycle,
         }
         defaults.update(**kwargs)
@@ -310,7 +338,7 @@ class Broker:
     match the keys of the API.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         """
         All initial conditions go here
         kwargs
@@ -320,8 +348,8 @@ class Broker:
         override_file
             path to override file
         """
-        self._sides = {"B": "S", "S": "B"}
-        self._override = {
+        self._sides: Dict[str, str] = {"B": "S", "S": "B"}
+        self._override: Dict[str, Dict[str, str]] = {
             "orders": {},
             "positions": {},
             "trades": {},
@@ -331,28 +359,44 @@ class Broker:
             "order_cancel": {},
             "order_modify": {},
         }
-        kwargs.pop("is_override", True)
-        file_path = inspect.getfile(self.__class__)[:-3]
-        override_file = kwargs.pop("override_file", f"{file_path}.yaml")
+        kwargs.pop("is_override", True) # is_override is used to enable/disable reading override file
+        # Determine file_path for the derived class, not Broker itself
+        actual_class: Type[Broker] = self.__class__
+        file_path_str: str = inspect.getfile(actual_class)
+        # Ensure it's a .py file path before slicing
+        if file_path_str.endswith(".py"):
+             file_path_base = file_path_str[:-3]
+        else: # Fallback or error handling if not a .py file (e.g. interactive)
+             file_path_base = file_path_str
+
+        override_file: str = kwargs.pop(
+            "override_file", f"{file_path_base}.yaml"
+        )
         try:
             with open(override_file, "r") as f:
-                dct = yaml.safe_load(f)
-            for k, v in dct.items():
-                self.set_override(k, v)
+                dct: Dict[str, Dict[str, str]] = yaml.safe_load(f)
+            if dct: # Check if dct is not None
+                for k, v in dct.items():
+                    self.set_override(k, v)
         except FileNotFoundError:
-            print("Default override file not found")
+            print(f"Default override file not found: {override_file}")
+        except yaml.YAMLError:
+            print(f"Error parsing YAML file: {override_file}")
 
-    def get_override(self, key=None):
+
+    def get_override(self, key: Optional[str] = None) -> Union[Dict[str, str], Dict[str, Dict[str, str]]]:
         """
-        get the override for the given ky
+        get the override for the given key
         returns all if key is not specified
         Note
         ----
         key should be implemented as a method
         """
-        return self._override.get(key, self._override.copy())
+        if key:
+            return self._override.get(key, {})
+        return self._override.copy()
 
-    def set_override(self, key, values):
+    def set_override(self, key: str, values: Dict[str, str]) -> Dict[str, str]:
         """
         set the overrides for the given key
         key
@@ -362,9 +406,9 @@ class Broker:
         returns the key if added
         """
         self._override[key] = values
-        return self.get_override(key)
+        return self.get_override(key) # type: ignore # get_override can return more
 
-    def authenticate(self):
+    def authenticate(self) -> Any:
         """
         Authenticate the user usually via an interface.
         This methods takes no arguments. Any arguments
@@ -372,56 +416,56 @@ class Broker:
         """
         raise NotImplementedError
 
-    def profile(self):
+    def profile(self) -> Any: # Define more specific return type in subclasses
         """
         Return the user profile
         """
         raise NotImplementedError
 
-    def orders(self):
+    def orders(self) -> List[Dict[str, Any]]:
         """
         Get the list of orders
         """
         raise NotImplementedError
 
-    def trades(self):
+    def trades(self) -> List[Dict[str, Any]]:
         """
         Get the list of trades
         """
         raise NotImplementedError
 
-    def positions(self):
+    def positions(self) -> List[Dict[str, Any]]:
         """
         Get the list of positions
         """
         raise NotImplementedError
 
-    def order_place(self, **kwargs):
+    def order_place(self, **kwargs: Any) -> Any: # Define more specific return type
         """
         Place an order
         """
         raise NotImplementedError
 
-    def order_modify(self, order_id, **kwargs):
+    def order_modify(self, order_id: Any, **kwargs: Any) -> Any: # Define specific type for order_id
         """
         Modify an order with the given order id
         """
         raise NotImplementedError
 
-    def order_cancel(self, order_id, **kwargs):
+    def order_cancel(self, order_id: Any, **kwargs: Any) -> Any: # Define specific type for order_id
         """
         Cancel an order with the given order id
         """
         raise NotImplementedError
 
-    def quote(self, symbol, **kwargs):
+    def quote(self, symbol: str, **kwargs: Any) -> Any: # Define more specific return type
         """
         Get the quote for the given symbol
         """
         raise NotImplementedError
 
     @staticmethod
-    def dict_filter(lst, **kwargs):
+    def dict_filter(lst: List[Dict[str, Any]], **kwargs: Any) -> List[Dict[str, Any]]:
         """
         Filter a list of dictionary to conditions matching
         in kwargs
@@ -438,21 +482,22 @@ class Broker:
         in kwargs are matched and only those dictionaries that
         match all the conditions are returned
         """
-        if len(lst) == 0:
-            print("Nothing in the list")
+        if not lst: # Simpler check for empty list
+            # print("Nothing in the list") # This print can be noisy, consider removing or logging
             return []
-        new_lst = []
-        for d in lst:
-            case = True
+        new_lst: List[Dict[str, Any]] = []
+        for d_item in lst: # Renamed 'd' to 'd_item' to avoid conflict if 'd' is a kwarg key
+            case: bool = True
             for k, v in kwargs.items():
-                if d.get(k) != v:
+                if d_item.get(k) != v:
                     case = False
+                    break # Optimization: no need to check further if one condition fails
             if case:
-                new_lst.append(d)
+                new_lst.append(d_item)
         return new_lst
 
     @staticmethod
-    def rename(dct, keys):
+    def rename(dct: Dict[str, Any], keys: Dict[str, str]) -> Dict[str, Any]:
         """
         rename the keys of an existing dictionary
         dct
@@ -465,88 +510,118 @@ class Broker:
         -----
         A new dictionary is constructed with existing
         keys replaced by new ones. Values are not replaced.
-        >>> rename({'a': 10, 'b':20}, {'a': 'aa'})
-        {'aa':10, 'b': 20}
-        >>> rename({'a': 10, 'b': 20}, {'c': 'm'})
-        {'a':10, 'b':20}
+        >>> Broker.rename({'a': 10, 'b':20}, {'a': 'aa'})
+        {'aa': 10, 'b': 20}
+        >>> Broker.rename({'a': 10, 'b': 20}, {'c': 'm'})
+        {'a': 10, 'b': 20}
         """
-        new_dct = {}
+        new_dct: Dict[str, Any] = {}
         for k, v in dct.items():
-            if keys.get(k):
+            if k in keys: # More direct check
                 new_dct[keys[k]] = v
             else:
                 new_dct[k] = v
         return new_dct
 
-    def cancel_all_orders(self, **kwargs):
+    def cancel_all_orders(self, **kwargs: Any) -> None:
         """
         Cancel all pending orders.
         To close a particular class or orders, include
         them in kwargs
         """
-        orders = self.orders()
+        # Assuming self.orders() returns List[Dict[str, Any]]
+        # and order_id is present in each dict
+        current_orders: List[Dict[str, Any]] = self.orders()
         if kwargs:
-            orders = at.dict_filter(orders, **kwargs)
-        if len(orders) > 0:
-            for order in self.orders():
-                self.order_cancel(order["order_id"])
+            # Assuming `at` was a typo for `self` or a missing import `fastbt.utils`
+            # For now, assuming it's self.dict_filter
+            current_orders = self.dict_filter(current_orders, **kwargs)
+        if len(current_orders) > 0: # Check filtered orders
+            for order in current_orders: # Iterate through filtered orders
+                if "order_id" in order:
+                    self.order_cancel(order["order_id"])
+                # else: log or handle missing order_id
 
-    def close_all_positions(self, **kwargs):
+    def close_all_positions(self, **kwargs: Any) -> None:
         """
         Close all existing positions by placing
         market orders.
         To close a particular class of orders, include
         them in kwargs
         """
-        positions = self.positions()
+        current_positions: List[Dict[str, Any]] = self.positions()
         if kwargs:
-            positions = self.dict_filter(positions, **kwargs)
-        if len(positions) > 0:
-            for position in positions:
-                qty = abs(position["quantity"])
-                symbol = position["symbol"]
-                side = self._sides[position["side"]]
-                if qty > 0:
-                    self.order_place(
-                        symbol=symbol, quantity=qty, order_type="MARKET", side=side
-                    )
+            current_positions = self.dict_filter(current_positions, **kwargs)
 
-    def consolidated(self, **kwargs):
+        if len(current_positions) > 0:
+            for position in current_positions:
+                qty: Union[int, float] = abs(position.get("quantity", 0))
+                symbol: Optional[str] = position.get("symbol")
+                # Assuming position side is 'B' or 'S'. If not, this will fail.
+                original_side: Optional[str] = position.get("side")
+
+                if qty > 0 and symbol and original_side and original_side in self._sides:
+                    closing_side: str = self._sides[original_side]
+                    self.order_place(
+                        symbol=symbol, quantity=qty, order_type="MARKET", side=closing_side
+                    )
+                # else: log or handle missing keys or invalid side
+
+    def consolidated(self, **kwargs: Any) -> DefaultDict[str, Counter[Any]]:
         """
         Get the consolidated list of orders and positions
         by each symbol
         """
-        dct = defaultdict()
-        ords = self.orders()
+        dct: DefaultDict[str, Counter[Any]] = defaultdict(Counter)
+        ords: List[Dict[str, Any]] = self.orders()
+        # Assuming `at` was a typo for `self` or a missing import `fastbt.utils`
+        # For now, assuming it's self.dict_filter
         ords = self.dict_filter(ords, **kwargs)
-        orders = []
+
+        pending_orders: List[Dict[str, Any]] = []
         for o in ords:
-            if (o["status"] == "PENDING") or (o["status"] == "PARTIAL"):
-                orders.append(o)
-        for o in orders:
-            symbol = o["symbol"]
-            if not (dct.get(symbol)):
-                dct[symbol] = Counter()
-            price = max(o["price"], o["trigger_price"])
-            qty = abs(o["quantity"]) - abs(o["filled_quantity"])
-            value = abs(price * qty)
-            dct[symbol][o["side"]] += qty
-            text = "{}_value".format(o["side"])
-            dct[symbol].update({text: value})
-        positions = self.positions()
-        positions = self.dict_filter(positions, **kwargs)
-        for p in positions:
-            symbol = p["symbol"]
-            if not (dct.get(symbol)):
-                dct[symbol] = Counter()
-            price = p["average_price"]
-            value = abs(price * p["quantity"])
-            text = "{}_value".format(p["side"])
-            dct[symbol][p["side"]] += abs(p["quantity"])
-            dct[symbol].update({text: value})
+            status = o.get("status")
+            if (status == "PENDING") or (status == "PARTIAL"):
+                pending_orders.append(o)
+
+        for o in pending_orders:
+            symbol: Optional[str] = o.get("symbol")
+            if not symbol: continue # Skip if no symbol
+
+            price: float = max(o.get("price", 0.0), o.get("trigger_price", 0.0))
+            quantity: float = o.get("quantity", 0.0)
+            filled_quantity: float = o.get("filled_quantity", 0.0)
+            side: Optional[str] = o.get("side")
+            if side is None: continue # Skip if no side
+
+            qty_to_consider: float = abs(quantity) - abs(filled_quantity)
+            value: float = abs(price * qty_to_consider)
+
+            dct[symbol][side] += qty_to_consider
+            text: str = f"{side}_value"
+            dct[symbol][text] += value # Use += for Counter update consistency
+
+        current_positions: List[Dict[str, Any]] = self.positions()
+        current_positions = self.dict_filter(current_positions, **kwargs)
+
+        for p in current_positions:
+            symbol = p.get("symbol")
+            if not symbol: continue
+
+            price = p.get("average_price", 0.0)
+            quantity = p.get("quantity", 0.0)
+            side = p.get("side")
+            if side is None: continue
+
+            value = abs(price * quantity)
+            text = f"{side}_value"
+            dct[symbol][side] += abs(quantity)
+            dct[symbol][text] += value
         return dct
 
-    def not_covered(self, tick_size=0.05, **kwargs):
+    def not_covered(
+        self, tick_size: float = 0.05, **kwargs: Any
+    ) -> List[NamedTuple]: # More specific NamedTuple if defined
         """
         Get the list of orders/positions not covered.
         returns a named tuple containing the symbol, the side not covered,
@@ -562,30 +637,40 @@ class Broker:
         2) Orders are compared by quantity and not by price
         3) Bracket, OCO and other order types not covered
         """
-        all_orders = self.consolidated(**kwargs)
-        tup = namedtuple("uncovered", ["symbol", "side", "quantity", "price"])
-        uncovered = []
-        for k, v in all_orders.items():
-            if v["BUY"] > v["SELL"]:
-                avg_price = tick(v["BUY_value"] / v["BUY"], tick_size)
-                tp = tup(k, "SELL", v["BUY"] - v["SELL"], avg_price)
-                uncovered.append(tp)
-            elif v["SELL"] > v["BUY"]:
-                avg_price = tick(v["SELL_value"] / v["SELL"], tick_size)
-                tp = tup(k, "BUY", v["SELL"] - v["BUY"], avg_price)
-                uncovered.append(tp)
-        return uncovered
+        all_orders: DefaultDict[str, Counter[Any]] = self.consolidated(**kwargs)
+        UncoveredTuple = namedtuple( # type: ignore
+            "uncovered", ["symbol", "side", "quantity", "price"]
+        )
+        uncovered_list: List[NamedTuple] = [] # Use the specific namedtuple type
 
-    def _create_stop_loss_orders(self, percent=1, tick_size=0.05, **kwargs):
+        for k, v_counter in all_orders.items(): # k is symbol, v_counter is the Counter
+            buy_qty: float = v_counter.get("BUY", 0.0)
+            sell_qty: float = v_counter.get("SELL", 0.0)
+            buy_value: float = v_counter.get("BUY_value", 0.0)
+            sell_value: float = v_counter.get("SELL_value", 0.0)
+
+            if buy_qty > sell_qty:
+                avg_price: float = tick(buy_value / buy_qty if buy_qty else 0, tick_size)
+                tp = UncoveredTuple(k, "SELL", buy_qty - sell_qty, avg_price)
+                uncovered_list.append(tp)
+            elif sell_qty > buy_qty:
+                avg_price = tick(sell_value / sell_qty if sell_qty else 0, tick_size)
+                tp = UncoveredTuple(k, "BUY", sell_qty - buy_qty, avg_price)
+                uncovered_list.append(tp)
+        return uncovered_list
+
+    def _create_stop_loss_orders(
+        self, percent: Union[int, float] = 1, tick_size: float = 0.05, **kwargs: Any
+    ) -> List[Dict[str, Any]]:
         """
         Create a list of stop orders for orders not covered
         percent
             percentage of stop loss on the average price
         """
-        not_covered = self.not_covered(**kwargs)
-        lst = []
+        not_covered_list: List[NamedTuple] = self.not_covered(tick_size=tick_size, **kwargs)
+        lst: List[Dict[str, Any]] = []
 
-        def get_sl(price, side, percent):
+        def get_sl(price: float, side: str, stop_percent: Union[int, float]) -> float:
             """
             Get stop loss for the order
             Note
@@ -594,18 +679,19 @@ class Broker:
             already knew the side to place the order and
             the price is that of the opposite side
             """
-            if side == "BUY":
-                return tick(price * (1 + percent * 0.01), tick_size)
-            elif side == "SELL":
-                return tick(price * (1 - percent * 0.01), tick_size)
-            else:
+            if side == "BUY": # Need to buy to cover short, so SL is higher
+                return tick(price * (1 + stop_percent * 0.01), tick_size)
+            elif side == "SELL": # Need to sell to cover long, so SL is lower
+                return tick(price * (1 - stop_percent * 0.01), tick_size)
+            else: # Should not happen with current logic of not_covered
                 return price
 
-        for nc in not_covered:
-            dct = {}
-            dct["symbol"] = nc.symbol
-            dct["quantity"] = nc.quantity
-            dct["side"] = nc.side
-            dct["price"] = get_sl(nc.price, nc.side, percent)
+        for nc in not_covered_list:
+            dct: Dict[str, Any] = {}
+            # Assuming nc is the NamedTuple("uncovered", ["symbol", "side", "quantity", "price"])
+            dct["symbol"] = nc.symbol     # type: ignore
+            dct["quantity"] = nc.quantity # type: ignore
+            dct["side"] = nc.side         # type: ignore
+            dct["price"] = get_sl(nc.price, nc.side, percent) # type: ignore
             lst.append(dct)
         return lst
