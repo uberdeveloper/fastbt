@@ -433,7 +433,7 @@ def custom_index(data, on, window=30, function="median", num=30, sort_mode=False
         look back window
     function
         function to be applied
-    out
+    num
         number of stocks to pick each day
     sort_mode
         whether to pick top stocks or bottom stocks

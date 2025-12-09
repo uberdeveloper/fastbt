@@ -29,7 +29,7 @@ EXTRAS_REQUIRE = dict(
     plotting=["bokeh>3.0.0"],
     apps=["streamlit>1.15.0"],
     test=["pytest", "pytest-watch", "ruff"],
-    options=["pydantic"],
+    options=["pydantic>=2.0.0"],
 )
 
 

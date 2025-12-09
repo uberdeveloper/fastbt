@@ -9,17 +9,17 @@ from copy import deepcopy
 
 class StockData(BaseModel):
     name: str
-    token: Optional[int]
+    token: Optional[int] = None
     can_trade: bool = True
     positions: int = 0
     ltp: float = 0
     day_high: float = -1  # Impossible value for initialization
     day_low: float = 1e10  # Almost impossible value for initialization
-    order_id: Optional[str]
-    stop_id: Optional[str]
-    stop_loss: Optional[float]
-    high: Optional[float]
-    low: Optional[float]
+    order_id: Optional[str] = None
+    stop_id: Optional[str] = None
+    stop_loss: Optional[float] = None
+    high: Optional[float] = None
+    low: Optional[float] = None
 
 
 class HighLow(BaseModel):
@@ -62,7 +62,7 @@ class Breakout(BaseSystem):
         These values are used for calculating breakouts
         """
         for hl in high_low:
-            if type(hl) == dict:
+            if isinstance(hl, dict):
                 hl = HighLow(**hl)
             print(hl, hl.symbol)
             d = self._data.get(hl.symbol)

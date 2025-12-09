@@ -1,9 +1,11 @@
 """
 The options payoff module
 """
+
 from typing import List, Optional, Union
 from enum import Enum
-from pydantic import BaseModel, PrivateAttr, root_validator
+from pydantic import BaseModel, PrivateAttr, model_validator
+from pydantic.config import ConfigDict
 import logging
 from collections import Counter
 import statistics
@@ -35,8 +37,7 @@ class PayoffPnl(BaseModel):
     win_rate: float
     loss_rate: float
 
-    class Config:
-        frozen = True
+    model_config = ConfigDict(frozen=True)
 
 
 class Contract(BaseModel):
@@ -65,7 +66,8 @@ class Contract(BaseModel):
     premium: float = 0.0
     quantity: int = 1
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def premium_check(cls, values):
         # Premium mandatory for call and put options
         option = values.get("option")

@@ -2,6 +2,7 @@ import pendulum
 from typing import List, Tuple, Optional, Dict, Any
 from fastbt.Meta import TradingSystem
 from pydantic import BaseModel
+from pydantic.config import ConfigDict
 from copy import deepcopy
 
 # Declare global variables
@@ -308,19 +309,23 @@ class Candle(BaseModel):
     A model representing a single candle
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     timestamp: pendulum.DateTime
     open: float
     high: float
     low: float
     close: float
-    volume: Optional[int]
-    info: Optional[Any]
+    volume: Optional[int] = None
+    info: Optional[Any] = None
 
 
 class CandleStick(BaseModel):
     """
     Class to work on candlesticks
     """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     name: str
     candles: List[Candle] = []
