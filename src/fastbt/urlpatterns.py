@@ -95,4 +95,8 @@ file_patterns = {
         "https://archives.nseindia.com/archives/nsccl/volt/FOVOLT_{date}.csv",
         lambda x: {"date": x.strftime("%d%m%Y")},
     ),
+    "mrg_trading": (
+        "https://nsearchives.nseindia.com/content/equities/mrg_trading_{date}.zip",
+        lambda x: {"date": x.strftime("%d%m%y")},
+    ),
 }
