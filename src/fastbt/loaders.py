@@ -3,7 +3,12 @@ Load data to database
 """
 
 import os
+import glob
+import re
 import pandas as pd
+from typing import Optional, Any
+import subprocess
+from io import StringIO
 
 
 def apply_adjustment(
@@ -57,6 +62,248 @@ def apply_adjustment(
     df.loc[:adj_date, cols] = adjusted_values
     df.loc[adj_date, cols] = values_on_adj_date
     return df.reset_index()
+
+
+def convert_to_datetime(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Automatically converts columns related to date/time to pandas datetime objects.
+    Skips conversion if the column is already datetime-like (e.g., from Parquet/Arrow).
+    Handles numpy epoch unit mismatches (ms, us, ns) by checking if dates fall before year 2000.
+    """
+    date_keywords = ["date", "timestamp", "datetime", "time"]
+    for col in df.columns:
+        if any(key in col.lower() for key in date_keywords):
+            # Skip if already datetime-like
+            if pd.api.types.is_datetime64_any_dtype(df[col]):
+                continue
+
+            try:
+                # Initial conversion attempt
+                converted = pd.to_datetime(df[col], errors="coerce")
+
+                # Check for 1970/epoch issues (numpy ms/us/ns conversion artifacts)
+                # If we expect data after 2000, and we see 1970, it's likely a unit mismatch
+                if not converted.dropna().empty:
+                    valid_years = converted.dropna().dt.year
+                    if (valid_years < 2000).any() and (valid_years == 1970).any():
+                        # Try to correct unit for numeric inputs
+                        if pd.api.types.is_numeric_dtype(df[col]):
+                            for unit in ["ms", "us", "s", "ns"]:
+                                try:
+                                    trial = pd.to_datetime(
+                                        df[col], unit=unit, errors="coerce"
+                                    )
+                                    if (
+                                        not trial.dropna().empty
+                                        and (trial.dropna().dt.year >= 2000).all()
+                                    ):
+                                        converted = trial
+                                        break
+                                except Exception:
+                                    continue
+
+                df[col] = converted
+            except Exception as e:
+                print(f"Warning: Could not convert column {col} to datetime: {e}")
+    return df
+
+
+def clean_column_names(
+    df: pd.DataFrame,
+    lower: bool = True,
+    strip_non_printable: bool = True,
+    replace_spaces: bool = True,
+    ensure_identifiers: bool = True,
+) -> pd.DataFrame:
+    """
+    Cleans column names based on the following rules unless overridden:
+    1) Lowercase all column names
+    2) Strip extra/non-printable characters
+    3) Replace spaces with underscores
+    4) Ensure names are valid Python identifiers for attribute access
+    """
+    new_columns = []
+    for col in df.columns:
+        name = str(col)
+
+        if strip_non_printable:
+            # Strip non-printable characters and extra whitespace
+            name = "".join(char for char in name if char.isprintable())
+            name = name.strip()
+
+        if lower:
+            name = name.lower()
+
+        if replace_spaces:
+            name = name.replace(" ", "_")
+
+        if ensure_identifiers:
+            # Replace any non-alphanumeric character (except underscore) with underscore
+            name = re.sub(r"\W+", "_", name)
+            # Ensure it doesn't start with a number (prepend an underscore if it does)
+            if name and name[0].isdigit():
+                name = "_" + name
+            # Strip leading/trailing underscores that might have been created
+            name = name.strip("_")
+            # If the name becomes empty or starts with a number (after strip), provide a default
+            if not name:
+                name = "col_" + str(len(new_columns))
+
+        new_columns.append(name)
+
+    df.columns = new_columns
+    return df
+
+
+def peek_file(filename: str, **kwargs) -> Optional[pd.DataFrame]:
+    """
+    STEP 1: DISCOVERY
+    Read the first 5 rows for quick analysis and schema inference.
+    Uses CLI tools (head) for text formats for maximum speed.
+    """
+    print(f"## Discovery Step: Peeking at {filename}")
+    print("## Reading data files rule applied: Reading first 5 rows only.")
+
+    # Extract cleaning-specific kwargs
+    cleaning_kwargs = {
+        k: kwargs.pop(k)
+        for k in [
+            "lower",
+            "strip_non_printable",
+            "replace_spaces",
+            "ensure_identifiers",
+        ]
+        if k in kwargs
+    }
+
+    # Look for accompanying metadata files
+    base = os.path.splitext(filename)[0]
+    for meta_ext in [".json", ".yaml", ".yml"]:
+        meta_file = base + meta_ext
+        if os.path.exists(meta_file):
+            print(f"## Discovery Step: Found metadata in {meta_file}")
+            try:
+                with open(meta_file, "r") as f:
+                    print(f"Metadata Content:\n{f.read()}")
+            except Exception as e:
+                print(f"Could not read metadata: {e}")
+
+    ext = os.path.splitext(filename)[1].lower()
+
+    try:
+        # Strategy: Use shell tools for text formats for zero-memory discovery
+        if ext in [".csv", ".txt", ".log"]:
+            result = subprocess.run(
+                ["head", "-n", "6", filename], capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                df = pd.read_csv(StringIO(result.stdout), **kwargs)
+                df = clean_column_names(df, **cleaning_kwargs)
+                return convert_to_datetime(df)
+            df = pd.read_csv(filename, nrows=5, **kwargs)
+            df = clean_column_names(df, **cleaning_kwargs)
+            return convert_to_datetime(df)
+
+        elif ext == ".zip":
+            # For zips, we still need pandas to handle decompression
+            df = pd.read_csv(filename, nrows=5, **kwargs)
+            df = clean_column_names(df, **cleaning_kwargs)
+            return convert_to_datetime(df)
+
+        elif ext == ".parquet":
+            import pyarrow.parquet as pq
+            import pyarrow as pa
+
+            pf = pq.ParquetFile(filename)
+            first_batch = next(pf.iter_batches(batch_size=5))
+            df = pa.Table.from_batches([first_batch]).to_pandas()
+            df = clean_column_names(df, **cleaning_kwargs)
+            return convert_to_datetime(df)
+
+        elif ext in [".db", ".duckdb"]:
+            import duckdb
+
+            with duckdb.connect(filename, read_only=True) as con:
+                tables = con.execute("SHOW TABLES").fetchall()
+                print(f"DuckDB Tables found: {[t[0] for t in tables]}")
+                if tables:
+                    df = con.execute(f"SELECT * FROM {tables[0][0]} LIMIT 5").df()
+                    df = clean_column_names(df, **cleaning_kwargs)
+                    return convert_to_datetime(df)
+            return None
+
+        elif ext == ".pkl" or ext == ".pickle":
+            file_size_kb = os.path.getsize(filename) / 1024
+            if file_size_kb > 100:
+                print(
+                    f"Skipping {filename}: Pickle file size ({file_size_kb:.2f} KB) exceeds 100KB limit."
+                )
+                return None
+            df = pd.read_pickle(filename).head(5)
+            df = clean_column_names(df, **cleaning_kwargs)
+            return convert_to_datetime(df)
+
+        else:
+            df = pd.read_table(filename, nrows=5, **kwargs) if ext == ".txt" else None
+            if df is not None:
+                df = clean_column_names(df, **cleaning_kwargs)
+                return convert_to_datetime(df)
+            return None
+
+    except Exception as e:
+        print(f"Error during discovery (peek) of {filename}: {e}")
+        return None
+
+
+def efficient_load(filename: str, **kwargs) -> Any:
+    """
+    STEP 2: FULL DATA LOADING
+    Loads the entire file (or iterator) using pandas.
+    - Files > 100MB are loaded in chunks.
+    - DuckDB databases are accessed in read-only mode.
+    """
+    print(f"## Full Loading Step: {filename}")
+
+    # Extract cleaning-specific kwargs
+    cleaning_kwargs = {
+        k: kwargs.pop(k)
+        for k in [
+            "lower",
+            "strip_non_printable",
+            "replace_spaces",
+            "ensure_identifiers",
+        ]
+        if k in kwargs
+    }
+
+    file_size_mb = os.path.getsize(filename) / (1024 * 1024)
+    ext = os.path.splitext(filename)[1].lower()
+
+    if ext in [".db", ".duckdb"]:
+        import duckdb
+
+        print(f"Accessing DuckDB {filename} in read_only mode.")
+        return duckdb.connect(filename, read_only=True)
+
+    # Use pandas for all full loading as requested
+    if file_size_mb > 100 and ext in [".csv", ".txt"]:
+        print(
+            f"File size {file_size_mb:.2f}MB > 100MB. Loading in chunks of 100k rows."
+        )
+        return pd.read_csv(filename, chunksize=100000, **kwargs)
+
+    df = None
+    if ext == ".csv":
+        df = pd.read_csv(filename, **kwargs)
+    elif ext == ".parquet":
+        df = pd.read_parquet(filename, **kwargs)
+    elif ext == ".feather":
+        df = pd.read_feather(filename, **kwargs)
+
+    if df is not None:
+        df = clean_column_names(df, **cleaning_kwargs)
+        return convert_to_datetime(df)
+    return None
 
 
 class DataLoader(object):
@@ -300,47 +547,109 @@ class DataLoader(object):
             )
 
 
-def collate_data(directory, function=None, concat=True, **kwargs):
+def normalize_json(data: Any, **kwargs) -> pd.DataFrame:
     """
-    Given a directory of csv files with similar structure,
-    create a dataframe by concantenating all files
-    directory
-        directory with the files. All files should
-        be of the same structure and there should
-        be no sub-directory inside it
-    function
-        function to be run on each file
-        By default, pandas read_csv function is
-        run on each file. If you specify your own
-        function, it should have only filename
-        as its argument and must return a dataframe
-    concat
-        whether you want to concat results into a
-        single dataframe
-        default **True**
-        if False, a list is returned
-    kwargs
-        kwargs for the pandas read_csv function
+    STEP 2: FULL DATA LOADING (JSON)
+    Flatten nested JSON structures for tabular analysis.
+    - Uses pd.json_normalize for flattening.
+    - Applies auto-cleaning of column names.
+    """
+    # Extract cleaning-specific kwargs
+    cleaning_kwargs = {
+        k: kwargs.pop(k)
+        for k in [
+            "lower",
+            "strip_non_printable",
+            "replace_spaces",
+            "ensure_identifiers",
+        ]
+        if k in kwargs
+    }
 
-    Note
-    -----
-    If your data cannot return a dataframe, pass your
-    own function and set concat=False to return a list
+    df = pd.json_normalize(data, **kwargs)
+    df = clean_column_names(df, **cleaning_kwargs)
+    return convert_to_datetime(df)
+
+
+def collate_data(
+    directory: str,
+    pattern: str = "*.csv",
+    transform: Optional[callable] = None,
+    **kwargs,
+) -> Optional[pd.DataFrame]:
     """
-    collect = []
-    for root, directory, files in os.walk(directory):
-        for file in files:
-            filename = os.path.join(root, file)
-            if function is None:
-                temp = pd.read_csv(filename, **kwargs)
+    STEP 2: FULL DATA LOADING (Multi-file)
+    Collate multiple files using pandas if total size < 100MB.
+    Optional 'transform' function can be applied to each individual dataframe.
+
+    directory
+        directory with the files.
+    pattern
+        glob pattern to match files
+    transform
+        function to be run on each file dataframe.
+        Takes (df, filename) as arguments.
+    kwargs
+        kwargs for the pandas read_csv function (or other readers)
+    """
+    # Extract cleaning-specific kwargs
+    cleaning_kwargs = {
+        k: kwargs.pop(k)
+        for k in [
+            "lower",
+            "strip_non_printable",
+            "replace_spaces",
+            "ensure_identifiers",
+        ]
+        if k in kwargs
+    }
+
+    files = glob.glob(os.path.join(directory, pattern))
+    if not files:
+        return None
+
+    total_size_mb = sum(os.path.getsize(f) for f in files) / (1024 * 1024)
+
+    if total_size_mb > 100:
+        print(
+            f"Total size {total_size_mb:.2f}MB exceeds 100MB limit for collation. Use individual efficient_load."
+        )
+        return None
+
+    print(
+        f"## Full Loading Step (Collate): {len(files)} files. Total size: {total_size_mb:.2f}MB."
+    )
+
+    ext = os.path.splitext(files[0])[1].lower()
+    dataframes = []
+
+    try:
+        for f in files:
+            # Always use pandas for loading
+            if ext == ".csv":
+                df = pd.read_csv(f, **kwargs)
+            elif ext == ".parquet":
+                df = pd.read_parquet(f, **kwargs)
+            elif ext == ".feather":
+                df = pd.read_feather(f, **kwargs)
             else:
-                temp = function(filename)
-            collect.append(temp)
-    if concat:
-        result = pd.concat(collect).reset_index(drop=True)
-        return result
-    else:
-        return collect
+                continue
+
+            # Apply transformation if provided
+            if transform:
+                df = transform(df, f)
+            dataframes.append(df)
+
+    except Exception as e:
+        print(f"Error during collation loading: {e}")
+        return None
+
+    if not dataframes:
+        return None
+
+    df_final = pd.concat(dataframes, ignore_index=True)
+    df_final = clean_column_names(df_final, **cleaning_kwargs)
+    return convert_to_datetime(df_final)
 
 
 def read_file(filename, key=None, directory=None, **kwargs):

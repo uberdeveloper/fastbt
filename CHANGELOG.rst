@@ -1,6 +1,18 @@
 =========
 History
 =========
+v0.7.0 (BREAKING)
+------
+* **BREAKING**: Migrated to Pydantic v2.0 compatibility (requires pydantic>=2.0.0)
+* Updated all BaseModel classes to use model_config instead of deprecated Config class
+* Replaced root_validator with model_validator(mode='before')
+* Added default values for Optional fields as required by Pydantic v2
+* Enhanced option chain simulation capabilities
+* Added correlated data simulation features
+* Improved URL pattern matching functionality
+* Code formatting and linting improvements with ruff and black
+* Added `load-data` skill for efficient data discovery and loading (includes peek_file, efficient_load, collate_data, and normalize_json)
+
 v0.6.0
 ------
 * New methods added to `TradeBook` object

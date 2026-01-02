@@ -35,7 +35,7 @@ EXTRAS_REQUIRE = dict(
 
 setup(
     name="fastbt",
-    version="0.6.0",
+    version="0.7.0",
     license="MIT license",
     description="A simple framework for fast and dirty backtesting",
     long_description="%s\n%s"
@@ -61,8 +61,11 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: Implementation :: CPython",
         # uncomment if you test on these interpreters:
         # 'Programming Language :: Python :: Implementation :: IronPython',
@@ -82,7 +85,7 @@ setup(
     install_requires=[
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
         "pandas>=1.0.0",
-        "sqlalchemy<=2.0.0",
+        "sqlalchemy>=1.4.0,<3.0.0",
         "pendulum>=2.0.0",
     ],
     extras_require=EXTRAS_REQUIRE,
