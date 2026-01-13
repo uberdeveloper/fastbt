@@ -729,23 +729,23 @@ def _market_generator(
         ] * np.sqrt(dt_years) * shock
         price *= np.exp(returns)
 
-        # Snap to tick size
-        price = round(price / params["tick_size"]) * params["tick_size"]
+        # Snap to tick size for the output only
+        snapped_price = round(price / params["tick_size"]) * params["tick_size"]
 
         if use_quotes:
-            half_spread = (price * params["spread"]) / 2
+            half_spread = (snapped_price * params["spread"]) / 2
             data = {
                 "timestamp": current_time,
-                "bid": round((price - half_spread) / params["tick_size"])
+                "bid": round((snapped_price - half_spread) / params["tick_size"])
                 * params["tick_size"],
-                "ask": round((price + half_spread) / params["tick_size"])
+                "ask": round((snapped_price + half_spread) / params["tick_size"])
                 * params["tick_size"],
-                "mid_price": price,
+                "mid_price": snapped_price,
             }
         else:
             data = {
                 "timestamp": current_time,
-                "price": price,
+                "price": snapped_price,
                 "size": np.random.randint(1, 100),
             }
 
