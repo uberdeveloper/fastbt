@@ -294,3 +294,16 @@ def test_quote_generator_basic():
     # 1% spread on 100 should be 1.0, so bid/ask should be 99.5/100.5
     assert quote["bid"] == 99.5
     assert quote["ask"] == 100.5
+
+
+def test_tick_generator_price_movement():
+    """
+    Regression test: Ensure price actually moves and doesn't get stuck
+    at initial_price due to rounding small moves.
+    """
+    # Use a small vol and small tick size - previously this would stay at 100.0
+    gen = tick_generator(initial_price=100.0, vol=0.5, tick_size=0.01, seed=42)
+    prices = [next(gen)["price"] for _ in range(200)]
+    unique_prices = set(prices)
+    # With 200 ticks and 50% vol, the price SHOULD definitely move
+    assert len(unique_prices) > 1, f"Price stayed stuck at {unique_prices}"
