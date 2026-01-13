@@ -14,7 +14,7 @@ test_data = (
 
 def test_walk_forward_simple():
     expected = pd.read_csv("tests/data/is_pret.csv", parse_dates=["date"])
-    result = walk_forward(test_data, "Y", ["is_pret"], "ret", sum)
+    result = walk_forward(test_data, "Y", ["is_pret"], "ret", "sum")
     del result["_period"]
     assert len(result) == len(expected)
     assert_frame_equal(expected, result)
@@ -158,7 +158,7 @@ def test_edge_case_one_day_intraday():
     df = generate_synthetic_intraday_data(
         start_date="2023-01-01",
         end_date="2023-01-01",
-        freq="1H",
+        freq="1h",
         continuous=True,
         seed=42,
     )
@@ -262,3 +262,35 @@ def test_intraday_stress_heavy_tailed():
     returns = np.log(df["Close"]).diff().dropna()
     assert (df["Close"] > 0).all()
     assert (np.abs(returns) > 0.05).any()  # At least one big move
+
+
+def test_tick_generator_basic():
+    """Test basic functionality of tick generator."""
+    gen = tick_generator(initial_price=100.0, tick_size=0.01)
+    tick = next(gen)
+    assert "price" in tick
+    assert "timestamp" in tick
+    assert tick["price"] == 100.0
+
+
+def test_tick_generator_send():
+    """Test updating parameters via .send()."""
+    gen = tick_generator(initial_price=100.0)
+    next(gen)
+    # Update volatility and drift
+    gen.send({"vol": 0.5, "drift": 0.1})
+    # The next tick should exist and work
+    tick = next(gen)
+    assert isinstance(tick["price"], float)
+
+
+def test_quote_generator_basic():
+    """Test basic functionality of quote generator."""
+    gen = quote_generator(initial_price=100.0, spread=0.01)
+    quote = next(gen)
+    assert "bid" in quote
+    assert "ask" in quote
+    assert quote["ask"] > quote["bid"]
+    # 1% spread on 100 should be 1.0, so bid/ask should be 99.5/100.5
+    assert quote["bid"] == 99.5
+    assert quote["ask"] == 100.5

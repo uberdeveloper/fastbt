@@ -9,6 +9,7 @@ The `fastbt.simulation` module provides tools for generating synthetic market da
 4. [Custom Distributions and Jumps](#custom-distributions-and-jumps)
 5. [Generating Correlated Data](#generating-correlated-data)
 6. [Walk-Forward Analysis](#walk-forward-analysis)
+7. [Stateful Market Generators (Ticks & Quotes)](#stateful-market-generators-ticks--quotes)
 
 ---
 
@@ -148,4 +149,40 @@ results = walk_forward(
     function=np.sum,          # Aggregate profit for the year
     num=1                     # Pick the single best
 )
+```
+
+---
+
+## Stateful Market Generators (Ticks & Quotes)
+
+For event-driven testing, `fastbt` provides infinite generators that yield data one "tick" at a time. These are stateful and support real-time parameter updates.
+
+### Tick Generator
+Yields a stream of individual trades. Use `.send()` to update parameters mid-stream.
+
+```python
+from fastbt.simulation import tick_generator
+
+# Initialize
+gen = tick_generator(initial_price=100.0, vol=0.2)
+
+# Pull the next tick whenever you need it
+tick = next(gen)
+
+# Change volatility mid-way (e.g., news event simulation)
+gen.send({'vol': 0.8})
+next_tick = next(gen)
+```
+
+### Quote Generator
+Yields a stream of Bid/Ask quotes.
+
+```python
+from fastbt.simulation import quote_generator
+
+# Generate quotes with a 0.5% spread
+q_gen = quote_generator(initial_price=100.0, spread=0.005)
+
+quote = next(q_gen)
+# Returns: {'timestamp': ..., 'bid': 99.75, 'ask': 100.25, 'mid_price': 100.0}
 ```

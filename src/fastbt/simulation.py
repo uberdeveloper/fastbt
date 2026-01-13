@@ -40,7 +40,7 @@ def walk_forward(
     num : int, optional
         The number of top/bottom performing parameter combinations to select, by default 1.
     ascending : bool, optional
-        If True, selects the lowest values (bottom results). If False, selects the 
+        If True, selects the lowest values (bottom results). If False, selects the
         highest values (top results), by default False.
 
     Returns
@@ -53,11 +53,18 @@ def walk_forward(
     -------
     >>> # Select the top performing parameter 'factor_a' for each year
     >>> # and see how it performs in the following year
-    >>> results = walk_forward(df, period='Y', parameters=['factor_a'], 
-    ...                        column='returns', function=np.sum)
+    >>> results = walk_forward(df, period='Y', parameters=['factor_a'],
+    ...                        column='returns', function='sum')
     """
     data["_period"] = data.index.to_period(period)
     columns = ["_period"] + parameters
+
+    # Use string name for common aggregations to avoid FutureWarnings
+    if function is sum or function is np.sum:
+        function = "sum"
+    elif function is np.mean:
+        function = "mean"
+
     df = data.groupby(columns).agg({column: function}).reset_index()
     df2 = df.sort_values(by=column, ascending=ascending).groupby("_period").head(num)
     df2 = df2.set_index("_period").sort_index().shift(num)
@@ -318,7 +325,7 @@ def _draw_samples(
     distribution: Optional[Union[rv_continuous, Callable, np.ndarray, pd.Series]],
     default_loc: float,
     default_scale: float,
-    **kwargs
+    **kwargs,
 ) -> np.ndarray:
     """
     Draw n samples from a given scipy distribution, callable, or empirical array.
@@ -583,6 +590,11 @@ def generate_synthetic_intraday_data(
         date_range = pd.date_range(start=start_date, end=end_date)
     else:
         date_range = pd.bdate_range(start=start_date, end=end_date)
+
+    # Handle deprecated frequency aliases
+    if freq == "H":
+        freq = "h"
+
     freq_td = pd.to_timedelta(pd.tseries.frequencies.to_offset(freq))
     freq_minutes = freq_td.seconds // 60
 
@@ -664,3 +676,214 @@ def generate_synthetic_intraday_data(
 
     df_intraday = pd.concat(all_rows).reset_index()
     return df_intraday
+
+
+def _market_generator(
+    initial_price: float,
+    drift: float = 0.0,
+    vol: float = 0.2,
+    tick_size: float = 0.05,
+    intensity: float = 1.0,
+    fat_tails: bool = False,
+    degrees_of_freedom: int = 3,
+    use_quotes: bool = False,
+    spread: float = 0.01,
+    seed: Optional[int] = None,
+):
+    """
+    Internal stateful market generator. Uses the .send() method to update parameters.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    from scipy.stats import t
+
+    price = initial_price
+    current_time = pd.Timestamp.now()
+    params = {
+        "drift": drift,
+        "vol": vol,
+        "tick_size": tick_size,
+        "intensity": intensity,
+        "fat_tails": fat_tails,
+        "degrees_of_freedom": degrees_of_freedom,
+        "spread": spread,
+    }
+
+    while True:
+        # Time Advancement (Poisson Arrival)
+        dt_seconds = np.random.exponential(1.0 / params["intensity"])
+        current_time += pd.Timedelta(seconds=dt_seconds)
+        dt_years = dt_seconds / 31536000  # Annualized
+
+        # Price Move (GBM + optional Fat Tails)
+        if params["fat_tails"]:
+            # Sample from Student-t
+            shock = t.rvs(df=params["degrees_of_freedom"])
+        else:
+            # Sample from Normal
+            shock = np.random.normal()
+
+        returns = (params["drift"] - 0.5 * params["vol"] ** 2) * dt_years + params[
+            "vol"
+        ] * np.sqrt(dt_years) * shock
+        price *= np.exp(returns)
+
+        # Snap to tick size
+        price = round(price / params["tick_size"]) * params["tick_size"]
+
+        if use_quotes:
+            half_spread = (price * params["spread"]) / 2
+            data = {
+                "timestamp": current_time,
+                "bid": round((price - half_spread) / params["tick_size"])
+                * params["tick_size"],
+                "ask": round((price + half_spread) / params["tick_size"])
+                * params["tick_size"],
+                "mid_price": price,
+            }
+        else:
+            data = {
+                "timestamp": current_time,
+                "price": price,
+                "size": np.random.randint(1, 100),
+            }
+
+        # Yield data and wait for potential parameter updates
+        update = yield data
+        if update and isinstance(update, dict):
+            params.update(update)
+
+
+def tick_generator(
+    initial_price: float,
+    drift: float = 0.0,
+    vol: float = 0.2,
+    tick_size: float = 0.05,
+    intensity: float = 1.0,
+    fat_tails: bool = False,
+    degrees_of_freedom: int = 3,
+    seed: Optional[int] = None,
+):
+    """
+    An infinite generator that yields individual trade ticks one at a time.
+    Provides a "pull-based" stream where each call to next() generates a new tick.
+
+    Parameters
+    ----------
+    initial_price : float
+        The starting price of the security.
+    drift : float, optional
+        The annualized drift (expected return), by default 0.0.
+    vol : float, optional
+        The annualized volatility, by default 0.2 (20%).
+    tick_size : float, optional
+        The minimum price increment, by default 0.05.
+    intensity : float, optional
+        Target average number of ticks per second, by default 1.0.
+    fat_tails : bool, optional
+        If True, uses a Student-t distribution for price shocks to simulate
+        extreme moves, by default False.
+    degrees_of_freedom : int, optional
+        Degrees of freedom for the Student-t distribution. Lower values (e.g. 3)
+        create fatter tails, by default 3.
+
+    Yields
+    -------
+    dict
+        A dictionary containing:
+        - 'timestamp': Simulated time of the tick.
+        - 'price': Executed price.
+        - 'size': Randomly generated trade volume.
+
+    Notes
+    -----
+    - **Dynamic Updates**: You can change parameters mid-stream using the `.send()` method.
+      Example: `gen.send({'vol': 0.5, 'drift': 0.1})`
+    - **Time Logic**: Each tick advances time by a random interval based on
+      a Poisson process (Exponential distribution).
+
+    Example
+    -------
+    >>> gen = tick_generator(100.0, vol=0.1)
+    >>> tick1 = next(gen)
+    >>> print(tick1)
+    >>> # Update volatility mid-stream
+    >>> gen.send({'vol': 0.8})
+    >>> tick2 = next(gen)
+    """
+    return _market_generator(
+        initial_price=initial_price,
+        drift=drift,
+        vol=vol,
+        tick_size=tick_size,
+        intensity=intensity,
+        fat_tails=fat_tails,
+        degrees_of_freedom=degrees_of_freedom,
+        use_quotes=False,
+        seed=seed,
+    )
+
+
+def quote_generator(
+    initial_price: float,
+    drift: float = 0.0,
+    vol: float = 0.2,
+    tick_size: float = 0.05,
+    intensity: float = 1.0,
+    fat_tails: bool = False,
+    degrees_of_freedom: int = 3,
+    spread: float = 0.01,
+    seed: Optional[int] = None,
+):
+    """
+    An infinite generator that yields Bid/Ask quotes.
+    Provides a "pull-based" stream of market depth.
+
+    Parameters
+    ----------
+    initial_price : float
+        Starting price.
+    drift : float, optional
+        Annualized drift, by default 0.0.
+    vol : float, optional
+        Annualized volatility, by default 0.2.
+    tick_size : float, optional
+        Minimum price increment, by default 0.05.
+    intensity : float, optional
+        Ticks per second, by default 1.0.
+    fat_tails : bool, optional
+        If True, use Student-t distribution.
+    degrees_of_freedom : int, optional
+        DF for Student-t.
+    spread : float, optional
+        Fixed relative spread (e.g., 0.01 for 1%).
+    seed : int, optional
+        Random seed.
+
+    Yields
+    -------
+    dict
+        A dictionary containing:
+        - 'timestamp': Simulated time.
+        - 'bid': Simulated bid price.
+        - 'ask': Simulated ask price.
+        - 'mid_price': The underlying mid price.
+
+    Example
+    -------
+    >>> gen = quote_generator(100.0, spread=0.005)
+    >>> quote = next(gen)
+    """
+    return _market_generator(
+        initial_price=initial_price,
+        drift=drift,
+        vol=vol,
+        tick_size=tick_size,
+        intensity=intensity,
+        fat_tails=fat_tails,
+        degrees_of_freedom=degrees_of_freedom,
+        use_quotes=True,
+        spread=spread,
+        seed=seed,
+    )
