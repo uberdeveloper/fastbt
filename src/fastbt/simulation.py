@@ -5,6 +5,7 @@ All simulations could be found here
 import pandas as pd
 import numpy as np
 from typing import List, Optional, Union, Any, Callable
+from scipy.stats import rv_continuous
 
 
 def walk_forward(
@@ -17,23 +18,43 @@ def walk_forward(
     ascending: bool = False,
 ) -> pd.DataFrame:
     """
-    Do a simple walk forward test based on constant train
-    and test period on a pandas dataframe
-    data
-        data as a pandas dataframe
-    period
-        period as a pandas frequency string
-    factors
-        list of parameters to be used in the test.
-        These must be columns in the dataframe
-    column
-        The column to be used for running the test
-    function
-        The function to be run on the column
-    num
-        The number of results to be used for walk forward
-    ascending
-        Whether the top or bottom results to be taken
+    Perform a simple walk-forward test by selecting the best performing parameters
+    in one period and applying them to the next.
+
+    This function groups data by a specified period (e.g., Year, Month), calculates
+    a performance metric for each parameter combination, and then shifts the "best"
+    parameters forward by one period to see how they would have performed.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Input data with a DatetimeIndex.
+    period : str
+        Pandas frequency string (e.g., 'Y' for year, 'M' for month, 'Q' for quarter).
+    parameters : List[str]
+        List of column names representing different strategy parameters or factors.
+    column : str
+        The name of the column to evaluate performance on (e.g., 'returns').
+    function : Callable
+        A function to aggregate the performance column (e.g., np.sum, np.mean).
+    num : int, optional
+        The number of top/bottom performing parameter combinations to select, by default 1.
+    ascending : bool, optional
+        If True, selects the lowest values (bottom results). If False, selects the 
+        highest values (top results), by default False.
+
+    Returns
+    -------
+    pd.DataFrame
+        A merged DataFrame containing only the rows where the selected parameters
+        from the previous period are present.
+
+    Example
+    -------
+    >>> # Select the top performing parameter 'factor_a' for each year
+    >>> # and see how it performs in the following year
+    >>> results = walk_forward(df, period='Y', parameters=['factor_a'], 
+    ...                        column='returns', function=np.sum)
     """
     data["_period"] = data.index.to_period(period)
     columns = ["_period"] + parameters
@@ -290,3 +311,356 @@ def generate_correlated_data(
         df["reference"] = original_reference
 
     return df
+
+
+def _draw_samples(
+    n: int,
+    distribution: Optional[Union[rv_continuous, Callable, np.ndarray, pd.Series]],
+    default_loc: float,
+    default_scale: float,
+    **kwargs
+) -> np.ndarray:
+    """
+    Draw n samples from a given scipy distribution, callable, or empirical array.
+    Fallback to normal with specified loc/scale.
+    """
+    if distribution is None:
+        return np.random.normal(loc=default_loc, scale=default_scale, size=n)
+    elif hasattr(distribution, "rvs"):
+        return distribution.rvs(size=n)
+    elif callable(distribution):
+        try:
+            return distribution(size=n, **kwargs)
+        except TypeError:
+            return distribution(n)
+    elif isinstance(distribution, (np.ndarray, pd.Series, list)):
+        arr = np.asarray(distribution)
+        return np.random.choice(arr, size=n, replace=True)
+    else:
+        raise ValueError(
+            "Distribution must be None, a scipy.stats distribution, a callable, or an array/Series."
+        )
+
+
+def generate_synthetic_stock_data(
+    start_date: str = "2010-01-01",
+    end_date: str = "2020-12-31",
+    initial_price: float = 100.0,
+    scenario: str = "neutral",
+    trading_days: int = 252,
+    seed: Optional[int] = None,
+    mu_bull: float = 0.15,
+    mu_bear: float = -0.15,
+    mu_neutral: float = 0.02,
+    sigma_bull: float = 0.20,
+    sigma_bear: float = 0.25,
+    sigma_neutral: float = 0.18,
+    jump_prob: float = 0.002,
+    jump_scale: float = 2.0,
+    distribution: Optional[
+        Union[rv_continuous, Callable, np.ndarray, pd.Series]
+    ] = None,
+    jump_distribution: Optional[
+        Union[rv_continuous, Callable, np.ndarray, pd.Series]
+    ] = None,
+) -> pd.DataFrame:
+    """
+    Generate synthetic daily stock OHLCV data using geometric Brownian motion,
+    or custom/empirical return distributions.
+
+    Parameters
+    ----------
+    start_date : str
+        Start date in 'YYYY-MM-DD' format.
+    end_date : str
+        End date in 'YYYY-MM-DD' format.
+    initial_price : float
+        Starting price for the simulation.
+    scenario : str
+        Market scenario: "bullish", "bearish", or "neutral".
+    trading_days : int
+        Number of trading days per year (default: 252).
+    seed : int, optional
+        Random seed for reproducibility.
+    mu_bull, mu_bear, mu_neutral : float
+        Annualized drift for each scenario.
+    sigma_bull, sigma_bear, sigma_neutral : float
+        Annualized volatility for each scenario.
+    jump_prob : float
+        Probability of a jump event on any day.
+    jump_scale : float
+        Multiplicative scale for jump size (used if jump_distribution is not given).
+    distribution : scipy.stats frozen distribution, callable, array-like, or None
+        Distribution to sample returns from. If None, uses normal distribution.
+    jump_distribution : same as above, optional
+        Distribution to sample jump sizes from. If None, uses normal.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with columns: ['Date', 'Open', 'High', 'Low', 'Close', 'Volume'].
+
+    Examples
+    --------
+    >>> # Generate bullish stock data
+    >>> df = generate_synthetic_stock_data(
+    ...     start_date="2025-01-01",
+    ...     end_date="2025-12-31",
+    ...     scenario="bullish",
+    ...     mu_bull=0.15,
+    ...     sigma_bull=0.20,
+    ...     seed=42
+    ... )
+    >>> # Generate with heavy-tailed returns
+    >>> from scipy.stats import t
+    >>> t_dist = t(df=3, loc=0, scale=0.018)
+    >>> df = generate_synthetic_stock_data(
+    ...     start_date="2025-01-01",
+    ...     end_date="2025-03-01",
+    ...     distribution=t_dist,
+    ...     seed=202
+    ... )
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    # Scenario params
+    if scenario == "bullish":
+        mu, sigma = mu_bull, sigma_bull
+    elif scenario == "bearish":
+        mu, sigma = mu_bear, sigma_bear
+    else:
+        mu, sigma = mu_neutral, sigma_neutral
+
+    dates = pd.bdate_range(start=start_date, end=end_date)
+    n = len(dates)
+    dt = 1 / trading_days
+
+    # Generate returns
+    loc = (mu - 0.5 * sigma**2) * dt
+    scale = sigma * np.sqrt(dt)
+    returns = _draw_samples(n, distribution, loc, scale, mu=mu, sigma=sigma, dt=dt)
+
+    # Add jumps
+    jumps_mask = np.random.binomial(1, jump_prob, n)
+    if jump_distribution is not None:
+        jumps = _draw_samples(
+            n, jump_distribution, 0, sigma * jump_scale, mu=mu, sigma=sigma, dt=dt
+        )
+    else:
+        jumps = np.random.normal(0, sigma * jump_scale, n)
+    returns = returns + jumps_mask * jumps
+
+    # Geometric Brownian motion path
+    price = np.empty(n)
+    price[0] = initial_price
+    for t in range(1, n):
+        price[t] = price[t - 1] * np.exp(returns[t])
+
+    # OHLCV simulation
+    df = pd.DataFrame(index=dates)
+    df["Close"] = price
+    df["Open"] = df["Close"].shift(1).fillna(initial_price)
+    high_noise = np.abs(np.random.normal(0, sigma * 0.18, n))
+    low_noise = np.abs(np.random.normal(0, sigma * 0.18, n))
+    df["High"] = df[["Open", "Close"]].max(axis=1) * (1 + high_noise)
+    df["Low"] = df[["Open", "Close"]].min(axis=1) * (1 - low_noise)
+
+    base_vol = np.random.randint(8e4, 2e6)
+    vol_noise = np.random.normal(0, base_vol * 0.025, n)
+    if scenario == "bullish":
+        vol_trend = np.linspace(1, 1.2, n)
+    elif scenario == "bearish":
+        vol_trend = np.linspace(1, 0.8, n)
+    else:
+        vol_trend = np.ones(n)
+    volume = np.abs(np.cumsum(vol_noise) + base_vol) * vol_trend
+    df["Volume"] = (volume * (1 + np.random.normal(0, 0.1, n))).astype(int)
+    df = df[["Open", "High", "Low", "Close", "Volume"]]
+    df.index.name = "Date"
+    return df.reset_index()
+
+
+def generate_synthetic_intraday_data(
+    start_date: str = "2010-01-01",
+    end_date: str = "2010-01-01",
+    initial_price: float = 100.0,
+    scenario: str = "neutral",
+    freq: str = "5min",
+    start_hour: Union[int, float] = 9.5,
+    end_hour: Union[int, float] = 16,
+    continuous: bool = False,
+    seed: Optional[int] = None,
+    distribution: Optional[
+        Union[rv_continuous, Callable, np.ndarray, pd.Series]
+    ] = None,
+    jump_distribution: Optional[
+        Union[rv_continuous, Callable, np.ndarray, pd.Series]
+    ] = None,
+    mu_bull: float = 0.15,
+    mu_bear: float = -0.15,
+    mu_neutral: float = 0.02,
+    sigma_bull: float = 0.20,
+    sigma_bear: float = 0.25,
+    sigma_neutral: float = 0.18,
+    jump_prob: float = 0.002,
+    jump_scale: float = 2.0,
+) -> pd.DataFrame:
+    """
+    Generate synthetic intraday OHLCV data for a specified date/frequency/session.
+
+    Parameters
+    ----------
+    start_date, end_date : str
+        Start and end date in 'YYYY-MM-DD' format.
+    initial_price : float
+        Starting price.
+    scenario : str
+        Market scenario: "bullish", "bearish", or "neutral".
+    freq : str
+        Bar frequency (e.g., "1min", "5min"). Pandas offset alias.
+    start_hour, end_hour : int or float
+        Session hours (e.g., 9.5 for 9:30am). Ignored if continuous.
+    continuous : bool
+        If True, generate continuous 24h data (crypto). Otherwise, session-based.
+    seed : int, optional
+        Random seed.
+    distribution : scipy.stats frozen distribution, callable, array-like, or None
+        Distribution for returns.
+    jump_distribution : same as above, optional
+        Distribution for jump sizes.
+    mu_bull, mu_bear, mu_neutral : float
+        Annualized drift for each scenario.
+    sigma_bull, sigma_bear, sigma_neutral : float
+        Annualized volatility for each scenario.
+    jump_prob : float
+        Probability of a jump per bar.
+    jump_scale : float
+        Scale for jump magnitude.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame with columns: ['DateTime', 'Open', 'High', 'Low', 'Close', 'Volume'].
+
+    Notes
+    -----
+    - **Volatility Scaling**: Annual volatility is scaled based on the number of bars per year.
+    - **Overnight Jumps**: If `continuous=False`, a random jump is added between one day's
+      close and the next day's open.
+    - **Session Open**: A specific volatility boost is applied to the first bar of the session.
+
+    Examples
+    --------
+    >>> # Generate 5-minute NYSE session data
+    >>> df = generate_synthetic_intraday_data(
+    ...     start_date="2025-01-01",
+    ...     end_date="2025-01-05",
+    ...     freq="5min",
+    ...     start_hour=9.5,
+    ...     end_hour=16.0
+    ... )
+    >>> # Generate 1-hour continuous crypto data
+    >>> df_crypto = generate_synthetic_intraday_data(
+    ...     start_date="2025-01-01",
+    ...     end_date="2025-01-07",
+    ...     freq="1H",
+    ...     continuous=True
+    ... )
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    # Scenario params
+    if scenario == "bullish":
+        mu, sigma = mu_bull, sigma_bull
+    elif scenario == "bearish":
+        mu, sigma = mu_bear, sigma_bear
+    else:
+        mu, sigma = mu_neutral, sigma_neutral
+
+    if continuous:
+        date_range = pd.date_range(start=start_date, end=end_date)
+    else:
+        date_range = pd.bdate_range(start=start_date, end=end_date)
+    freq_td = pd.to_timedelta(pd.tseries.frequencies.to_offset(freq))
+    freq_minutes = freq_td.seconds // 60
+
+    # dt for each bar
+    minutes_per_year = 252 * (6.5 * 60) if not continuous else 365.25 * 24 * 60
+    dt = freq_minutes / minutes_per_year
+
+    all_rows = []
+    last_close = initial_price
+
+    for day in date_range:
+        if continuous:
+            start_dt = pd.Timestamp(day.date())
+            end_dt = start_dt + pd.Timedelta(days=1)
+            times = pd.date_range(
+                start=start_dt, end=end_dt, freq=freq, inclusive="left"
+            )
+        else:
+            start_dt = pd.Timestamp(day.date()) + pd.Timedelta(hours=float(start_hour))
+            end_dt = pd.Timestamp(day.date()) + pd.Timedelta(hours=float(end_hour))
+            times = pd.date_range(
+                start=start_dt, end=end_dt, freq=freq, inclusive="left"
+            )
+            if len(times) == 0:
+                continue
+
+        n = len(times)
+        loc = (mu - 0.5 * sigma**2) * dt
+        scale = sigma * np.sqrt(dt)
+        returns = _draw_samples(n, distribution, loc, scale, mu=mu, sigma=sigma, dt=dt)
+
+        # Add jumps during session randomly
+        jumps_mask = np.random.binomial(1, jump_prob, n)
+        if jump_distribution is not None:
+            jumps = _draw_samples(
+                n, jump_distribution, 0, sigma * jump_scale, mu=mu, sigma=sigma, dt=dt
+            )
+        else:
+            jumps = np.random.normal(0, sigma * jump_scale, n)
+        returns = returns + jumps_mask * jumps
+
+        # Insert a larger jump at session open if not continuous
+        if not continuous:
+            session_jump = np.random.normal(0, sigma * jump_scale * 0.7)
+            returns[0] += session_jump
+
+        # Price path
+        price = np.empty(n)
+        price[0] = last_close * np.exp(returns[0])
+        for t in range(1, n):
+            price[t] = price[t - 1] * np.exp(returns[t])
+
+        ohlc = pd.DataFrame(index=times)
+        ohlc["Close"] = price
+        ohlc["Open"] = ohlc["Close"].shift(1)
+        ohlc.iloc[0, ohlc.columns.get_loc("Open")] = last_close
+        high_noise = np.abs(np.random.normal(0, sigma * 0.06, n))
+        low_noise = np.abs(np.random.normal(0, sigma * 0.06, n))
+        ohlc["High"] = ohlc[["Open", "Close"]].max(axis=1) * (1 + high_noise)
+        ohlc["Low"] = ohlc[["Open", "Close"]].min(axis=1) * (1 - low_noise)
+        base_vol = np.random.randint(100, 10000)
+        vol_noise = np.random.normal(0, base_vol * 0.08, n)
+        if scenario == "bullish":
+            vol_trend = np.linspace(1, 1.1, n)
+        elif scenario == "bearish":
+            vol_trend = np.linspace(1, 0.9, n)
+        else:
+            vol_trend = np.ones(n)
+        volume = np.abs(np.cumsum(vol_noise) + base_vol) * vol_trend
+        ohlc["Volume"] = (volume * (1 + np.random.normal(0, 0.1, n))).astype(int)
+        ohlc.index.name = "DateTime"
+        all_rows.append(ohlc)
+        last_close = float(price[-1])
+
+        # If not continuous, add an overnight jump for next day's session open
+        if not continuous and day != date_range[-1]:
+            overnight_jump = np.random.normal(0, sigma * jump_scale * 1.2)
+            last_close = last_close * np.exp(overnight_jump)
+
+    df_intraday = pd.concat(all_rows).reset_index()
+    return df_intraday
