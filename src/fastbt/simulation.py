@@ -135,36 +135,10 @@ def generate_correlated_data(
         ValueError: If distribution is not recognized
         ValueError: If distribution parameters are invalid
 
-    Examples:
-        >>> # Basic usage with normal distribution and auto seed
-        >>> df = generate_correlated_data([0.4, 0.3, -0.1])
-
-        >>> # Normal distribution with custom parameters
-        >>> df = generate_correlated_data(
-        ...     [0.4, 0.3, -0.1],
-        ...     distribution="normal",
-        ...     loc=5,
-        ...     scale=2
-        ... )
-
-        >>> # Gamma distribution with custom parameters and specific seed
-        >>> df = generate_correlated_data(
-        ...     [0.4, 0.3, -0.1],
-        ...     distribution="gamma",
-        ...     seed=42,
-        ...     shape=2,
-        ...     scale=2
-        ... )
-
-        >>> # Using custom reference data with uniform distribution
-        >>> ref_data = np.sin(np.linspace(0, 10, 100))
-        >>> df = generate_correlated_data(
-        ...     [0.4, 0.3, -0.1],
-        ...     reference_data=ref_data,
-        ...     distribution="uniform",
-        ...     low=-2,
-        ...     high=2
-        ... )
+    Example
+    -------
+    >>> # Generate 3 correlated columns
+    >>> df = generate_correlated_data([0.4, 0.3, -0.1])
 
     Notes:
         - The function uses the Cholesky decomposition method to generate
@@ -407,25 +381,13 @@ def generate_synthetic_stock_data(
     pandas.DataFrame
         DataFrame with columns: ['Date', 'Open', 'High', 'Low', 'Close', 'Volume'].
 
-    Examples
-    --------
+    Example
+    -------
     >>> # Generate bullish stock data
     >>> df = generate_synthetic_stock_data(
     ...     start_date="2025-01-01",
     ...     end_date="2025-12-31",
-    ...     scenario="bullish",
-    ...     mu_bull=0.15,
-    ...     sigma_bull=0.20,
-    ...     seed=42
-    ... )
-    >>> # Generate with heavy-tailed returns
-    >>> from scipy.stats import t
-    >>> t_dist = t(df=3, loc=0, scale=0.018)
-    >>> df = generate_synthetic_stock_data(
-    ...     start_date="2025-01-01",
-    ...     end_date="2025-03-01",
-    ...     distribution=t_dist,
-    ...     seed=202
+    ...     scenario="bullish"
     ... )
     """
     if seed is not None:
@@ -557,8 +519,8 @@ def generate_synthetic_intraday_data(
       close and the next day's open.
     - **Session Open**: A specific volatility boost is applied to the first bar of the session.
 
-    Examples
-    --------
+    Example
+    -------
     >>> # Generate 5-minute NYSE session data
     >>> df = generate_synthetic_intraday_data(
     ...     start_date="2025-01-01",
@@ -566,13 +528,6 @@ def generate_synthetic_intraday_data(
     ...     freq="5min",
     ...     start_hour=9.5,
     ...     end_hour=16.0
-    ... )
-    >>> # Generate 1-hour continuous crypto data
-    >>> df_crypto = generate_synthetic_intraday_data(
-    ...     start_date="2025-01-01",
-    ...     end_date="2025-01-07",
-    ...     freq="1H",
-    ...     continuous=True
     ... )
     """
     if seed is not None:
@@ -782,6 +737,7 @@ def _sequence_path_generator(
 
     if distribution is None:
         from scipy.stats import lognorm
+
         distribution = lognorm(s=0.01)
 
     params = {
@@ -858,6 +814,11 @@ def tick_generator(
     -------
     dict
         A dictionary containing: timestamp, price, size, and raw_price.
+
+    Example
+    -------
+    >>> gen = tick_generator(100.0, mode='time')
+    >>> tick = next(gen)
     """
     if mode == "time":
         return _time_path_generator(initial_price=initial_price, **kwargs)
@@ -886,6 +847,11 @@ def quote_generator(
     -------
     dict
         A dictionary containing: timestamp, bid, ask, mid_price, and raw_price.
+
+    Example
+    -------
+    >>> gen = quote_generator(100.0, spread=0.01)
+    >>> quote = next(gen)
     """
     if mode == "time":
         return _time_path_generator(

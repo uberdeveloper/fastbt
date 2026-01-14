@@ -8,8 +8,19 @@ The `fastbt.simulation` module provides tools for generating synthetic market da
 3. [Market Scenarios](#market-scenarios)
 4. [Custom Distributions and Jumps](#custom-distributions-and-jumps)
 5. [Generating Correlated Data](#generating-correlated-data)
-6. [Walk-Forward Analysis](#walk-forward-analysis)
+6. [Walk-Forward Analysis](walk_forward.md)
 7. [Stateful Market Generators (Ticks & Quotes)](#stateful-market-generators-ticks--quotes)
+
+---
+
+## Overview: Which Generator Should You Use?
+
+`fastbt` provides two specialized functions for batch synthetic data generation. Choosing the right one depends on the time horizon of your strategy:
+
+| Function | Best For | Key Features |
+| :--- | :--- | :--- |
+| **`generate_synthetic_stock_data`** | Daily/Weekly Strategies | Fast, uses business days, simple GBM engine. |
+| **`generate_synthetic_intraday_data`** | Day Trading / Intraday | Session hours (e.g. 9:15-3:30), overnight jumps, frequency scaling. |
 
 ---
 
@@ -42,6 +53,34 @@ df_bull = generate_synthetic_stock_data(scenario="bullish", mu_bull=0.20)
 df_bear = generate_synthetic_stock_data(scenario="bearish", mu_bear=-0.15)
 ```
 
+### Advanced: Simulating a Market Recovery
+You can use the simulation to test how your strategy handles a pivot. Since the function returns a DataFrame, you can easily stitch different regimes together:
+
+```python
+import pandas as pd
+from fastbt.simulation import generate_synthetic_stock_data
+
+# 1. Simulate a 3-month crash
+crash = generate_synthetic_stock_data(
+    start_date="2024-01-01",
+    end_date="2024-03-31",
+    scenario="bearish",
+    initial_price=100
+)
+
+# 2. Simulate a recovery starting from the last price of the crash
+last_price = crash['Close'].iloc[-1]
+recovery = generate_synthetic_stock_data(
+    start_date="2024-04-01",
+    end_date="2024-12-31",
+    scenario="bullish",
+    initial_price=last_price
+)
+
+# Combine them
+market_cycle = pd.concat([crash, recovery]).drop_duplicates(subset='Date')
+```
+
 ---
 
 ## Generating Synthetic Intraday Data
@@ -69,9 +108,54 @@ For markets that never sleep, use `continuous=True`:
 ```python
 df_crypto = generate_synthetic_intraday_data(
     start_date="2025-01-01",
-    freq="1H",
+    freq="1h",
     continuous=True
 )
+```
+
+### Deep Dive: Verifying Intraday Dynamics
+When generating intraday data, `fastbt` takes care of scaling volatility and drift to the bar frequency. You can verify the consistency of the generated data by resampling:
+
+```python
+from fastbt.simulation import generate_synthetic_intraday_data
+import pandas as pd
+
+# 1. Generate 1-minute data for a week
+df = generate_synthetic_intraday_data(
+    start_date="2024-10-01",
+    end_date="2024-10-07",
+    freq="1min",
+    vol=0.25 # 25% annual volatility
+)
+
+# 2. Resample to Daily to check if the path makes sense
+df['DateTime'] = pd.to_datetime(df['DateTime'])
+daily_resampled = df.set_index('DateTime')['Close'].resample('D').last().dropna()
+
+# 3. Calculate realized annual volatility from 1-min returns
+import numpy as np
+returns = np.log(df['Close']).diff().dropna()
+# (252 days * 6.5 hours * 60 minutes) bars per year
+realized_vol = returns.std() * np.sqrt(252 * 6.5 * 60)
+print(f"Target Vol: 0.25, Realized Vol: {realized_vol:.2f}")
+```
+
+---
+
+## Understanding Intraday Gaps
+One of the most powerful features of `generate_synthetic_intraday_data` is how it handles the "Overnight Jump." In real markets, the opening price is rarely the same as the previous day's close.
+
+```python
+# Generate 2 days of data
+df = generate_synthetic_intraday_data(
+    start_date="2025-01-01",
+    end_date="2025-01-02",
+    freq="15min",
+    jump_scale=5.0  # Make the overnight gaps significantly larger
+)
+
+# The gap between the last row of Day 1 and first row of Day 2
+# is automatically calculated to simulate real market gaps.
 ```
 
 ---
@@ -112,6 +196,24 @@ df = generate_synthetic_stock_data(
 )
 ```
 
+### Complex Scenario: The "Black Swan" Stock
+You can combine custom distributions and jumps to simulate a "fragile" asset that grows steady but has occasional catastrophic drops.
+
+```python
+from scipy.stats import t
+from fastbt.simulation import generate_synthetic_stock_data
+
+# 1. Use a distribution with a slight positive drift but fat tails
+growth_dist = t(df=2.5, loc=0.0005, scale=0.01)
+
+# 2. Add a high probability of large negative jumps (simulating tail risk)
+df_risky = generate_synthetic_stock_data(
+    distribution=growth_dist,
+    jump_prob=0.02,     # 2% chance of a jump
+    jump_scale=5.0      # Jumps are massive
+)
+```
+
 ---
 
 ## Generating Correlated Data
@@ -121,35 +223,44 @@ If you need to simulate a portfolio of stocks that move together, use `generate_
 ```python
 from fastbt.simulation import generate_correlated_data
 
-# Generate 3 columns with [0.8, 0.5, -0.2] correlation to a reference stock
-df_portfolio = generate_correlated_data(
-    correlations=[0.8, 0.5, -0.2],
-    n_samples=252
+# Returns a DataFrame with columns: ['reference', 'var_1', 'var_2', 'var_3']
+```
+
+### Advanced: Simulating a Hedged Pair
+You can use `generate_correlated_data` to simulate a "Pairs Trading" scenario where you have a lead stock and a follower.
+
+```python
+import numpy as np
+import pandas as pd
+from fastbt.simulation import generate_correlated_data
+
+# 1. Start with a real or synthetic price path for Stock A
+stock_a_returns = np.random.normal(0.0001, 0.02, 500)
+
+# 2. Generate Stock B returns with 0.95 correlation to Stock A
+df_pair = generate_correlated_data(
+    correlations=[0.95],
+    reference_data=stock_a_returns,
+    n_samples=500
 )
 
-# Returns a DataFrame with columns: ['reference', 'var_1', 'var_2', 'var_3']
+# 3. Convert returns to price paths
+prices = (1 + df_pair).cumprod() * 100
+prices.columns = ['Stock_A', 'Stock_B']
+
+# 4. Inject a temporary 'divergence' (alpha opportunity)
+prices.loc[200:250, 'Stock_B'] *= 0.95
+
+# This creates a perfect dataset for testing mean-reversion or hedging logic.
 ```
 
 ---
 
 ## Walk-Forward Analysis
 
-The `walk_forward` function helps you validate if a parameter that performed well in the past continues to perform well in the future (out-of-sample).
+The `walk_forward` function helps you validate strategy robustness by shifting optimized parameters from one period into the next.
 
-```python
-from fastbt.simulation import walk_forward
-import numpy as np
-
-# Select the top 1 parameter configuration from last year to use this year
-results = walk_forward(
-    data=backtest_results_df,
-    period='Y',               # Walk forward annually
-    parameters=['sma_period', 'rsi_threshold'],
-    column='net_profit',      # Ranking metric
-    function=np.sum,          # Aggregate profit for the year
-    num=1                     # Pick the single best
-)
-```
+For a comprehensive guide on robustness testing and out-of-sample validation, see the dedicated **[Walk-Forward Analysis Guide](walk_forward.md)**.
 
 ---
 
@@ -204,6 +315,37 @@ gen = tick_generator(
 # Update the distribution halfway through
 gen.send({'distribution': norm(loc=1.005, scale=0.05)})
 ```
+
+### Advanced: Real-Time Strategy Testing
+The generator pattern allows you to test logic that reacts *between* ticks. This is impossible with batch DataFrames.
+
+```python
+from fastbt.simulation import tick_generator
+
+# Start a generator for a volatile asset
+stream = tick_generator(initial_price=150.0, vol=0.6, intensity=10)
+
+position = 0
+last_price = 150.0
+
+for _ in range(100):
+    tick = next(stream)
+    price = tick['price']
+
+    # Simple logic: If price drops 1%, "buy the dip"
+    if price < last_price * 0.99:
+        position += 1
+        print(f"BUY at {price}")
+
+    # If price rallies 2%, "take profit"
+    elif price > last_price * 1.02:
+        position -= 1
+        print(f"SELL at {price}")
+
+    last_price = price
+```
+
+---
 
 ### Common Output Schema
 Both generators return a dictionary:

@@ -61,6 +61,19 @@ To set up `fastbt` for local development:
 
 6. Submit a pull request through the GitHub website.
 
+Coding Standards
+----------------
+
+To maintain a high quality codebase, please follow these rules for all new code:
+
+* **Type Hinting**: All new functions must include complete Python type hints for all arguments and return values.
+* **Docstrings**: All new functions must include detailed docstrings (NumPy style) with:
+    * A clear summary of the function's purpose.
+    * ``Parameters`` section with types and descriptions.
+    * ``Returns`` section with types and descriptions.
+    * ``Examples`` section with runnable code snippets.
+* **Testing**: Use ``uv`` for running tests and managing dependencies. Always run tests using ``uv run pytest``.
+
 Pull Request Guidelines
 -----------------------
 
