@@ -155,34 +155,65 @@ results = walk_forward(
 
 ## Stateful Market Generators (Ticks & Quotes)
 
-For event-driven testing, `fastbt` provides infinite generators that yield data one "tick" at a time. These are stateful and support real-time parameter updates.
+For event-driven testing, `fastbt` provides infinite generators that yield data one "tick" at a time. These support two primary modes: **Time-Based** (realistic GBM) and **Sequence-Based** (IID steps).
 
-### Tick Generator
-Yields a stream of individual trades. Use `.send()` to update parameters mid-stream.
+### Time-Based Mode (`mode='time'`)
+This mode uses continuous time math (GBM). Price movement depends on the time elapsed between ticks.
+
+| Parameter | Description |
+| :--- | :--- |
+| `vol` | Annualized volatility (default 0.2). |
+| `intensity` | Average ticks per second (Poisson arrival). |
+| `seconds_per_year` | Override the year length (e.g., set to trading hours for NYSE). |
+| `vol_multiplier` | Quick scalar to boost price action without changing annual vol. |
 
 ```python
 from fastbt.simulation import tick_generator
 
-# Initialize
-gen = tick_generator(initial_price=100.0, vol=0.2)
-
-# Pull the next tick whenever you need it
+# NYSE Session: 6.5 hours/day, 2x volatility boost for active simulation
+gen = tick_generator(
+    initial_price=100.0,
+    mode='time',
+    seconds_per_year=252 * 6.5 * 3600,
+    vol_multiplier=2.0
+)
 tick = next(gen)
-
-# Change volatility mid-way (e.g., news event simulation)
-gen.send({'vol': 0.8})
-next_tick = next(gen)
 ```
 
-### Quote Generator
-Yields a stream of Bid/Ask quotes.
+### Sequence-Based Mode (`mode='sequence'`)
+This mode ignores elapsed time for price movement. Every `next()` call results in a new draw from a distribution.
+
+| Parameter | Description |
+| :--- | :--- |
+| `distribution` | A Scipy distribution (returning multipliers). Defaults to `lognorm(s=0.01)`. |
+| `time_multiplier` | Scaler for the wall-clock timestamp (e.g., 60 for "1 real sec = 1 sim min"). |
+| `start_time` | Custom starting Timestamp. |
 
 ```python
-from fastbt.simulation import quote_generator
+from scipy.stats import norm
+from fastbt.simulation import tick_generator
 
-# Generate quotes with a 0.5% spread
-q_gen = quote_generator(initial_price=100.0, spread=0.005)
+# Pure random walk: Every tick is an IID move from a normal distribution
+gen = tick_generator(
+    initial_price=100.0,
+    mode='sequence',
+    distribution=norm(loc=1.0, scale=0.01), # Simple multipliers
+    time_multiplier=3600 # Track time at 3600x real speed
+)
 
-quote = next(q_gen)
-# Returns: {'timestamp': ..., 'bid': 99.75, 'ask': 100.25, 'mid_price': 100.0}
+# Update the distribution halfway through
+gen.send({'distribution': norm(loc=1.005, scale=0.05)})
+```
+
+### Common Output Schema
+Both generators return a dictionary:
+```python
+{
+    'timestamp': pd.Timestamp,
+    'price': float,      # Snapped to tick_size
+    'size': int,
+    'raw_price': float,  # Original high-precision price
+    'bid': float,        # (quote_generator only)
+    'ask': float         # (quote_generator only)
+}
 ```
