@@ -678,7 +678,7 @@ def generate_synthetic_intraday_data(
     return df_intraday
 
 
-def _market_generator(
+def _time_path_generator(
     initial_price: float,
     drift: float = 0.0,
     vol: float = 0.2,
@@ -689,17 +689,20 @@ def _market_generator(
     use_quotes: bool = False,
     spread: float = 0.01,
     seed: Optional[int] = None,
+    seconds_per_year: int = 31536000,
+    vol_multiplier: float = 1.0,
 ):
     """
-    Internal stateful market generator. Uses the .send() method to update parameters.
+    Internal time-based market generator using GBM and Poisson arrivals.
     """
-    if seed is not None:
-        np.random.seed(seed)
-
     from scipy.stats import t
 
+    rng = np.random.RandomState(seed)
     price = initial_price
-    current_time = pd.Timestamp.now()
+    current_time = (
+        pd.Timestamp("2025-01-01") if seed is not None else pd.Timestamp.now()
+    )
+
     params = {
         "drift": drift,
         "vol": vol,
@@ -708,25 +711,27 @@ def _market_generator(
         "fat_tails": fat_tails,
         "degrees_of_freedom": degrees_of_freedom,
         "spread": spread,
+        "seconds_per_year": seconds_per_year,
+        "vol_multiplier": vol_multiplier,
     }
 
     while True:
         # Time Advancement (Poisson Arrival)
-        dt_seconds = np.random.exponential(1.0 / params["intensity"])
+        dt_seconds = rng.exponential(1.0 / params["intensity"])
         current_time += pd.Timedelta(seconds=dt_seconds)
-        dt_years = dt_seconds / 31536000  # Annualized
+        dt_years = dt_seconds / params["seconds_per_year"]
+
+        effective_vol = params["vol"] * params["vol_multiplier"]
 
         # Price Move (GBM + optional Fat Tails)
         if params["fat_tails"]:
-            # Sample from Student-t
-            shock = t.rvs(df=params["degrees_of_freedom"])
+            shock = t.rvs(df=params["degrees_of_freedom"], random_state=rng)
         else:
-            # Sample from Normal
-            shock = np.random.normal()
+            shock = rng.standard_normal()
 
-        returns = (params["drift"] - 0.5 * params["vol"] ** 2) * dt_years + params[
-            "vol"
-        ] * np.sqrt(dt_years) * shock
+        returns = (params["drift"] - 0.5 * effective_vol**2) * dt_years + (
+            effective_vol * np.sqrt(dt_years) * shock
+        )
         price *= np.exp(returns)
 
         # Snap to tick size for the output only
@@ -741,149 +746,152 @@ def _market_generator(
                 "ask": round((snapped_price + half_spread) / params["tick_size"])
                 * params["tick_size"],
                 "mid_price": snapped_price,
+                "raw_price": price,
             }
         else:
             data = {
                 "timestamp": current_time,
                 "price": snapped_price,
-                "size": np.random.randint(1, 100),
+                "size": rng.randint(1, 100),
+                "raw_price": price,
             }
 
-        # Yield data and wait for potential parameter updates
         update = yield data
         if update and isinstance(update, dict):
             params.update(update)
 
 
+def _sequence_path_generator(
+    initial_price: float,
+    distribution: Optional[Any] = None,
+    tick_size: float = 0.05,
+    use_quotes: bool = False,
+    spread: float = 0.01,
+    seed: Optional[int] = None,
+    start_time: Optional[pd.Timestamp] = None,
+    time_multiplier: float = 1.0,
+):
+    """
+    Internal sequence-based market generator using IID steps.
+    """
+    rng = np.random.RandomState(seed)
+    price = initial_price
+    init_real_time = pd.Timestamp.now()
+    if start_time is None:
+        start_time = init_real_time
+
+    if distribution is None:
+        from scipy.stats import lognorm
+        distribution = lognorm(s=0.01)
+
+    params = {
+        "tick_size": tick_size,
+        "spread": spread,
+        "time_multiplier": time_multiplier,
+    }
+
+    while True:
+        # Time Logic: Label based on real wall clock elapsed
+        wall_elapsed = pd.Timestamp.now() - init_real_time
+        current_time = start_time + wall_elapsed * params["time_multiplier"]
+
+        # Price Move: Single IID sample
+        # Returns raw price back
+        if hasattr(distribution, "rvs"):
+            sample = distribution.rvs(random_state=rng)
+        elif callable(distribution):
+            sample = distribution(random_state=rng)
+        else:
+            sample = 1.0
+
+        # Application: price multiplication
+        price *= sample
+
+        snapped_price = round(price / params["tick_size"]) * params["tick_size"]
+
+        if use_quotes:
+            half_spread = (snapped_price * params["spread"]) / 2
+            data = {
+                "timestamp": current_time,
+                "bid": round((snapped_price - half_spread) / params["tick_size"])
+                * params["tick_size"],
+                "ask": round((snapped_price + half_spread) / params["tick_size"])
+                * params["tick_size"],
+                "mid_price": snapped_price,
+                "raw_price": price,
+            }
+        else:
+            data = {
+                "timestamp": current_time,
+                "price": snapped_price,
+                "size": rng.randint(1, 100),
+                "raw_price": price,
+            }
+
+        update = yield data
+        if update and isinstance(update, dict):
+            params.update(update)
+            if "distribution" in update:
+                distribution = update["distribution"]
+
+
 def tick_generator(
     initial_price: float,
-    drift: float = 0.0,
-    vol: float = 0.2,
-    tick_size: float = 0.05,
-    intensity: float = 1.0,
-    fat_tails: bool = False,
-    degrees_of_freedom: int = 3,
-    seed: Optional[int] = None,
+    mode: str = "time",
+    **kwargs,
 ):
     """
     An infinite generator that yields individual trade ticks one at a time.
-    Provides a "pull-based" stream where each call to next() generates a new tick.
 
     Parameters
     ----------
     initial_price : float
-        The starting price of the security.
-    drift : float, optional
-        The annualized drift (expected return), by default 0.0.
-    vol : float, optional
-        The annualized volatility, by default 0.2 (20%).
-    tick_size : float, optional
-        The minimum price increment, by default 0.05.
-    intensity : float, optional
-        Target average number of ticks per second, by default 1.0.
-    fat_tails : bool, optional
-        If True, uses a Student-t distribution for price shocks to simulate
-        extreme moves, by default False.
-    degrees_of_freedom : int, optional
-        Degrees of freedom for the Student-t distribution. Lower values (e.g. 3)
-        create fatter tails, by default 3.
+        The starting price.
+    mode : str, optional
+        'time' for continuous GBM using intensity, 'sequence' for IID steps.
+    **kwargs :
+        For 'time' mode: drift, vol, tick_size, intensity, fat_tails,
+        degrees_of_freedom, seconds_per_year, vol_multiplier, seed.
+        For 'sequence' mode: distribution, tick_size, start_time, time_multiplier, seed.
 
     Yields
     -------
     dict
-        A dictionary containing:
-        - 'timestamp': Simulated time of the tick.
-        - 'price': Executed price.
-        - 'size': Randomly generated trade volume.
-
-    Notes
-    -----
-    - **Dynamic Updates**: You can change parameters mid-stream using the `.send()` method.
-      Example: `gen.send({'vol': 0.5, 'drift': 0.1})`
-    - **Time Logic**: Each tick advances time by a random interval based on
-      a Poisson process (Exponential distribution).
-
-    Example
-    -------
-    >>> gen = tick_generator(100.0, vol=0.1)
-    >>> tick1 = next(gen)
-    >>> print(tick1)
-    >>> # Update volatility mid-stream
-    >>> gen.send({'vol': 0.8})
-    >>> tick2 = next(gen)
+        A dictionary containing: timestamp, price, size, and raw_price.
     """
-    return _market_generator(
-        initial_price=initial_price,
-        drift=drift,
-        vol=vol,
-        tick_size=tick_size,
-        intensity=intensity,
-        fat_tails=fat_tails,
-        degrees_of_freedom=degrees_of_freedom,
-        use_quotes=False,
-        seed=seed,
-    )
+    if mode == "time":
+        return _time_path_generator(initial_price=initial_price, **kwargs)
+    else:
+        return _sequence_path_generator(initial_price=initial_price, **kwargs)
 
 
 def quote_generator(
     initial_price: float,
-    drift: float = 0.0,
-    vol: float = 0.2,
-    tick_size: float = 0.05,
-    intensity: float = 1.0,
-    fat_tails: bool = False,
-    degrees_of_freedom: int = 3,
-    spread: float = 0.01,
-    seed: Optional[int] = None,
+    mode: str = "time",
+    **kwargs,
 ):
     """
     An infinite generator that yields Bid/Ask quotes.
-    Provides a "pull-based" stream of market depth.
 
     Parameters
     ----------
     initial_price : float
-        Starting price.
-    drift : float, optional
-        Annualized drift, by default 0.0.
-    vol : float, optional
-        Annualized volatility, by default 0.2.
-    tick_size : float, optional
-        Minimum price increment, by default 0.05.
-    intensity : float, optional
-        Ticks per second, by default 1.0.
-    fat_tails : bool, optional
-        If True, use Student-t distribution.
-    degrees_of_freedom : int, optional
-        DF for Student-t.
-    spread : float, optional
-        Fixed relative spread (e.g., 0.01 for 1%).
-    seed : int, optional
-        Random seed.
+        The starting price.
+    mode : str, optional
+        'time' or 'sequence'.
+    **kwargs :
+        Same as tick_generator, plus 'spread'.
 
     Yields
     -------
     dict
-        A dictionary containing:
-        - 'timestamp': Simulated time.
-        - 'bid': Simulated bid price.
-        - 'ask': Simulated ask price.
-        - 'mid_price': The underlying mid price.
-
-    Example
-    -------
-    >>> gen = quote_generator(100.0, spread=0.005)
-    >>> quote = next(gen)
+        A dictionary containing: timestamp, bid, ask, mid_price, and raw_price.
     """
-    return _market_generator(
-        initial_price=initial_price,
-        drift=drift,
-        vol=vol,
-        tick_size=tick_size,
-        intensity=intensity,
-        fat_tails=fat_tails,
-        degrees_of_freedom=degrees_of_freedom,
-        use_quotes=True,
-        spread=spread,
-        seed=seed,
-    )
+    if mode == "time":
+        return _time_path_generator(
+            initial_price=initial_price, use_quotes=True, **kwargs
+        )
+    else:
+        return _sequence_path_generator(
+            initial_price=initial_price, use_quotes=True, **kwargs
+        )
