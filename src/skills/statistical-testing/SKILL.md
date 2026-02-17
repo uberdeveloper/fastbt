@@ -191,7 +191,7 @@ NO hardcoded mappings - rely on LLM context understanding
 IF benchmark fetch fails AND test REQUIRES benchmark:
   → HALT
   → Ask user for benchmark data
-  
+
 IF benchmark fetch fails AND test is OPTIONAL:
   → WARN user
   → Continue with absolute performance tests
@@ -216,7 +216,7 @@ IF p_value > 0.05 for both tests:
 ELSE:
     distribution = "non-normal"
     use_parametric = False
-    
+
 # Always inform user
 print(f"⚠️ Returns distribution: {distribution}")
 
@@ -253,17 +253,17 @@ IF user explicitly requests parametric test BUT distribution is non-normal:
     <example>when VIX > 20</example>
     <operators>==, !=, >, <, >=, <=</operators>
   </single_condition>
-  
+
   <multiple_and max="3">
     <example>when VIX > 20 AND market_cap > 1000 AND regime == 'bull'</example>
     <restriction>All conditions must use AND (no mixing with OR)</restriction>
   </multiple_and>
-  
+
   <multiple_or max="3">
     <example>when VIX > 20 OR regime == 'bear'</example>
     <restriction>All conditions must use OR (no mixing with AND)</restriction>
   </multiple_or>
-  
+
   <not_supported>
     <mixed_logic>(A AND B) OR C</mixed_logic>
     <nested_conditions>NOT (A OR B)</nested_conditions>
@@ -297,7 +297,7 @@ IF user explicitly requests parametric test BUT distribution is non-normal:
       </conditional_test>
     </output_format>
   </step_1>
-  
+
   <step_2>
     <action>Validation</action>
     <checks>
@@ -309,7 +309,7 @@ IF user explicitly requests parametric test BUT distribution is non-normal:
     </checks>
     <on_failure>HALT and ask user to clarify/fix</on_failure>
   </step_2>
-  
+
   <step_3>
     <action>Data Segmentation</action>
     <method>
@@ -318,13 +318,13 @@ IF user explicitly requests parametric test BUT distribution is non-normal:
           query = " and ".join([f"{col} {op} {val}" for col, op, val in conditions])
       ELSE:
           query = " or ".join([f"{col} {op} {val}" for col, op, val in conditions])
-      
+
       # Segment data
       group_true = df.query(query)
       group_false = df.query(f"not ({query})")
     </method>
   </step_3>
-  
+
   <step_4>
     <action>Validation Checks</action>
     <checks>
@@ -338,7 +338,7 @@ IF user explicitly requests parametric test BUT distribution is non-normal:
         → Recommend non-parametric tests
     </warnings>
   </step_4>
-  
+
   <step_5>
     <action>Run Statistical Tests on Each Segment</action>
     <method>
@@ -346,7 +346,7 @@ IF user explicitly requests parametric test BUT distribution is non-normal:
           Run distribution checks
           Run hypothesis tests
           Calculate metrics (Sharpe, drawdown, etc.)
-      
+
       Compare segments:
           Test: Mann-Whitney U or t-test (based on distribution)
           Calculate effect size
@@ -442,7 +442,7 @@ Confidence: 95%
 Automatically save report to markdown file:
   Filename: {test_type}_{timestamp}.md
   Location: Current working directory or user-specified path
-  
+
 Example: performance_test_20260217_132537.md
 ```
 
@@ -463,7 +463,7 @@ IF user requests plots:
     - Distribution histogram
     - QQ plot (normality check)
     - Comparison charts (for conditional analysis)
-  
+
   Save as PNG files alongside markdown report
 ```
 
@@ -485,24 +485,24 @@ IF user requests plots:
     peek_file("returns.csv")
     → Detects: date, strategy_returns columns
   </step_1>
-  
+
   <step_2 skill="statistical-testing">
     Hypothesis: Performance test (positive returns)
     Distribution check: Non-normal (p=0.023)
     Test: Wilcoxon signed-rank
     Result: p=0.003 (significant)
   </step_2>
-  
+
   <output>
     📊 Result: Your momentum strategy has statistically significant positive returns
-    
+
     Key Metrics:
     - Median Return: 0.12% per day
     - p-value: 0.003
     - Confidence: 95%
-    
+
     🎯 Strong evidence of real alpha (not a statistical artifact)
-    
+
     ⚠️ Note: Returns not normally distributed (used non-parametric test)
   </output>
 </workflow>
@@ -525,33 +525,33 @@ IF user requests plots:
     → Detects: date, returns columns
     → No benchmark column found
   </step_1>
-  
+
   <step_2 skill="statistical-testing">
     Hypothesis: Outperformance test
     Asset class inference: "India equity" → NIFTY50
-    
+
     Ask user: "May I fetch NIFTY50 data from yfinance for comparison?"
     User: "Yes"
-    
+
     Fetch NIFTY50 (2020-01-01 to 2025-12-31)
     Calculate returns
-    
+
     Distribution check: Both non-normal
     Test: Wilcoxon signed-rank (paired)
     Result: p=0.012 (significant)
   </step_2>
-  
+
   <output>
     📊 Result: Your strategy significantly outperforms NIFTY50
-    
+
     Key Metrics:
     - Strategy Sharpe: 1.45
     - NIFTY50 Sharpe: 0.89
     - Excess Sharpe: +0.56
     - p-value: 0.012
-    
+
     🎯 Strong evidence of outperformance
-    
+
     ⚠️ Note: Returns not normally distributed (used non-parametric test)
   </output>
 </workflow>
@@ -573,44 +573,44 @@ IF user requests plots:
     peek_file("data.csv")
     → Detects: date, strategy_returns, VIX columns
   </step_1>
-  
+
   <step_2 skill="statistical-testing">
     Hypothesis: Conditional comparison
     Metric: max_drawdown
     Condition: VIX > 20
-    
+
     Parse condition:
       <condition>
         <column>VIX</column>
         <operator>></operator>
         <value>20</value>
       </condition>
-    
+
     Validate: VIX column exists ✓
-    
+
     Segment data:
       Group TRUE (VIX > 20): 234 observations
       Group FALSE (VIX ≤ 20): 1016 observations
-    
+
     Calculate drawdown for each group
     Test: Mann-Whitney U
     Result: p=0.002 (significant difference)
   </step_2>
-  
+
   <output>
     📊 Conditional Analysis: Drawdown when VIX > 20
-    
+
     | Condition | N | Median DD | Mean DD | p-value |
     |-----------|---|-----------|---------|---------|
     | VIX > 20  | 234 | -15.2% | -16.8% | - |
     | VIX ≤ 20  | 1016 | -8.3% | -9.1% | - |
     | **Difference** | - | **-6.9%** | **-7.7%** | **0.002** |
-    
+
     🎯 Result: Drawdown is significantly WORSE when VIX > 20 (opposite of hypothesis)
-    
+
     Test: Mann-Whitney U (non-parametric)
     Confidence: 95%
-    
+
     ⚠️ Note: Returns not normally distributed in either group
   </output>
 </workflow>
@@ -632,7 +632,7 @@ IF user requests plots:
     peek_file("features.csv")
     → Detects: date, returns, VIX, market_cap columns
   </step_1>
-  
+
   <step_2 skill="statistical-testing">
     Hypothesis: Conditional comparison
     Metric: sharpe_ratio
@@ -640,29 +640,29 @@ IF user requests plots:
       <condition id="1">VIX > 20</condition>
       <condition id="2">market_cap > 1000</condition>
       <logic>AND</logic>
-    
+
     Validate: Both columns exist ✓
-    
+
     Segment data:
       Group TRUE (VIX > 20 AND market_cap > 1000): 156 observations
       Group FALSE (NOT both conditions): 1094 observations
-    
+
     Calculate Sharpe for each group
     Test: t-test (both groups normal)
     Result: p=0.234 (NOT significant)
   </step_2>
-  
+
   <output>
     📊 Conditional Analysis: Sharpe when VIX > 20 AND market_cap > 1000
-    
+
     | Condition | N | Sharpe | p-value |
     |-----------|---|--------|---------|
     | Both TRUE | 156 | 1.23 | - |
     | NOT both | 1094 | 1.15 | - |
     | **Difference** | - | **+0.08** | **0.234** |
-    
+
     🎯 Result: No significant difference in Sharpe ratio (p=0.234)
-    
+
     Test: Independent t-test
     Confidence: 95%
   </output>

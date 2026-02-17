@@ -536,9 +536,9 @@ The strategy demonstrates statistically significant positive returns with 95% co
 
 **Good Prompt:**
 ```
-"Test if my momentum strategy beats NIFTY50 with 99% confidence. 
-File: india_equity.csv, 
-returns column: strategy_returns, 
+"Test if my momentum strategy beats NIFTY50 with 99% confidence.
+File: india_equity.csv,
+returns column: strategy_returns,
 benchmark column: nifty_returns"
 ```
 

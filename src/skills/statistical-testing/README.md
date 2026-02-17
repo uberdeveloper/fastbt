@@ -1,7 +1,7 @@
 # Statistical Testing Skill
 
-**Version:** 1.0.0-alpha  
-**Status:** Alpha Testing (Monolithic Implementation)  
+**Version:** 1.0.0-alpha
+**Status:** Alpha Testing (Monolithic Implementation)
 **License:** MIT
 
 ---
@@ -362,5 +362,5 @@ For questions or feedback, please refer to the main fastbt repository.
 
 ---
 
-**Last Updated:** 2026-02-17  
+**Last Updated:** 2026-02-17
 **Maintainer:** fastbt team

@@ -1,7 +1,7 @@
 # Statistical Testing Skill - Architecture Decisions
 
-**Date:** 2026-02-17  
-**Status:** Alpha Testing (v1.0 - Monolithic)  
+**Date:** 2026-02-17
+**Status:** Alpha Testing (v1.0 - Monolithic)
 **Future Plan:** Refactor to separate skills (v2.0)
 
 ---
@@ -10,7 +10,7 @@
 
 This document captures the architectural decisions made during the design of the statistical testing skill for quantitative strategy evaluation.
 
-**Current Implementation (v1.0):** Monolithic skill with conditional analysis built-in  
+**Current Implementation (v1.0):** Monolithic skill with conditional analysis built-in
 **Future Architecture (v2.0):** Separate into `statistical-testing` + `conditional-analysis` skills
 
 ---
@@ -173,7 +173,7 @@ Key Metrics:
     <file_path>strategy_returns.csv</file_path>
     <row_count>1250</row_count>
   </source>
-  
+
   <temporal_info>
     <date_column>date</date_column>
     <date_range>
@@ -182,18 +182,18 @@ Key Metrics:
     </date_range>
     <frequency>daily</frequency>
   </temporal_info>
-  
+
   <columns>
     <column name="date" type="datetime64" role="index"/>
     <column name="strategy_returns" type="float64" role="returns_candidate"/>
     <column name="feature1" type="float64" role="feature"/>
     <column name="spy_returns" type="float64" role="benchmark_candidate"/>
   </columns>
-  
+
   <sample_data format="markdown">
     [5 rows in table format]
   </sample_data>
-  
+
   <inferences>
     <primary_returns>strategy_returns</primary_returns>
     <benchmark_available>true</benchmark_available>
@@ -302,9 +302,9 @@ conditional-analysis (segments + comparison)
 
 ### Parsing Approach: Hybrid
 
-**Step 1:** LLM extracts intent → structured XML  
-**Step 2:** Validation layer checks XML  
-**Step 3:** Generate pandas query string  
+**Step 1:** LLM extracts intent → structured XML
+**Step 2:** Validation layer checks XML
+**Step 3:** Generate pandas query string
 **Fallback:** Ask user to rephrase in simple format
 
 ---
@@ -315,16 +315,16 @@ conditional-analysis (segments + comparison)
 
 1. **Performance Test:** "Does strategy have positive returns?"
    - Tests: One-sample t-test, Wilcoxon signed-rank
-   
+
 2. **Outperformance Test:** "Does strategy beat benchmark?"
    - Tests: Paired t-test, Wilcoxon signed-rank
-   
+
 3. **Comparison Test:** "Is strategy A better than strategy B?"
    - Tests: Independent t-test, Mann-Whitney U
-   
+
 4. **Conditional Test:** "Does metric differ when condition is true?"
    - Tests: Mann-Whitney U, t-test (based on distribution)
-   
+
 5. **Stationarity Test:** "Are returns stationary?"
    - Tests: ADF, KPSS (statsmodels, on request)
 
