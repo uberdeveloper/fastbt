@@ -1,10 +1,10 @@
 ---
 name: statistical-testing
-description: Rigorous statistical evaluation of trading strategy returns to determine if alpha is real or a statistical artifact. Supports hypothesis testing, benchmark comparison, conditional analysis (when feature > threshold), and distribution checks. Use when validating backtest results, comparing strategies, testing performance claims, or analyzing performance across market conditions.
+description: Rigorous statistical evaluation of trading strategy returns to determine if alpha is real or a statistical artifact. Supports hypothesis testing, benchmark comparison, conditional analysis, temporal validation, and distribution checks. Use when validating backtest results, comparing strategies, testing performance claims, optimizing parameters, or analyzing performance across market conditions.
 license: MIT
 metadata:
-  version: "1.0.0-alpha"
-  capabilities: ["hypothesis_testing", "benchmark_comparison", "conditional_analysis", "distribution_checks", "multiple_testing_correction"]
+  version: "2.0.0-alpha"
+  capabilities: ["hypothesis_testing", "intent_detection", "temporal_validation", "benchmark_comparison", "conditional_analysis", "distribution_checks", "multiple_testing_correction", "overfitting_detection"]
 ---
 
 # Statistical Testing Skill
@@ -106,9 +106,9 @@ IF user specifies frequency BUT data frequency differs:
 
 ---
 
-### Step 2: Hypothesis Parsing
+### Step 2: Hypothesis & Intent Parsing
 
-**Action:** Parse user prompt to determine test type
+**Action:** Parse user prompt to determine test type AND user intent
 
 **Supported Hypothesis Types:**
 
@@ -119,6 +119,129 @@ IF user specifies frequency BUT data frequency differs:
 | **Comparison** | "Is strategy A better than strategy B?" | Independent t-test, Mann-Whitney U |
 | **Conditional** | "Does drawdown differ when VIX > 20?" | Mann-Whitney U, t-test (based on distribution) |
 | **Stationarity** | "Are returns stationary over time?" | ADF, KPSS (statsmodels, on explicit request) |
+
+**Intent Detection (CRITICAL for Trading Strategies):**
+
+Parse BOTH hypothesis AND intent to determine if temporal validation is needed.
+
+| Intent Type | Keywords | Validation Required | Examples |
+|-------------|----------|---------------------|----------|
+| **PRIORITY 1: Explicit Validation** | out of sample, oos, walk forward, cross validation, hold out | **YES** (auto-run) | "Show out of sample results" |
+| **PRIORITY 2: Future/Deploy** | work in future, going forward, deploy, robust, predict future, forecast, tomorrow, live trading, production | **YES** (auto-run) | "Will this work in future?" |
+| **PRIORITY 3: Optimization** | optimal, best, maximize, improve, enhance, find threshold, find parameter | **YES** (ask user) | "What's optimal threshold?" |
+| **PRIORITY 4: Exploratory** | why, explain, understand, analyze, correlate, relationship, pattern, what happened | **NO** | "Why did Feb perform poorly?" |
+
+**Implementation Logic:**
+
+```python
+def detect_intent_and_validation_need(user_prompt):
+    """Determine if temporal validation is needed"""
+
+    # Priority 1: Explicit validation requests (no confirmation)
+    if contains_any(user_prompt, [
+        "out of sample", "oos", "walk forward",
+        "cross validation", "hold out", "test set"
+    ]):
+        return {
+            'intent': 'VALIDATION',
+            'validation': 'REQUIRED',
+            'confirm': False,
+            'message': "Running out-of-sample validation..."
+        }
+
+    # Priority 2: Future/performance prediction (no confirmation)
+    if contains_any(user_prompt, [
+        "work in future", "going forward", "deploy", "robust",
+        "predict future", "forecast", "tomorrow", "next month",
+        "real trading", "live trading", "production"
+    ]):
+        return {
+            'intent': 'PREDICTION',
+            'validation': 'REQUIRED',
+            'confirm': False,
+            'message': "Testing robustness on unseen data..."
+        }
+
+    # Priority 3: Parameter optimization (ask confirmation)
+    if contains_any(user_prompt, [
+        "optimal", "best", "maximize", "improve", "enhance",
+        "find threshold", "find parameter", "best value"
+    ]):
+        return {
+            'intent': 'OPTIMIZATION',
+            'validation': 'REQUIRED',
+            'confirm': True,
+            'message': "Optimization requires validation (prevents overfitting)"
+        }
+
+    # Priority 4: Exploratory analysis (no validation)
+    if contains_any(user_prompt, [
+        "why", "explain", "understand", "analyze",
+        "correlate", "relationship", "pattern",
+        "what happened", "how did", "statistical test"
+    ]):
+        return {
+            'intent': 'OBSERVATION',
+            'validation': 'NOT_NEEDED',
+            'confirm': False
+        }
+
+    # Default: Ask user
+    return {
+        'intent': 'UNCLEAR',
+        'validation': 'ASK_USER',
+        'confirm': True
+    }
+```
+
+**User Interaction Flow:**
+
+```python
+intent_result = detect_intent_and_validation_need(user_prompt)
+
+IF intent_result['confirm']:
+    # Ask user for confirmation
+    print(f"Intent: {intent_result['intent']}")
+    print(f"{intent_result['message']}")
+    user_confirms = ask("Proceed? [Y/n]: ")
+
+    IF NOT user_confirms:
+        Ask alternative approach
+        return
+
+IF intent_result['validation'] == 'REQUIRED':
+    # Go to Step 6.5: Temporal Validation
+    run_temporal_validation()
+    return
+
+IF intent_result['validation'] == 'NOT_NEEDED':
+    # Continue with full dataset analysis
+    proceed_with_full_dataset()
+    return
+```
+
+**Example Interactions:**
+
+```
+User: "Does Feb differ from baseline?"
+→ Intent: OBSERVATION
+→ Action: Use full dataset (209 days)
+→ No validation needed
+
+User: "What's the optimal volatility threshold?"
+→ Intent: OPTIMIZATION
+→ Action: "Optimization requires validation (prevents overfitting)"
+          "Run walk-forward validation? [Y/n]: "
+
+User: "Will this work in future?"
+→ Intent: PREDICTION
+→ Action: Auto-run walk-forward validation
+→ "Testing robustness on unseen data..."
+
+User: "Show out of sample results"
+→ Intent: VALIDATION
+→ Action: Auto-run validation (no prompt needed)
+```
 
 **Ambiguity Rule:**
 ```
@@ -398,6 +521,205 @@ IF running multiple tests (>1):
 - **Maximum Drawdown**
 - **Win Rate** (% positive returns)
 - **Mean/Median Returns**
+
+---
+
+### Step 6.5: Temporal Validation (CRITICAL for Trading Strategies)
+
+**WHY THIS IS CRITICAL:**
+
+Statistical significance on full dataset ≠ Real trading performance
+
+**Common Pitfall:** Optimizing parameters on entire dataset leads to overfitting
+
+**CRITICAL RULE:**
+```
+IF testing trading strategy parameters (thresholds, filters, optimization):
+  → MUST use temporal validation
+  → NEVER test on entire dataset
+  → ALWAYS report in-sample vs out-of-sample performance difference
+  → Warn about overfitting if degradation > 20%
+```
+
+**When to Use:**
+
+| Scenario | Validation Required | Reason |
+|----------|---------------------|---------|
+| Optimize parameters | **YES** | Prevents overfitting |
+| Compare strategies | **YES** | Ensures robust winner |
+| Deploy to production | **YES** | Must work on unseen data |
+| Understand what happened | **NO** | Historical analysis OK |
+| Test hypothesis | **NO** | Full dataset sufficient |
+| Exploratory analysis | **NO** | Understanding patterns |
+
+**Validation Methods:**
+
+### 1. Train/Test Split (Basic)
+
+Split data by time (e.g., 80/20)
+
+**When to use:**
+- Quick validation
+- Limited data (<500 days)
+- Initial parameter screening
+
+**Example:**
+```python
+split_idx = int(len(data) * 0.8)
+train = data.iloc[:split_idx]  # First 80%
+test = data.iloc[split_idx:]   # Last 20%
+
+# Optimize on TRAIN
+optimal_threshold = find_best_threshold(train)
+
+# Apply to TEST (unseen!)
+test_performance = apply_filter(test, optimal_threshold)
+
+# Check degradation
+degradation = (train_sharpe - test_sharpe) / train_sharpe
+IF degradation > 0.20:  # 20% threshold
+    → "⚠️ OVERFITTING DETECTED"
+    → "DO NOT IMPLEMENT"
+```
+
+### 2. Walk-Forward Validation (Recommended)
+
+Rolling window approach - most realistic for trading
+
+**When to use:**
+- Parameter optimization
+- Strategy comparison
+- Production deployment decisions
+- Most trading strategy validation
+
+**Parameters:**
+- `train_window`: Size of training period (default: 120 days ~ 6 months)
+- `test_window`: Size of test period (default: 30 days ~ 1 month)
+- `step_size`: How much to move forward each iteration (default: 30 days)
+
+**Example:**
+```python
+window_size = 120  # 6 months
+step_size = 30     # 1 month
+results = []
+
+for i in range(window_size, len(data), step_size):
+    train = data[i-window_size:i]
+    test = data[i:i+step_size]
+
+    # Optimize on TRAIN
+    optimal_param = optimize(train)
+
+    # Test on TEST (unseen!)
+    result = backtest(test, optimal_param)
+    results.append(result)
+
+# Analyze consistency
+mean_return = np.mean(results)
+std_return = np.std(results)
+
+IF std_return > 0.5 * mean_return:
+    → "⚠️ UNSTABLE PERFORMANCE"
+    → "DO NOT DEPLOY"
+```
+
+### 3. Expanding Window (Alternative)
+
+Train on all historical data, test on next period, expand training set
+
+**When to use:**
+- Limited data (< 2 years)
+- Want maximum training data
+- Long-only strategies
+
+**Example:**
+```python
+min_train = 120  # Minimum 6 months to start
+results = []
+
+for i in range(min_train, len(data) - 30):
+    train = data.iloc[:i]        # All history up to i
+    test = data.iloc[i:i+30]    # Next 30 days
+
+    optimal_param = optimize(train)
+    result = backtest(test, optimal_param)
+    results.append(result)
+```
+
+**Output Format for Temporal Validation:**
+
+```markdown
+📊 Temporal Validation: Walk-Forward (6mo train, 1mo test)
+
+⚠️ OVERFITTING DETECTED:
+
+Train Performance (In-Sample):
+- Sharpe: 8.19
+- Return: 0.180% per day
+- Period: Apr 2025 - Dec 2025
+
+Test Performance (Out-of-Sample):
+- Sharpe: 3.25
+- Return: 0.095% per day
+- Period: Jan 2026 - Feb 2026
+
+Degradation Metrics:
+- Sharpe degradation: 60.3%
+- Return degradation: 47.2%
+- ⚠️ EXCEEDS 20% THRESHOLD
+
+❌ CONCLUSION: DO NOT IMPLEMENT
+   Massive overfitting detected
+   In-sample performance does NOT generalize
+
+Walk-Forward Fold Results:
+- Fold 1 (Jan): Sharpe 2.14, Return: 0.082%
+- Fold 2 (Feb): Sharpe 5.12, Return: 0.145%
+- Inconsistent: Std dev = 1.92 × mean
+
+Recommendation: Strategy parameters are overfit to historical data
+              Use simpler approach or collect more data
+```
+
+**Error Handling:**
+
+```python
+IF user asks to optimize on full dataset:
+  → WARNING: "Optimizing on full dataset will overfit"
+  → SUGGEST: "Use walk-forward validation instead"
+  → IF user insists:
+    → Run analysis with full dataset
+    → Add disclaimer: "⚠️ WARNING: Results may be overfit"
+    → "   May not work in live trading"
+    → "   Recommend: Validate with out-of-sample testing"
+```
+
+**Integration with Statistical Tests:**
+
+**Always run temporal validation FIRST:**
+```
+1. Temporal validation → Check if strategy is robust
+2. If robust: Run hypothesis testing → Check if alpha is real
+3. If both pass: Strategy is ready for deployment
+```
+
+**Don't skip validation:**
+
+❌ WRONG: "Does the 1.5% volatility filter improve Sharpe?"
+→ Test on full dataset → Sharpe 7.05 (p=0.0064)
+→ "Implement!" → Overfit!
+
+✓ CORRECT: "Does the 1.5% volatility filter improve Sharpe?"
+→ Detect intent: OPTIMIZATION
+→ Run walk-forward validation
+→ Train Sharpe: 8.19, Test Sharpe: 3.25
+→ "60% degradation - DO NOT IMPLEMENT"
+
+**Key Insight:**
+
+- "Does it work?" → Can test on full dataset (historical)
+- "Will it work in future?" → REQUIRES temporal validation
+- These are DIFFERENT questions!
 
 ---
 
@@ -743,24 +1065,28 @@ This skill REQUIRES the `load-data` skill for initial data discovery.
 
 ---
 
-## Limitations (v1.0)
+## Limitations (v2.0)
 
 **Not Supported:**
 - Mixed AND/OR conditions: `(A AND B) OR C`
 - Nested conditions: `NOT (A OR B)`
 - Range syntax: `feature BETWEEN 1 AND 5`
-- Time-based filters: `during 2020-2022`
 - Automatic regime detection
-- Walk-forward analysis
 - Monte Carlo simulation
 - Bootstrap confidence intervals (manual request only)
 
 **Future Versions:**
-- v2.0: Refactor to separate `conditional-analysis` skill
-- v2.0: Support mixed logic conditions
-- v2.0: Time-based filtering
-- v3.0: Automatic regime detection
-- v3.0: Walk-forward validation
+- v2.1: Refactor to separate `conditional-analysis` skill
+- v2.1: Support mixed logic conditions
+- v3.0: Automatic regime detection (Chow test, change point detection)
+- v3.0: Performance drift monitoring
+- v3.0: Automated parameter optimization with cross-validation
+
+**Recently Added (v2.0):**
+- ✅ Intent detection (distinguishes observation vs optimization)
+- ✅ Temporal validation (train/test split, walk-forward, expanding window)
+- ✅ Overfitting detection (degradation metrics)
+- ✅ Smart defaults (auto-run validation when needed, ask when optional)
 
 ---
 
