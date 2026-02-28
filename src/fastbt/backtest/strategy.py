@@ -42,13 +42,13 @@ class Strategy(ABC):
         self.engine = None  # injected by BacktestEngine.add_strategy()
 
         # State machine
-        self.state: str = "IDLE"        # "IDLE" | "ACTIVE" | "DONE"
+        self.state: str = "IDLE"  # "IDLE" | "ACTIVE" | "DONE"
         self.current_cycle: int = 0
-        self.max_cycles: int = 1        # overridden by engine from its own config
+        self.max_cycles: int = 1  # overridden by engine from its own config
 
         # Trade tracking
-        self.positions: Dict[str, Trade] = {}     # keyed open trades
-        self.closed_trades: List[Trade] = []      # all-time accumulator
+        self.positions: Dict[str, Trade] = {}  # keyed open trades
+        self.closed_trades: List[Trade] = []  # all-time accumulator
 
     @property
     def open_trades(self) -> List[Trade]:
@@ -122,8 +122,7 @@ class Strategy(ABC):
                 return None  # not all legs live — all-or-nothing
             prices[key] = price
 
-        # All live — create Trade objects
-        cost_pct = self.engine.transaction_cost_pct if self.engine else 0.0
+        # All live — create Trade objects (cost applied at close() time, not here)
         filled: Dict[str, Trade] = {}
         for key, leg in named_legs.items():
             trade = Trade(
@@ -285,7 +284,6 @@ class Strategy(ABC):
 
     # ─── User-overridable hooks ───────────────────────────────────────────────
 
-    @abstractmethod
     def on_day_start(self, trade_date: str, ctx: Any) -> bool:
         """
         Called once per day before the clock loop starts.
@@ -293,8 +291,12 @@ class Strategy(ABC):
         The engine has already loaded NIFTY_SPOT into cache before this fires.
         Use ctx.prefetch() here to warm the cache for known instruments.
 
-        Return False (or omit return) to skip the entire day.
+        Return False to skip the entire trading day entirely.
+
+        Default: return True (run every day, no prefetch).
+        Override to add day filters or ctx.prefetch() calls.
         """
+        return True
 
     @abstractmethod
     def can_enter(self, tick: Any, ctx: Any) -> bool:
