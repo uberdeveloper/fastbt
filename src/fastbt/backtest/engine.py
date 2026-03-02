@@ -125,6 +125,7 @@ class BacktestEngine:
 
         # ── 4. Reset strategy per-day state ───────────────────────────────────
         self.strategy._reset_for_new_day()
+        self.strategy.trade_date = trade_date  # expose current date to all hooks
 
         # ── 5. Create contexts ─────────────────────────────────────────────────
         day_ctx = DayStartContext(trade_date, self._cache, self.data_source)

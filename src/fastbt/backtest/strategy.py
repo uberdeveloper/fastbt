@@ -40,6 +40,7 @@ class Strategy(ABC):
     def __init__(self, name: str = "BaseStrategy"):
         self.name = name
         self.engine = None  # injected by BacktestEngine.add_strategy()
+        self.trade_date: str = ""  # injected by engine at the start of each day
 
         # State machine
         self.state: str = "IDLE"  # "IDLE" | "ACTIVE" | "DONE"
@@ -54,6 +55,22 @@ class Strategy(ABC):
     def open_trades(self) -> List[Trade]:
         """All currently open trades as a list (unordered)."""
         return list(self.positions.values())
+
+    @property
+    def position_summary(self) -> Dict[str, int]:
+        """
+        Counter of open positions by instrument and side.
+
+        Returns a dict showing net qty per instrument+side combo.
+        Example: {"23600CE_SELL": 1, "23600PE_SELL": 1}
+
+        Useful for a quick overview in on_adjust without iterating positions.
+        """
+        summary: Dict[str, int] = {}
+        for trade in self.positions.values():
+            key = f"{trade.instrument}_{trade.side}"
+            summary[key] = summary.get(key, 0) + trade.qty
+        return summary
 
     # ─── Leg factory ──────────────────────────────────────────────────────────
 
@@ -221,6 +238,30 @@ class Strategy(ABC):
         """Return all closed trades for the given instrument key (e.g. '23600CE')."""
         return [t for t in self.closed_trades if t.instrument == instrument_key]
 
+    def unrealized_pnl(self, ctx: Any) -> float:
+        """
+        Mark-to-market PnL of all currently open positions at this tick.
+
+        Prices are auto-derived from the cache via ctx.get_price() — no
+        LTPs dict needed. Fill-forward is used when the current tick has
+        no live price (same behaviour as close_trade).
+
+        Falls back to entry_price when no price at all is available
+        (result treated as 0 MTM for that leg).
+
+        Typical use in on_adjust:
+            if self.unrealized_pnl(ctx) < -500:
+                self.close_all(tick, ctx.tick_index, ctx, "SL")
+        """
+        total = 0.0
+        for trade in self.positions.values():
+            price, _ = ctx.get_price(trade.instrument)
+            if price is None:
+                price = trade.entry_price  # no data: MTM = 0 for this leg
+            mult = 1 if trade.side == "BUY" else -1
+            total += (price - trade.entry_price) * trade.qty * mult
+        return total
+
     # ─── Engine-driven lifecycle (not overridable) ────────────────────────────
 
     def run_one_cycle(self, tick: Any, ctx: Any) -> None:
@@ -276,6 +317,7 @@ class Strategy(ABC):
 
         Resets per-day state. closed_trades is deliberately NOT cleared —
         it accumulates across all days for full backtest reporting.
+        trade_date is updated by the engine immediately after this call.
         """
         self.state = "IDLE"
         self.current_cycle = 0

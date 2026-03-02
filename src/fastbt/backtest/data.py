@@ -2,7 +2,7 @@ import logging
 
 import duckdb
 from abc import ABC, abstractmethod
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -52,8 +52,16 @@ class DuckDBParquetLoader(DataSource):
     The cache in BarContext is the guard against look-ahead bias, not the query.
     """
 
-    def __init__(self, filepath: str):
+    def __init__(self, filepath: str, extra_columns: Optional[List[str]] = None):
+        """
+        Args:
+            filepath:      Path to the Parquet file.
+            extra_columns: Additional columns to fetch alongside OHLCV.
+                           Example: ["delta", "calc_iv", "open_interest"]
+                           Defaults to OHLCV only.
+        """
         self.filepath = filepath
+        self.extra_columns: List[str] = extra_columns or []
         # Read-only memory connection for extreme speed
         self.con = duckdb.connect()
 
@@ -88,8 +96,15 @@ class DuckDBParquetLoader(DataSource):
             Nested dict: {'09:15:00': {'open': x, 'high': x, 'low': x,
                                        'close': x, 'volume': x}, ...}
         """
+        base_cols = "trade_time, open, high, low, close, volume"
+        if self.extra_columns:
+            extra = ", ".join(self.extra_columns)
+            select_cols = f"{base_cols}, {extra}"
+        else:
+            select_cols = base_cols
+
         query = f"""
-            SELECT trade_time, open, high, low, close, volume
+            SELECT {select_cols}
             FROM '{self.filepath}'
             WHERE trade_date = '{date_str}'
               AND option_type = '{opt_type}'

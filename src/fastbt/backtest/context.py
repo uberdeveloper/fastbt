@@ -53,10 +53,11 @@ class DayStartContext:
     Restricted context available only during Strategy.on_day_start().
 
     Provides:
-      - get_spot()    : underlying price at first bar of day
-      - get_atm()     : ATM strike derived from spot
-      - prefetch()    : optional performance hint to warm the cache
-      - trade_date    : the current trading date string
+      - get_spot()       : underlying price at first bar of day
+      - get_atm()        : ATM strike derived from spot
+      - prefetch()       : optional performance hint to warm the cache
+      - add_to_cache()   : load custom external data (VIX, macro, etc.)
+      - trade_date       : the current trading date string
 
     Does NOT provide: get_price(), get_bar(), try_fill().
     Option data may not be in cache yet when on_day_start fires.
@@ -107,6 +108,25 @@ class DayStartContext:
         if data:
             self._cache[key] = data
 
+    def add_to_cache(self, key: str, data: Dict[Any, Any]) -> None:
+        """
+        Load custom external data into the shared cache under a user-chosen key.
+
+        The data dict must be keyed by the same tick values as the clock so
+        that BarContext.get_price() can do tick-aligned lookups with lag.
+
+        Example (VIX loaded in on_day_start):
+            vix_data = my_loader.get_vix(trade_date)  # {"09:15:00": 18.5, ...}
+            ctx.add_to_cache("VIX", vix_data)
+
+            # Then in on_adjust:
+            vix, lag = ctx.get_price("VIX")  # same API as options
+
+        Note: clock alignment is the user's responsibility. If the custom data
+        uses different tick keys than the clock, fill-forward semantics apply.
+        """
+        self._cache[key] = data
+
 
 class BarContext:
     """
@@ -142,6 +162,28 @@ class BarContext:
         self.tick = tick
         self.tick_index = tick_index
 
+    # ─── Read-only helper properties ────────────────────────────────────────────
+
+    @property
+    def trade_date(self) -> str:
+        """Current trading date string (e.g. '2025-01-02')."""
+        return self._trade_date
+
+    @property
+    def total_ticks(self) -> int:
+        """Total number of ticks in today's clock."""
+        return len(self._clock)
+
+    @property
+    def is_last_tick(self) -> bool:
+        """True if the current tick is the last one before EOD force-close."""
+        return self.tick_index == len(self._clock) - 1
+
+    @property
+    def ticks_remaining(self) -> int:
+        """Number of ticks left after the current one (0 on the last tick)."""
+        return max(0, len(self._clock) - self.tick_index - 1)
+
     # ─── Public price accessors ───────────────────────────────────────────
 
     def get_spot(self) -> Tuple[Optional[float], int]:
@@ -168,18 +210,28 @@ class BarContext:
 
     def get_price(self, instrument_key: str) -> Tuple[Optional[float], int]:
         """
-        Return close price of an instrument at current tick.
+        Return the close price of an instrument (or scalar value for custom data)
+        at the current tick.
 
-        Triggers a lazy DuckDB fetch if the instrument is not yet in cache.
-        Returns (None, -1) if instrument has no data at all.
+        Works for two cache formats:
+          - Options OHLCV  : cache[key][tick] is a dict — returns bar['close']
+          - Custom flat    : cache[key][tick] is a scalar — returns float(value)
+
+        Triggers a lazy DuckDB fetch on cache miss for option keys (CE/PE).
+        For custom keys loaded via add_to_cache(), no fetch is attempted.
 
         Returns:
-            (close_price, lag) — lag=0 live, lag>0 fill-forward, -1 no data.
+            (price, lag) — lag=0 live, lag>0 fill-forward, -1 no data.
         """
         bar, lag = self._get_bar_with_lag(instrument_key)
         if bar is None:
             return None, lag
-        return bar.get("close"), lag
+        if isinstance(bar, dict):
+            return bar.get("close"), lag   # options OHLCV nested format
+        try:
+            return float(bar), lag         # custom flat scalar (VIX, macro, etc.)
+        except (TypeError, ValueError):
+            return None, lag
 
     def get_bar(
         self, instrument_key: str
@@ -211,6 +263,15 @@ class BarContext:
         if key in self._cache:
             return
         self._lazy_fetch(key)
+
+    def add_to_cache(self, key: str, data: Dict[Any, Any]) -> None:
+        """
+        Load custom external data into the shared cache under a user-chosen key.
+
+        Same contract as DayStartContext.add_to_cache().
+        Can be called from any strategy hook (on_adjust, on_entry, etc.).
+        """
+        self._cache[key] = data
 
     # ─── Internal helpers ─────────────────────────────────────────────────
 
@@ -246,20 +307,22 @@ class BarContext:
         """
         Fetch full-day data for instrument_key from the DataSource into cache.
 
-        Phase 1: parses instrument_key string to get (strike, opt_type).
-        Logs a warning to guide users toward prefetch() for performance.
+        Only called for option keys (CE/PE). Custom keys loaded via
+        add_to_cache() are always in cache already, so this path is never
+        hit for them.
 
-        If the instrument key cannot be parsed or returns no data, the cache
-        entry is left absent so subsequent lookups return (None, -1).
+        Parse failures are SILENT — the key is not an option symbol and the
+        user is responsible for loading it via add_to_cache(). No warning
+        is emitted to avoid noise for intentional custom cache keys.
+
+        Successful parse but empty DuckDB result — warns once (data may be
+        missing from the parquet for this date/strike combination).
         """
         try:
             instrument = _parse_instrument_key(instrument_key)
         except (ValueError, IndexError):
-            logger.warning(
-                "Cannot parse instrument key '%s'. "
-                "Expected format: '{strike}{CE|PE}', e.g. '23600CE'.",
-                instrument_key,
-            )
+            # Not an option key — silently skip. User should call add_to_cache()
+            # for custom data (VIX, macro, Greeks from external source, etc.).
             return
 
         logger.warning(

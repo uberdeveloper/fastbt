@@ -8,7 +8,7 @@ Core data classes for the FastBT backtesting engine.
 - Trade      : filled trade with PnL tracking, created by try_fill()
 """
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Optional
 
 
@@ -127,23 +127,13 @@ class Trade:
     def to_dict(self) -> Dict[str, Any]:
         """
         Flatten trade to a plain dict for DataFrame conversion / reporting.
-        metadata keys are merged into the top level.
+
+        Uses dataclasses.asdict() for automatic field coverage — any new
+        fields on Trade appear here automatically.
+        metadata keys are merged into the top level (not nested under 'metadata').
+        Note: is_open is a @property, not a field — excluded intentionally.
         """
-        return {
-            "label": self.label,
-            "instrument": self.instrument,
-            "side": self.side,
-            "qty": self.qty,
-            "cycle": self.cycle,
-            "entry_tick": self.entry_tick,
-            "entry_index": self.entry_index,
-            "entry_price": self.entry_price,
-            "exit_tick": self.exit_tick,
-            "exit_index": self.exit_index,
-            "exit_price": self.exit_price,
-            "exit_reason": self.exit_reason,
-            "gross_pnl": self.gross_pnl,
-            "transaction_cost": self.transaction_cost,
-            "net_pnl": self.net_pnl,
-            **self.metadata,
-        }
+        d = asdict(self)
+        meta = d.pop("metadata", {})
+        d.update(meta)
+        return d

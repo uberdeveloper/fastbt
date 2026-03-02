@@ -317,3 +317,83 @@ class TestBarContextPrefetch:
         ctx = BarContext(populated_cache, ds_spy, "2025-01-02", clock)
         ctx.prefetch(Instrument(23400, "CE"))
         spy.assert_not_called()
+
+
+# ─── BarContext helper properties ────────────────────────────────────────────
+
+
+class TestBarContextHelperProperties:
+    def test_trade_date_property(self, populated_cache, ds, clock):
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        assert ctx.trade_date == "2025-01-02"
+
+    def test_total_ticks(self, populated_cache, ds, clock):
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        assert ctx.total_ticks == 4
+
+    def test_is_last_tick_false_on_first(self, populated_cache, ds, clock):
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:15:00", 0)
+        assert ctx.is_last_tick is False
+
+    def test_is_last_tick_true_on_last(self, populated_cache, ds, clock):
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:18:00", 3)
+        assert ctx.is_last_tick is True
+
+    def test_ticks_remaining_decrements(self, populated_cache, ds, clock):
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:15:00", 0)
+        assert ctx.ticks_remaining == 3
+        ctx.advance("09:16:00", 1)
+        assert ctx.ticks_remaining == 2
+        ctx.advance("09:18:00", 3)
+        assert ctx.ticks_remaining == 0
+
+
+# ─── Custom data via add_to_cache ────────────────────────────────────────────
+
+
+class TestAddToCache:
+    def test_day_start_add_to_cache(self, populated_cache, ds):
+        ctx = DayStartContext("2025-01-02", populated_cache, ds)
+        ctx.add_to_cache("VIX", {"09:15:00": 18.5, "09:16:00": 17.8})
+        assert "VIX" in populated_cache
+        assert populated_cache["VIX"]["09:15:00"] == 18.5
+
+    def test_bar_ctx_add_to_cache(self, populated_cache, ds, clock):
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.add_to_cache("VIX", {"09:15:00": 18.5, "09:16:00": 17.8})
+        assert "VIX" in populated_cache
+
+    def test_get_price_flat_scalar_live(self, populated_cache, ds, clock):
+        """get_price works for flat scalar custom data (lag=0 on exact tick)."""
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.add_to_cache("VIX", {"09:15:00": 18.5, "09:16:00": 17.8,
+                                  "09:17:00": 17.5, "09:18:00": 17.0})
+        ctx.advance("09:15:00", 0)
+        value, lag = ctx.get_price("VIX")
+        assert value == pytest.approx(18.5)
+        assert lag == 0
+
+    def test_get_price_flat_fill_forward(self, populated_cache, ds, clock):
+        """Missing tick in custom data → fill-forward with lag."""
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.add_to_cache("VIX", {"09:15:00": 18.5,
+                                  # 09:16 missing
+                                  "09:17:00": 17.5, "09:18:00": 17.0})
+        ctx.advance("09:15:00", 0)
+        ctx.get_price("VIX")
+        ctx.advance("09:16:00", 1)
+        value, lag = ctx.get_price("VIX")
+        assert value == pytest.approx(18.5)  # fill-forward from 09:15
+        assert lag == 1
+
+    def test_get_price_custom_no_lazy_fetch(self, populated_cache, ds, clock):
+        """Non-option key that's NOT in cache → (None, -1), no loud warning."""
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:15:00", 0)
+        # "VIX" is not in cache and not an option key — should silently miss
+        value, lag = ctx.get_price("VIX")
+        assert value is None
+        assert lag == -1

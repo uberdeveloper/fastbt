@@ -609,3 +609,67 @@ class TestLookupHelpers:
         self._fill_and_close(strategy, "ce1", "23600CE")
         result = strategy.get_closed_by_instrument("23600CE")
         assert len(result) == 2
+
+
+# ─── position_summary ─────────────────────────────────────────────────────────
+
+
+class TestPositionSummary:
+    def test_empty_positions(self, strategy):
+        assert strategy.position_summary == {}
+
+    def test_sell_positions(self, strategy):
+        ctx = live_ctx("23600CE", "23600PE")
+        strategy.try_fill(
+            [strategy.add(23600, "CE", "SELL"), strategy.add(23600, "PE", "SELL")],
+            ctx,
+        )
+        summary = strategy.position_summary
+        assert summary.get("23600CE_SELL") == 1
+        assert summary.get("23600PE_SELL") == 1
+
+    def test_qty_accumulates(self, strategy):
+        """Two trades same instrument+side → qty summed."""
+        strategy.max_cycles = 2
+        ctx = live_ctx("23600CE", "23700CE")
+        strategy.try_fill({"a": strategy.add(23600, "CE", "SELL", qty=2)}, ctx)
+        strategy.try_fill({"b": strategy.add(23700, "CE", "SELL", qty=3)}, ctx)
+        summary = strategy.position_summary
+        assert summary.get("23600CE_SELL") == 2
+        assert summary.get("23700CE_SELL") == 3
+
+
+# ─── unrealized_pnl ──────────────────────────────────────────────────────────
+
+
+class TestUnrealizedPnl:
+    def test_zero_when_no_positions(self, strategy):
+        ctx = live_ctx("23600CE")
+        assert strategy.unrealized_pnl(ctx) == pytest.approx(0.0)
+
+    def test_sell_loss_when_price_rises(self, strategy):
+        """SELL at 100, now at 120 → unrealized PnL = -20."""
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        ctx2 = live_ctx("23600CE", price=120.0)
+        assert strategy.unrealized_pnl(ctx2) == pytest.approx(-20.0)
+
+    def test_sell_profit_when_price_falls(self, strategy):
+        """SELL at 100, now at 80 → unrealized PnL = +20."""
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        ctx2 = live_ctx("23600CE", price=80.0)
+        assert strategy.unrealized_pnl(ctx2) == pytest.approx(20.0)
+
+    def test_buy_profit_when_price_rises(self, strategy):
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "BUY")], ctx)
+        ctx2 = live_ctx("23600CE", price=115.0)
+        assert strategy.unrealized_pnl(ctx2) == pytest.approx(15.0)
+
+    def test_fallback_to_entry_when_no_price(self, strategy):
+        """No price data → MTM = 0 for that leg."""
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        ctx_no_data = MockBarContext(prices={})  # no data
+        assert strategy.unrealized_pnl(ctx_no_data) == pytest.approx(0.0)
