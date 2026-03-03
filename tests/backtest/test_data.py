@@ -2,13 +2,14 @@
 Tests for fastbt.backtest.data — DataSource protocol and DuckDBParquetLoader.
 Run with: uv run pytest tests/backtest/test_data.py -v
 """
+
 import os
 import inspect
 
 import pandas as pd
 import pytest
 
-from fastbt.backtest.data import DataSource, DuckDBParquetLoader
+from fastbt.backtest.data import DataSource, DuckDBParquetLoader, DuckDBVortexLoader
 
 REAL_DATA = os.path.expandvars("$HOME/data/q1_2025.parquet")
 
@@ -29,26 +30,45 @@ def parquet_path(tmp_path_factory):
     for date in ["2025-01-02", "2025-01-03"]:
         for time in ["09:15:00", "09:16:00", "09:17:00", "15:29:00"]:
             for strike, opt in [(23400, "CE"), (23400, "PE"), (23450, "CE")]:
-                rows.append({
-                    "trade_date": date,
-                    "trade_time": time,
-                    "underlying_price": 23400.0,
-                    "strike": strike,
-                    "option_type": opt,
-                    "expiry": "2025-01-30",
-                    "open": 100.0,
-                    "high": 105.0,
-                    "low": 98.0,
-                    "close": 102.0,
-                    "volume": 500.0,
-                })
+                rows.append(
+                    {
+                        "trade_date": date,
+                        "trade_time": time,
+                        "underlying_price": 23400.0,
+                        "strike": strike,
+                        "option_type": opt,
+                        "expiry": "2025-01-30",
+                        "open": 100.0,
+                        "high": 105.0,
+                        "low": 98.0,
+                        "close": 102.0,
+                        "volume": 500.0,
+                    }
+                )
     pd.DataFrame(rows).to_parquet(path, index=False)
     return str(path)
 
 
 @pytest.fixture(scope="module")
-def loader(parquet_path):
-    return DuckDBParquetLoader(parquet_path)
+def vortex_path(tmp_path_factory, parquet_path):
+    """Convert the minimal parquet fixture to vortex format for testing."""
+    import duckdb
+
+    tmp = tmp_path_factory.mktemp("vortex_data")
+    path = tmp / "test.vortex"
+    con = duckdb.connect()
+    con.execute("INSTALL vortex; LOAD vortex;")
+    con.execute(f"COPY (SELECT * FROM '{parquet_path}') TO '{path}' (FORMAT vortex)")
+    return str(path)
+
+
+@pytest.fixture(scope="module", params=["parquet", "vortex"])
+def loader(request, parquet_path, vortex_path):
+    """Yields both DuckDBParquetLoader and DuckDBVortexLoader to run all tests twice."""
+    if request.param == "parquet":
+        return DuckDBParquetLoader(parquet_path)
+    else:
+        return DuckDBVortexLoader(vortex_path)
 
 
 # ─── DataSource protocol ──────────────────────────────────────────────────────
@@ -224,5 +244,6 @@ class TestRealDataIntegration:
         result = loader.get_instrument_data(dates[0], atm, "CE")
         assert len(result) > 0
         first_tick = next(iter(result))
-        assert first_tick.startswith("09:15"), \
-            f"Expected full-day data starting 09:15, got {first_tick}"
+        assert first_tick.startswith(
+            "09:15"
+        ), f"Expected full-day data starting 09:15, got {first_tick}"
