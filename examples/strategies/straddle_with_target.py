@@ -13,24 +13,23 @@ Rules:
 
 Features demonstrated:
   ✓  User clock (09:15 → 15:20)
-  ✓  List[Leg] mode for auto-generated keys ("23600CE", "23600PE")
-  ✓  on_exit_condition — two conditions (target + stop)
-  ✓  on_exit     — named exit reasons passed to close_all
+  ✓  List[Leg] without labels (auto-keys; exit is always close_all)
+  ✓  on_exit_condition — dual gate: target + stop
+  ✓  on_exit — named exit reason carried via instance variable
 
 Run:
     uv run python examples/strategies/straddle_with_target.py
 """
 
-from datetime import datetime, timedelta
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import pandas as pd
 
 from fastbt.backtest.data import DuckDBParquetLoader
 from fastbt.backtest.engine import BacktestEngine
 from fastbt.backtest.metrics import PerformanceAnalyzer
-from fastbt.backtest.models import Instrument
 from fastbt.backtest.strategy import Strategy
+from examples.strategies._utils import make_clock
 
 DATA_PATH = "/home/pi/data/q1_2025.parquet"
 ENTRY_TIME = "09:20:00"
@@ -40,24 +39,13 @@ TARGET_RETAIN_PCT = (
 SL_EXPAND_PCT = 1.80  # hard stop when combined value reaches 180% of entry
 
 
-def make_clock(start: str = "09:15:00", end: str = "15:20:00") -> List[str]:
-    """Generate a 1-minute clock from start to end (inclusive)."""
-    fmt = "%H:%M:%S"
-    current = datetime.strptime(start, fmt)
-    stop = datetime.strptime(end, fmt)
-    clock = []
-    while current <= stop:
-        clock.append(current.strftime(fmt))
-        current += timedelta(minutes=1)
-    return clock
-
-
 class StraddleWithTarget(Strategy):
     """
     Sell ATM CE + PE at 09:20.
 
-    Uses List[Leg] for auto-key generation — positions will be keyed as
-    e.g.  {"23600CE": Trade, "23600PE": Trade}  automatically.
+    Uses List[Leg] without labels — auto-keys e.g. "23600CE", "23600PE".
+    Labels are not needed because both legs are always closed together
+    via close_all(); no per-leg look-up required.
 
     Dual exit gate:
       - Target: close when combined mark ≤ 40% of entry premium
@@ -69,19 +57,11 @@ class StraddleWithTarget(Strategy):
         self._entry_premium: float = 0.0
         self._exit_reason: str = "EOD"
 
-    def on_day_start(self, trade_date: str, ctx: Any) -> bool:
-        atm = ctx.get_atm(step=50)
-        ctx.prefetch(Instrument(atm, "CE"))
-        ctx.prefetch(Instrument(atm, "PE"))
-        return True
-
     def can_enter(self, tick: Any, ctx: Any) -> bool:
         return tick >= ENTRY_TIME and not self.positions
 
     def on_entry(self, tick: Any, ctx: Any) -> None:
         atm = ctx.get_atm(step=50)
-
-        # ── List[Leg] mode — keys auto = "23600CE" and "23600PE" ─────────────
         fill = self.try_fill(
             [
                 self.add(atm, "CE", "SELL"),
@@ -97,22 +77,16 @@ class StraddleWithTarget(Strategy):
         combined = self._combined_mark(ctx)
         if combined is None:
             return False
-
         if combined <= self._entry_premium * TARGET_RETAIN_PCT:
             self._exit_reason = "TARGET"
             return True
-
         if combined >= self._entry_premium * SL_EXPAND_PCT:
             self._exit_reason = "SL"
             return True
-
         return False
 
     def on_exit(self, tick: Any, ctx: Any) -> None:
         self.close_all(tick, ctx.tick_index, ctx, reason=self._exit_reason)
-
-    def on_day_end(self, ctx: Any) -> None:
-        pass
 
     # ── Internal helper ────────────────────────────────────────────────────────
 
@@ -128,6 +102,8 @@ class StraddleWithTarget(Strategy):
 
 
 def print_results(strategy: StraddleWithTarget) -> None:
+    from collections import Counter
+
     trades = strategy.closed_trades
     analyzer = PerformanceAnalyzer(trades)
     metrics = analyzer.calculate_all_metrics()
@@ -151,8 +127,6 @@ def print_results(strategy: StraddleWithTarget) -> None:
     if metrics["sharpe_ratio"] is not None:
         print(f"  Sharpe (trade-lv) : {metrics['sharpe_ratio']:.3f}")
     print("=" * 55)
-
-    from collections import Counter
 
     reasons = Counter(t.exit_reason for t in trades)
     print("\n  Exit reasons:")
@@ -182,15 +156,9 @@ def run() -> None:
     loader = DuckDBParquetLoader(DATA_PATH)
     strategy = StraddleWithTarget()
     clock = make_clock("09:15:00", "15:20:00")
-
-    engine = BacktestEngine(
-        loader,
-        transaction_cost_pct=0.05,
-        clock=clock,
-    )
+    engine = BacktestEngine(loader, transaction_cost_pct=0.05, clock=clock)
     engine.add_strategy(strategy)
     engine.run("2025-01-01", "2025-03-31")
-
     print_results(strategy)
 
 

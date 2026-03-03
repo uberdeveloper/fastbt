@@ -10,8 +10,10 @@ Structure (4 legs, 2 spreads):
   BUY   (ATM - 200) PE   ← long put wing   (limits max loss)
 
 Features demonstrated:
-  ✓  List[Leg] mode — auto-generated position keys (instrument.key())
-  ✓  User clock   — engine ticks only from 09:15 to 15:20
+  ✓  List[Leg] without labels — auto-generated keys ("23700CE", "23900CE", …)
+     useful when strikes are self-documenting and you never look up by label
+  ✓  on_day_start with ctx.prefetch() — warms all 4 instruments at day open
+  ✓  User clock — engine ticks only from 09:15 to 15:20
   ✓  on_exit_condition with a profit target (close at 50% premium decay)
   ✓  close_all() for a clean group exit
 
@@ -19,8 +21,7 @@ Run:
     uv run python examples/strategies/iron_condor.py
 """
 
-from datetime import datetime, timedelta
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import pandas as pd
 
@@ -29,6 +30,7 @@ from fastbt.backtest.engine import BacktestEngine
 from fastbt.backtest.metrics import PerformanceAnalyzer
 from fastbt.backtest.models import Instrument
 from fastbt.backtest.strategy import Strategy
+from examples.strategies._utils import make_clock
 
 DATA_PATH = "/home/pi/data/q1_2025.parquet"
 ENTRY_TIME = "09:20:00"
@@ -37,24 +39,17 @@ HEDGE_STEP = 200  # points from ATM for long hedge legs
 TARGET_PCT = 0.50  # exit when we've captured 50% of max credit
 
 
-def make_clock(start: str = "09:15:00", end: str = "15:20:00") -> List[str]:
-    """Generate a 1-minute clock from start to end (inclusive)."""
-    fmt = "%H:%M:%S"
-    current = datetime.strptime(start, fmt)
-    stop = datetime.strptime(end, fmt)
-    clock = []
-    while current <= stop:
-        clock.append(current.strftime(fmt))
-        current += timedelta(minutes=1)
-    return clock
-
-
 class IronCondor(Strategy):
     """
     4-leg iron condor entered at 09:20 with a 50% profit target.
 
-    Legs are passed as a List — keys are AUTO-GENERATED from instrument.key():
-        '23500PE', '23300PE', '23700CE', '23900CE'
+    Legs are passed as a plain List — keys are AUTO-GENERATED from
+    instrument.key() (e.g. "23500PE", "23300PE", "23700CE", "23900CE").
+    No need for labels here because exit is always close_all() — we never
+    look up individual legs by name.
+
+    on_day_start is used to prefetch all 4 strikes so their first-bar
+    prices are guaranteed live at entry time.
 
     Exit logic:
       - Take profit: combined position PnL >= 50% of max credit collected
@@ -68,7 +63,8 @@ class IronCondor(Strategy):
 
     def on_day_start(self, trade_date: str, ctx: Any) -> bool:
         atm = ctx.get_atm(step=50)
-        # Prefetch all four strikes we plan to trade
+        # Prefetch all four strikes we plan to trade so first-bar prices
+        # are guaranteed live when on_entry fires at 09:20.
         for opt_type, strikes in [
             ("CE", [atm + WING_STEP, atm + HEDGE_STEP]),
             ("PE", [atm - WING_STEP, atm - HEDGE_STEP]),
@@ -83,23 +79,16 @@ class IronCondor(Strategy):
     def on_entry(self, tick: Any, ctx: Any) -> None:
         atm = ctx.get_atm(step=50)
 
-        # ── List[Leg] mode — keys auto-generated as instrument.key() ──────────
-        legs = [
-            self.add(
-                atm + WING_STEP, "CE", "SELL"
-            ),  # short call  → key: e.g. "23700CE"
-            self.add(
-                atm + HEDGE_STEP, "CE", "BUY"
-            ),  # long call   → key: e.g. "23900CE"
-            self.add(
-                atm - WING_STEP, "PE", "SELL"
-            ),  # short put   → key: e.g. "23500PE"
-            self.add(
-                atm - HEDGE_STEP, "PE", "BUY"
-            ),  # long put    → key: e.g. "23300PE"
-        ]
-
-        fill = self.try_fill(legs, ctx)  # <── List mode: auto-keys
+        # List[Leg] — auto-keys from instrument.key() (strike names are clear enough)
+        fill = self.try_fill(
+            [
+                self.add(atm + WING_STEP, "CE", "SELL"),  # e.g. "23700CE"
+                self.add(atm + HEDGE_STEP, "CE", "BUY"),  # e.g. "23900CE"
+                self.add(atm - WING_STEP, "PE", "SELL"),  # e.g. "23500PE"
+                self.add(atm - HEDGE_STEP, "PE", "BUY"),  # e.g. "23300PE"
+            ],
+            ctx,
+        )
         if fill:
             # Net credit = sum of SELL premiums - sum of BUY premiums
             credit = sum(
@@ -112,18 +101,13 @@ class IronCondor(Strategy):
         """Exit when open-position PnL >= 50% of the net credit received."""
         if self._max_credit == 0.0:
             return False
-
         current_pnl = self._current_pnl(ctx)
         if current_pnl is None:
             return False
-
         return current_pnl >= self._max_credit * TARGET_PCT
 
     def on_exit(self, tick: Any, ctx: Any) -> None:
         self.close_all(tick, ctx.tick_index, ctx, reason="TARGET")
-
-    def on_day_end(self, ctx: Any) -> None:
-        pass
 
     # ── Internal helper ────────────────────────────────────────────────────────
 
@@ -134,13 +118,14 @@ class IronCondor(Strategy):
             price, lag = ctx.get_price(trade.instrument)
             if price is None:
                 return None  # can't compute — skip this tick
-            # SELL profits when price falls; BUY profits when price rises
             multiplier = 1 if trade.side == "SELL" else -1
             total += (trade.entry_price - price) * trade.qty * multiplier
         return total
 
 
 def print_results(strategy: IronCondor) -> None:
+    from collections import Counter
+
     trades = strategy.closed_trades
     analyzer = PerformanceAnalyzer(trades)
     metrics = analyzer.calculate_all_metrics()
@@ -162,9 +147,6 @@ def print_results(strategy: IronCondor) -> None:
     if metrics["sharpe_ratio"] is not None:
         print(f"  Sharpe (trade-lv) : {metrics['sharpe_ratio']:.3f}")
     print("=" * 55)
-
-    # Exit reason breakdown
-    from collections import Counter
 
     reasons = Counter(t.exit_reason for t in trades)
     print("\n  Exit reasons:")
@@ -193,18 +175,10 @@ def print_results(strategy: IronCondor) -> None:
 def run() -> None:
     loader = DuckDBParquetLoader(DATA_PATH)
     strategy = IronCondor()
-
-    # ── User-defined clock: 09:15 to 15:20, every minute ──────────────────────
     clock = make_clock("09:15:00", "15:20:00")
-
-    engine = BacktestEngine(
-        loader,
-        transaction_cost_pct=0.05,
-        clock=clock,  # <── user clock injected here
-    )
+    engine = BacktestEngine(loader, transaction_cost_pct=0.05, clock=clock)
     engine.add_strategy(strategy)
     engine.run("2025-01-01", "2025-03-31")
-
     print_results(strategy)
 
 
