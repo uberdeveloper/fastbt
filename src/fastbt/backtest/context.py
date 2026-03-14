@@ -158,9 +158,11 @@ class BarContext:
         self.tick_index: int = -1
         self.date: str = trade_date
         self.time: str = ""
+        self._prev_tick: Any = None  # for changed() boundary detection
 
     def advance(self, tick: Any, tick_index: int) -> None:
         """Called by BacktestEngine once per clock iteration."""
+        self._prev_tick = self.tick  # store before overwriting
         self.tick = tick
         self.tick_index = tick_index
         # Parse date and time from tick
@@ -281,6 +283,32 @@ class BarContext:
         Can be called from any strategy hook (on_adjust, on_entry, etc.).
         """
         self._cache[key] = data
+
+    def changed(self, key_fn) -> bool:
+        """
+        True if key_fn(current_tick) differs from key_fn(previous_tick).
+
+        First tick of period always returns True (no previous tick to compare).
+
+        Usage:
+            ctx.changed(lambda t: t.split(' ')[0])   # date boundary
+            ctx.changed(lambda t: t[:2])              # hour boundary
+        """
+        if self._prev_tick is None:
+            return True
+        return key_fn(str(self.tick)) != key_fn(str(self._prev_tick))
+
+    @property
+    def is_new_date(self) -> bool:
+        """True when the date component of the tick changed from previous tick."""
+        if self._prev_tick is None:
+            return True
+        prev_str = str(self._prev_tick)
+        curr_str = str(self.tick)
+        # Extract date: composite "YYYY-MM-DD HH:MM:SS" or simple "HH:MM:SS"
+        prev_date = prev_str.split(" ")[0] if " " in prev_str else self._trade_date
+        curr_date = curr_str.split(" ")[0] if " " in curr_str else self._trade_date
+        return curr_date != prev_date
 
     # ─── Internal helpers ─────────────────────────────────────────────────
 

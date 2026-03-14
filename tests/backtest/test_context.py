@@ -480,3 +480,78 @@ class TestBarContextDateTime:
         assert ctx.date == "2025-01-02"
         ctx.advance("2025-01-03 09:15:00", 2)
         assert ctx.date == "2025-01-03"
+
+
+# ─── BarContext — ctx.changed() ─────────────────────────────────────────────
+
+
+class TestBarContextChanged:
+    def test_first_tick_always_changed(self, populated_cache, ds, clock):
+        """First tick of period → changed() always returns True."""
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:15:00", 0)
+        assert ctx.changed(lambda t: t) is True
+
+    def test_same_value_not_changed(self, populated_cache, ds, clock):
+        """Same key_fn result → changed() returns False."""
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:15:00", 0)
+        ctx.advance("09:16:00", 1)
+        # Both ticks have same date → no change
+        assert ctx.changed(lambda t: "2025-01-02") is False
+
+    def test_different_value_is_changed(self, populated_cache, ds):
+        """Different key_fn result → changed() returns True."""
+        multi_clock = [
+            "2025-01-02 09:15:00",
+            "2025-01-02 15:30:00",
+            "2025-01-03 09:15:00",
+        ]
+        ctx = BarContext(populated_cache, ds, "2025-01-02", multi_clock)
+        ctx.advance("2025-01-02 09:15:00", 0)
+        ctx.advance("2025-01-02 15:30:00", 1)
+        # Same date
+        assert ctx.changed(lambda t: t.split(" ")[0]) is False
+        ctx.advance("2025-01-03 09:15:00", 2)
+        # Date changed
+        assert ctx.changed(lambda t: t.split(" ")[0]) is True
+
+    def test_changed_with_hour_boundary(self, populated_cache, ds):
+        """Detect hour change within same day."""
+        clock = ["09:15:00", "09:45:00", "10:00:00", "10:15:00"]
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:15:00", 0)
+        assert ctx.changed(lambda t: t[:2]) is True  # first tick
+        ctx.advance("09:45:00", 1)
+        assert ctx.changed(lambda t: t[:2]) is False  # still hour 09
+        ctx.advance("10:00:00", 2)
+        assert ctx.changed(lambda t: t[:2]) is True  # hour 09 → 10
+        ctx.advance("10:15:00", 3)
+        assert ctx.changed(lambda t: t[:2]) is False  # still hour 10
+
+    def test_is_new_date_property(self, populated_cache, ds):
+        """Convenience property for date boundary detection."""
+        multi_clock = [
+            "2025-01-02 09:15:00",
+            "2025-01-02 09:16:00",
+            "2025-01-03 09:15:00",
+        ]
+        ctx = BarContext(populated_cache, ds, "2025-01-02", multi_clock)
+        ctx.advance("2025-01-02 09:15:00", 0)
+        assert ctx.is_new_date is True  # first tick
+        ctx.advance("2025-01-02 09:16:00", 1)
+        assert ctx.is_new_date is False  # same date
+        ctx.advance("2025-01-03 09:15:00", 2)
+        assert ctx.is_new_date is True  # new date
+
+    def test_is_new_date_single_day_always_false_after_first(
+        self, populated_cache, ds, clock
+    ):
+        """For single-day periods, is_new_date is True on first tick only."""
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:15:00", 0)
+        assert ctx.is_new_date is True  # first tick
+        ctx.advance("09:16:00", 1)
+        assert ctx.is_new_date is False
+        ctx.advance("09:17:00", 2)
+        assert ctx.is_new_date is False
