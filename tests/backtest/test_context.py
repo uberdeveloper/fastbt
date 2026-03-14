@@ -2,6 +2,7 @@
 Tests for fastbt.backtest.context — DayStartContext and BarContext.
 Run with: uv run pytest tests/backtest/test_context.py -v
 """
+
 from typing import Dict, List
 from unittest.mock import MagicMock
 
@@ -35,10 +36,28 @@ class MockDataSource(DataSource):
         """
         if strike == 23400 and opt_type in ("CE", "PE"):
             return {
-                "09:15:00": {"open": 100.0, "high": 105.0, "low": 98.0, "close": 102.0, "volume": 1000.0},
+                "09:15:00": {
+                    "open": 100.0,
+                    "high": 105.0,
+                    "low": 98.0,
+                    "close": 102.0,
+                    "volume": 1000.0,
+                },
                 # 09:16:00 intentionally missing — simulates illiquid bar
-                "09:17:00": {"open": 103.0, "high": 108.0, "low": 101.0, "close": 106.0, "volume": 800.0},
-                "09:18:00": {"open": 104.0, "high": 110.0, "low": 102.0, "close": 107.0, "volume": 900.0},
+                "09:17:00": {
+                    "open": 103.0,
+                    "high": 108.0,
+                    "low": 101.0,
+                    "close": 106.0,
+                    "volume": 800.0,
+                },
+                "09:18:00": {
+                    "open": 104.0,
+                    "high": 110.0,
+                    "low": 102.0,
+                    "close": 107.0,
+                    "volume": 900.0,
+                },
             }
         return {}
 
@@ -218,7 +237,9 @@ class TestBarContextGetPrice:
         assert price == 106.0  # 09:17 close
         assert lag == 0
 
-    def test_instrument_not_in_cache_triggers_lazy_fetch(self, populated_cache, ds, clock):
+    def test_instrument_not_in_cache_triggers_lazy_fetch(
+        self, populated_cache, ds, clock
+    ):
         """Cache miss → lazy fetch → instrument added to cache."""
         ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
         ctx.advance("09:15:00", 0)
@@ -236,9 +257,9 @@ class TestBarContextGetPrice:
         ctx = BarContext(populated_cache, ds_spy, "2025-01-02", clock)
         ctx.advance("09:15:00", 0)
         ctx.get_price("23400CE")
-        ctx.get_price("23400CE")        # second call
+        ctx.get_price("23400CE")  # second call
         ctx.advance("09:16:00", 1)
-        ctx.get_price("23400CE")        # third call, different tick
+        ctx.get_price("23400CE")  # third call, different tick
 
         spy.assert_called_once()  # DB hit exactly once
 
@@ -369,8 +390,10 @@ class TestAddToCache:
     def test_get_price_flat_scalar_live(self, populated_cache, ds, clock):
         """get_price works for flat scalar custom data (lag=0 on exact tick)."""
         ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
-        ctx.add_to_cache("VIX", {"09:15:00": 18.5, "09:16:00": 17.8,
-                                  "09:17:00": 17.5, "09:18:00": 17.0})
+        ctx.add_to_cache(
+            "VIX",
+            {"09:15:00": 18.5, "09:16:00": 17.8, "09:17:00": 17.5, "09:18:00": 17.0},
+        )
         ctx.advance("09:15:00", 0)
         value, lag = ctx.get_price("VIX")
         assert value == pytest.approx(18.5)
@@ -379,9 +402,15 @@ class TestAddToCache:
     def test_get_price_flat_fill_forward(self, populated_cache, ds, clock):
         """Missing tick in custom data → fill-forward with lag."""
         ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
-        ctx.add_to_cache("VIX", {"09:15:00": 18.5,
-                                  # 09:16 missing
-                                  "09:17:00": 17.5, "09:18:00": 17.0})
+        ctx.add_to_cache(
+            "VIX",
+            {
+                "09:15:00": 18.5,
+                # 09:16 missing
+                "09:17:00": 17.5,
+                "09:18:00": 17.0,
+            },
+        )
         ctx.advance("09:15:00", 0)
         ctx.get_price("VIX")
         ctx.advance("09:16:00", 1)
@@ -397,3 +426,57 @@ class TestAddToCache:
         value, lag = ctx.get_price("VIX")
         assert value is None
         assert lag == -1
+
+
+# ─── BarContext — ctx.date and ctx.time ─────────────────────────────────────
+
+
+class TestBarContextDateTime:
+    def test_date_from_trade_date_single_day(self, populated_cache, ds, clock):
+        """For single-day ticks ('09:15:00'), ctx.date comes from trade_date."""
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:15:00", 0)
+        assert ctx.date == "2025-01-02"
+
+    def test_time_from_tick_single_day(self, populated_cache, ds, clock):
+        """For single-day ticks, ctx.time IS the tick."""
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:15:00", 0)
+        assert ctx.time == "09:15:00"
+
+    def test_time_updates_on_advance(self, populated_cache, ds, clock):
+        ctx = BarContext(populated_cache, ds, "2025-01-02", clock)
+        ctx.advance("09:15:00", 0)
+        assert ctx.time == "09:15:00"
+        ctx.advance("09:16:00", 1)
+        assert ctx.time == "09:16:00"
+
+    def test_date_from_composite_tick(self, populated_cache, ds):
+        """For multi-day ticks ('2025-01-02 09:15:00'), date parsed from tick."""
+        multi_clock = [
+            "2025-01-02 09:15:00",
+            "2025-01-02 09:16:00",
+            "2025-01-03 09:15:00",
+        ]
+        ctx = BarContext(populated_cache, ds, "2025-01-02", multi_clock)
+        ctx.advance("2025-01-03 09:15:00", 2)
+        assert ctx.date == "2025-01-03"
+
+    def test_time_from_composite_tick(self, populated_cache, ds):
+        multi_clock = ["2025-01-02 09:15:00", "2025-01-03 09:15:00"]
+        ctx = BarContext(populated_cache, ds, "2025-01-02", multi_clock)
+        ctx.advance("2025-01-02 09:15:00", 0)
+        assert ctx.time == "09:15:00"
+
+    def test_date_stays_consistent_across_ticks(self, populated_cache, ds):
+        multi_clock = [
+            "2025-01-02 09:15:00",
+            "2025-01-02 09:16:00",
+            "2025-01-03 09:15:00",
+            "2025-01-03 09:16:00",
+        ]
+        ctx = BarContext(populated_cache, ds, "2025-01-02", multi_clock)
+        ctx.advance("2025-01-02 09:16:00", 1)
+        assert ctx.date == "2025-01-02"
+        ctx.advance("2025-01-03 09:15:00", 2)
+        assert ctx.date == "2025-01-03"

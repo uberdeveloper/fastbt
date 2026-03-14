@@ -20,7 +20,7 @@ Design decisions:
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastbt.backtest.data import DataSource
 from fastbt.backtest.models import Instrument
@@ -156,11 +156,22 @@ class BarContext:
         # Mutated by advance() each loop iteration
         self.tick: Any = None
         self.tick_index: int = -1
+        self.date: str = trade_date
+        self.time: str = ""
 
     def advance(self, tick: Any, tick_index: int) -> None:
         """Called by BacktestEngine once per clock iteration."""
         self.tick = tick
         self.tick_index = tick_index
+        # Parse date and time from tick
+        tick_str = str(tick)
+        if " " in tick_str:
+            # Composite tick: "2025-01-02 09:15:00"
+            self.date, self.time = tick_str.split(" ", 1)
+        else:
+            # Simple tick: "09:15:00" — date from trade_date
+            self.date = self._trade_date
+            self.time = tick_str
 
     # ─── Read-only helper properties ────────────────────────────────────────────
 
@@ -227,15 +238,13 @@ class BarContext:
         if bar is None:
             return None, lag
         if isinstance(bar, dict):
-            return bar.get("close"), lag   # options OHLCV nested format
+            return bar.get("close"), lag  # options OHLCV nested format
         try:
-            return float(bar), lag         # custom flat scalar (VIX, macro, etc.)
+            return float(bar), lag  # custom flat scalar (VIX, macro, etc.)
         except (TypeError, ValueError):
             return None, lag
 
-    def get_bar(
-        self, instrument_key: str
-    ) -> Tuple[Optional[Dict[str, float]], int]:
+    def get_bar(self, instrument_key: str) -> Tuple[Optional[Dict[str, float]], int]:
         """
         Return full OHLCV dict for an instrument at current tick.
 
