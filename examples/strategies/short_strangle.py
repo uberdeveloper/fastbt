@@ -1,11 +1,11 @@
 """
-Strategy 2: Short Strangle with Per-Leg Stop
-=============================================
-Sell OTM CE + PE (each 100 pts away from ATM) at 09:20 and hold till EOD.
+Strategy 2: Short Strangle with Delta-Based Strikes
+=====================================================
+Sell OTM CE + PE (each ~1 step away from ATM) at 09:20 and hold till EOD.
 
 Rules:
 - Entry : 09:20, sell (ATM + 100) CE and (ATM - 100) PE
-  The extra cushion collects less premium but has higher probability.
+  The extra 100-point cushion collects less premium but has higher probability.
 - Stop-loss : fixed per-leg stop — close ONLY the breached leg
   when it moves 3x vs. its entry price (individual leg SL).
 - Exit: EOD force-close (or per-leg stop).
@@ -25,6 +25,7 @@ import pandas as pd
 from fastbt.backtest.data import DuckDBParquetLoader
 from fastbt.backtest.engine import BacktestEngine
 from fastbt.backtest.metrics import PerformanceAnalyzer
+from fastbt.backtest.models import Instrument
 from fastbt.backtest.strategy import Strategy
 
 DATA_PATH = "/home/pi/data/q1_2025.parquet"
@@ -39,24 +40,29 @@ class ShortStrangle(Strategy):
 
     Per-leg stop: close whichever leg moves 3× vs. its entry price.
     Remaining open leg is force-closed at EOD.
-
-    Legs are labelled "ce" / "pe" so close_trade() can reference them by
-    a stable name inside on_adjust regardless of the changing ATM strike.
     """
 
     def __init__(self):
         super().__init__(name="ShortStrangle")
 
+    def on_day_start(self, trade_date: str, ctx: Any) -> bool:
+        atm = ctx.get_atm(step=50)
+        ctx.prefetch(Instrument(atm + LEG_STEP, "CE"))
+        ctx.prefetch(Instrument(atm - LEG_STEP, "PE"))
+        return True
+
     def can_enter(self, tick: Any, ctx: Any) -> bool:
-        return tick >= ENTRY_TIME and not self.positions
+        return ctx.time >= ENTRY_TIME and not self.positions
 
     def on_entry(self, tick: Any, ctx: Any) -> None:
         atm = ctx.get_atm(step=50)
+        ce_strike = atm + LEG_STEP
+        pe_strike = atm - LEG_STEP
         self.try_fill(
-            [
-                self.add(atm + LEG_STEP, "CE", "SELL", label="ce"),
-                self.add(atm - LEG_STEP, "PE", "SELL", label="pe"),
-            ],
+            {
+                "ce": self.add(ce_strike, "CE", "SELL"),
+                "pe": self.add(pe_strike, "PE", "SELL"),
+            },
             ctx,
         )
 
@@ -73,7 +79,14 @@ class ShortStrangle(Strategy):
 
     def on_exit_condition(self, tick: Any, ctx: Any) -> bool:
         # Only self-exit when BOTH legs are gone (both hit SL)
-        return not self.positions
+        return bool(not self.positions)
+
+    def on_exit(self, tick: Any, ctx: Any) -> None:
+        # Both legs already closed by on_adjust SL; nothing extra needed
+        pass
+
+    def on_day_end(self, ctx: Any) -> None:
+        pass
 
 
 def run() -> None:
@@ -93,17 +106,30 @@ def run() -> None:
     print("=" * 55)
     print(f"  Total trades      : {metrics['total_trades']}")
     print(f"  Total PnL         : {metrics['total_pnl']:>10.2f}")
-    if metrics["win_rate"] is not None:
-        print(f"  Win rate          : {metrics['win_rate']:.1f}%")
-    if metrics["avg_profit"] is not None:
-        print(f"  Avg profit        : {metrics['avg_profit']:.2f}")
-    if metrics["avg_loss"] is not None:
-        print(f"  Avg loss          : {metrics['avg_loss']:.2f}")
+    print(
+        f"  Win rate          : {metrics['win_rate']:.1f}%"
+        if metrics["win_rate"] is not None
+        else "  Win rate          : N/A"
+    )
+    print(
+        f"  Avg profit        : {metrics['avg_profit']:.2f}"
+        if metrics["avg_profit"] is not None
+        else "  Avg profit        : N/A"
+    )
+    print(
+        f"  Avg loss          : {metrics['avg_loss']:.2f}"
+        if metrics["avg_loss"] is not None
+        else "  Avg loss          : N/A"
+    )
     print(f"  Max drawdown      : {metrics['max_drawdown']:.2f}")
-    if metrics["sharpe_ratio"] is not None:
-        print(f"  Sharpe (trade-lv) : {metrics['sharpe_ratio']:.3f}")
+    print(
+        f"  Sharpe (trade-lv) : {metrics['sharpe_ratio']:.3f}"
+        if metrics["sharpe_ratio"] is not None
+        else "  Sharpe            : N/A"
+    )
     print("=" * 55)
 
+    # Show legs that hit stop-loss
     sl_trades = [t for t in trades if t.exit_reason == "LEG_SL"]
     eod_trades = [t for t in trades if t.exit_reason == "EOD_FORCE"]
     print(f"\n  Legs stopped out  : {len(sl_trades)}")

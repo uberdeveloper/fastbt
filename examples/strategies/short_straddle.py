@@ -20,6 +20,7 @@ import pandas as pd
 from fastbt.backtest.data import DuckDBParquetLoader
 from fastbt.backtest.engine import BacktestEngine
 from fastbt.backtest.metrics import PerformanceAnalyzer
+from fastbt.backtest.models import Instrument
 from fastbt.backtest.strategy import Strategy
 
 DATA_PATH = "/home/pi/data/q1_2025.parquet"
@@ -33,25 +34,29 @@ class ShortStraddle(Strategy):
 
     Stop-loss: combined mark-to-market cost exceeds 2x entry premium.
     No target — relies on theta decay to EOD.
-
-    Legs are labelled "ce" / "pe" so on_adjust can look them up by name
-    across days regardless of the changing ATM strike.
     """
 
     def __init__(self):
         super().__init__(name="ShortStraddle")
         self._entry_premium: float = 0.0
 
+    def on_day_start(self, trade_date: str, ctx: Any) -> bool:
+        atm = ctx.get_atm(step=50)
+        # Warm the cache so first-bar CE/PE prices are available at entry
+        ctx.prefetch(Instrument(atm, "CE"))
+        ctx.prefetch(Instrument(atm, "PE"))
+        return True
+
     def can_enter(self, tick: Any, ctx: Any) -> bool:
-        return tick >= ENTRY_TIME and not self.positions
+        return ctx.time >= ENTRY_TIME and not self.positions
 
     def on_entry(self, tick: Any, ctx: Any) -> None:
         atm = ctx.get_atm(step=50)
         fill = self.try_fill(
-            [
-                self.add(atm, "CE", "SELL", label="ce"),
-                self.add(atm, "PE", "SELL", label="pe"),
-            ],
+            {
+                "ce": self.add(atm, "CE", "SELL"),
+                "pe": self.add(atm, "PE", "SELL"),
+            },
             ctx,
         )
         if fill:
@@ -65,12 +70,20 @@ class ShortStraddle(Strategy):
         pe_price, _ = ctx.get_price(self.positions["pe"].instrument)
         if ce_price is None or pe_price is None:
             return
-        if ce_price + pe_price >= self._entry_premium * SL_MULTIPLIER:
+        current_cost = ce_price + pe_price
+        if current_cost >= self._entry_premium * SL_MULTIPLIER:
             self.close_all(tick, ctx.tick_index, ctx, reason="SL")
 
     def on_exit_condition(self, tick: Any, ctx: Any) -> bool:
-        # True when stop-loss already closed everything in on_adjust
-        return not self.positions
+        # True when stop-loss already closed everything
+        return bool(not self.positions)
+
+    def on_exit(self, tick: Any, ctx: Any) -> None:
+        # close_all was already called in on_adjust on SL hit; no-op here
+        pass
+
+    def on_day_end(self, ctx: Any) -> None:
+        pass
 
 
 def run() -> None:
@@ -90,17 +103,30 @@ def run() -> None:
     print("=" * 55)
     print(f"  Total trades      : {metrics['total_trades']}")
     print(f"  Total PnL         : {metrics['total_pnl']:>10.2f}")
-    if metrics["win_rate"] is not None:
-        print(f"  Win rate          : {metrics['win_rate']:.1f}%")
-    if metrics["avg_profit"] is not None:
-        print(f"  Avg profit        : {metrics['avg_profit']:.2f}")
-    if metrics["avg_loss"] is not None:
-        print(f"  Avg loss          : {metrics['avg_loss']:.2f}")
+    print(
+        f"  Win rate          : {metrics['win_rate']:.1f}%"
+        if metrics["win_rate"] is not None
+        else "  Win rate          : N/A"
+    )
+    print(
+        f"  Avg profit        : {metrics['avg_profit']:.2f}"
+        if metrics["avg_profit"] is not None
+        else "  Avg profit        : N/A"
+    )
+    print(
+        f"  Avg loss          : {metrics['avg_loss']:.2f}"
+        if metrics["avg_loss"] is not None
+        else "  Avg loss          : N/A"
+    )
     print(f"  Max drawdown      : {metrics['max_drawdown']:.2f}")
-    if metrics["sharpe_ratio"] is not None:
-        print(f"  Sharpe (trade-lv) : {metrics['sharpe_ratio']:.3f}")
+    print(
+        f"  Sharpe (trade-lv) : {metrics['sharpe_ratio']:.3f}"
+        if metrics["sharpe_ratio"] is not None
+        else "  Sharpe            : N/A"
+    )
     print("=" * 55)
 
+    # Tabular trade log
     if trades:
         rows = [t.to_dict() for t in trades]
         df = pd.DataFrame(rows)[
