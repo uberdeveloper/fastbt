@@ -517,3 +517,173 @@ class TestPeriodGrouping:
         result = group_by_expiry(dates, ds)
         # Each date falls back to using itself as key → separate groups
         assert result == [["2025-01-02"], ["2025-01-03"]]
+
+
+# ─── Period parameter ────────────────────────────────────────────────────────
+
+
+class TestPeriodParameter:
+    def test_default_period_is_day(self, ds):
+        engine = BacktestEngine(ds)
+        assert engine.period == "day"
+
+    def test_period_day_runs_each_date_separately(self, ds, strategy):
+        """period='day' must produce identical results to current behavior."""
+        engine = BacktestEngine(ds, period="day")
+        engine.add_strategy(strategy)
+        engine.run("2025-01-02", "2025-01-03")
+        day_starts = [e for e in strategy.events if e.startswith("day_start")]
+        assert len(day_starts) == 2
+
+    def test_invalid_period_raises(self, ds, strategy):
+        engine = BacktestEngine(ds, period="invalid")
+        engine.add_strategy(strategy)
+        with pytest.raises(ValueError, match="Invalid period"):
+            engine.run("2025-01-02", "2025-01-03")
+
+    def test_period_int_groups_dates(self, ds):
+        """period=2 with 2 dates → 1 period, on_day_start called once."""
+        events = []
+
+        class PeriodTracker(EventRecordingStrategy):
+            def on_day_start(self, trade_date, ctx):
+                events.append(f"period_start:{trade_date}")
+                return True
+
+        s = PeriodTracker()
+        engine = BacktestEngine(ds, period=2)
+        engine.add_strategy(s)
+        engine.run("2025-01-02", "2025-01-03")
+        # 2 dates grouped into 1 period → on_day_start fires once
+        period_starts = [e for e in events if e.startswith("period_start")]
+        assert len(period_starts) == 1
+
+
+# ─── Multi-day period execution ──────────────────────────────────────────────
+
+
+class TestMultiDayPeriod:
+    def test_composite_ticks_in_multi_day(self, ds):
+        """Multi-day period creates composite tick labels."""
+        all_ticks = []
+
+        class TickCollector(EventRecordingStrategy):
+            def can_enter(self, tick, ctx):
+                all_ticks.append(tick)
+                return False
+
+        s = TickCollector()
+        engine = BacktestEngine(ds, period=2)
+        engine.add_strategy(s)
+        engine.run("2025-01-02", "2025-01-03")
+        # Ticks should be composite: "2025-01-02 09:15:00", etc.
+        assert all(" " in str(t) for t in all_ticks)
+        assert all_ticks[0] == "2025-01-02 09:15:00"
+        # 3 ticks/day × 2 days = 6 ticks total
+        assert len(all_ticks) == 6
+
+    def test_ctx_date_in_multi_day_period(self, ds):
+        """ctx.date must reflect the actual date of each tick, not the period start."""
+        dates_seen = []
+
+        class DateTracker(EventRecordingStrategy):
+            def can_enter(self, tick, ctx):
+                dates_seen.append(ctx.date)
+                return False
+
+        s = DateTracker()
+        engine = BacktestEngine(ds, period=2)
+        engine.add_strategy(s)
+        engine.run("2025-01-02", "2025-01-03")
+        assert "2025-01-02" in dates_seen
+        assert "2025-01-03" in dates_seen
+
+    def test_ctx_time_in_multi_day_period(self, ds):
+        """ctx.time must be the time component only."""
+        times_seen = []
+
+        class TimeTracker(EventRecordingStrategy):
+            def can_enter(self, tick, ctx):
+                times_seen.append(ctx.time)
+                return False
+
+        s = TimeTracker()
+        engine = BacktestEngine(ds, period=2)
+        engine.add_strategy(s)
+        engine.run("2025-01-02", "2025-01-03")
+        # All times should be pure time strings, no date prefix
+        assert all(" " not in t for t in times_seen)
+        assert "09:15:00" in times_seen
+
+    def test_eod_force_close_at_period_end_not_day_end(self, ds):
+        """Force close fires once at end of period, not at each day boundary."""
+
+        class HoldStrategy(EventRecordingStrategy):
+            def can_enter(self, tick, ctx):
+                return ctx.time == "09:15:00" and not self.positions
+
+            def on_entry(self, tick, ctx):
+                self.try_fill([self.add(23400, "CE", "SELL")], ctx)
+
+        s = HoldStrategy()
+        engine = BacktestEngine(ds, period=2)
+        engine.add_strategy(s)
+        engine.run("2025-01-02", "2025-01-03")
+        # Should have 1 trade: entered day 1, force-closed at end of period (day 2)
+        assert len(s.closed_trades) == 1
+        assert s.closed_trades[0].exit_reason == "EOD_FORCE"
+        # Exit tick should be from day 2 (last tick of period)
+        assert "2025-01-03" in str(s.closed_trades[0].exit_tick)
+
+    def test_reset_fires_once_per_period(self, ds):
+        """_reset_for_new_day fires once per period, not per day."""
+        reset_count = [0]
+
+        class ResetCounter(EventRecordingStrategy):
+            def _reset_for_new_day(self):
+                reset_count[0] += 1
+                super()._reset_for_new_day()
+
+            def can_enter(self, tick, ctx):
+                return False
+
+        s = ResetCounter()
+        engine = BacktestEngine(ds, period=2)
+        engine.add_strategy(s)
+        engine.run("2025-01-02", "2025-01-03")
+        assert reset_count[0] == 1  # once for the single 2-day period
+
+    def test_closed_trades_accumulate_across_periods(self, ds):
+        """With period=1 (same as day), trades accumulate across periods."""
+
+        class DailyEntry(EventRecordingStrategy):
+            def can_enter(self, tick, ctx):
+                return tick == "09:15:00" and not self.positions
+
+            def on_entry(self, tick, ctx):
+                self.try_fill([self.add(23400, "CE", "SELL")], ctx)
+
+        s = DailyEntry()
+        engine = BacktestEngine(ds, period="day")
+        engine.add_strategy(s)
+        engine.run("2025-01-02", "2025-01-03")
+        assert len(s.closed_trades) == 2
+
+    def test_is_new_date_fires_at_day_boundary_in_multi_day(self, ds):
+        """ctx.is_new_date detects day boundaries within a multi-day period."""
+        new_date_ticks = []
+
+        class BoundaryTracker(EventRecordingStrategy):
+            def can_enter(self, tick, ctx):
+                if ctx.is_new_date:
+                    new_date_ticks.append(tick)
+                return False
+
+        s = BoundaryTracker()
+        engine = BacktestEngine(ds, period=2)
+        engine.add_strategy(s)
+        engine.run("2025-01-02", "2025-01-03")
+        # Should fire at first tick of each calendar day
+        assert len(new_date_ticks) == 2
+        assert new_date_ticks[0] == "2025-01-02 09:15:00"
+        assert new_date_ticks[1] == "2025-01-03 09:15:00"

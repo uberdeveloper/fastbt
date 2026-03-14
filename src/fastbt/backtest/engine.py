@@ -2,9 +2,9 @@
 fastbt.backtest.engine
 ======================
 BacktestEngine — orchestrates the clock loop, context management,
-and per-day strategy lifecycle.
+and per-period strategy lifecycle.
 
-Per-day sequence (enforced, non-negotiable):
+Per-period sequence (enforced, non-negotiable):
   1. cache.clear()
   2. Load NIFTY_SPOT into cache
   3. strategy._reset_for_new_day()
@@ -17,7 +17,7 @@ Per-day sequence (enforced, non-negotiable):
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from fastbt.backtest.context import BarContext, DayStartContext
 from fastbt.backtest.data import DataSource
@@ -56,7 +56,8 @@ class BacktestEngine:
 
     Responsibilities:
     - Iterate over trading days provided by the DataSource
-    - Manage a shared cache (clear + reload each day)
+    - Group dates into periods (day, N-days, or expiry-based)
+    - Manage a shared cache (clear + reload each period)
     - Drive the strategy lifecycle via run_one_cycle / EOD force close
     - Pass transaction_cost_pct and max_cycles through to the strategy
 
@@ -71,6 +72,7 @@ class BacktestEngine:
         transaction_cost_pct: float = 0.0,
         max_cycles: int = 1,
         clock: Optional[List[Any]] = None,
+        period: Union[str, int] = "day",
     ):
         """
         Args:
@@ -79,13 +81,15 @@ class BacktestEngine:
             max_cycles:           How many entry-exit cycles the strategy may do per day.
             clock:                Optional list of tick values. If None, auto-derived
                                   from NIFTY_SPOT keys (underlying timestamps).
+            period:               Grouping mode: "day" (default), "expiry", or int (N days).
         """
         self.data_source = data_source
         self.transaction_cost_pct = transaction_cost_pct
         self.max_cycles = max_cycles
-        self.user_clock = clock  # None = auto-derive each day from underlying
+        self.user_clock = clock
+        self.period = period
         self.strategy: Optional[Strategy] = None
-        self._cache: Dict = {}  # shared cache, cleared each day
+        self._cache: Dict = {}
 
     def add_strategy(self, strategy: Strategy) -> None:
         """
@@ -114,27 +118,49 @@ class BacktestEngine:
         all_dates = self.data_source.get_available_dates()
         trading_days = [d for d in all_dates if start_date <= d <= end_date]
 
+        # Group dates into periods
+        if self.period == "day":
+            periods = group_by_day(trading_days)
+        elif self.period == "expiry":
+            periods = group_by_expiry(trading_days, self.data_source)
+        elif isinstance(self.period, int):
+            periods = group_by_n_days(trading_days, self.period)
+        else:
+            raise ValueError(
+                f"Invalid period: {self.period!r}. "
+                "Use 'day', 'expiry', or an integer."
+            )
+
         logger.info(
-            "BacktestEngine: running %d days [%s → %s]",
+            "BacktestEngine: running %d periods (%d days) [%s -> %s]",
+            len(periods),
             len(trading_days),
             start_date,
             end_date,
         )
 
-        for trade_date in trading_days:
-            self._run_day(trade_date)
+        for period_dates in periods:
+            self._run_period(period_dates)
 
-    def _run_day(self, trade_date: str) -> None:
+    def _run_period(self, period_dates: List[str]) -> None:
         """
-        Execute the full per-day lifecycle for one trading date.
+        Execute the full per-period lifecycle for one or more trading dates.
 
         All steps are mandatory and execute in a fixed, documented order.
         """
+        multi_day = len(period_dates) > 1
+
         # ── 1. Clear cache ────────────────────────────────────────────────────
         self._cache.clear()
 
-        # ── 2. Load underlying price data — always, before anything else ──────
-        self._cache["NIFTY_SPOT"] = self.data_source.get_underlying_data(trade_date)
+        # ── 2. Load underlying for all dates in this period ───────────────────
+        merged_underlying: Dict[str, float] = {}
+        for d in period_dates:
+            daily = self.data_source.get_underlying_data(d)
+            for time_key, price in daily.items():
+                key = f"{d} {time_key}" if multi_day else time_key
+                merged_underlying[key] = price
+        self._cache["NIFTY_SPOT"] = merged_underlying
 
         # ── 3. Derive or use clock ────────────────────────────────────────────
         clock = (
@@ -145,24 +171,36 @@ class BacktestEngine:
 
         if not clock:
             logger.warning(
-                "No clock ticks for %s (underlying data empty). Skipping day.",
-                trade_date,
+                "No clock ticks for period %s (underlying data empty). Skipping.",
+                period_dates,
             )
             return
 
-        # ── 4. Reset strategy per-day state ───────────────────────────────────
+        # ── 4. Reset strategy per-period state ────────────────────────────────
         self.strategy._reset_for_new_day()
-        self.strategy.trade_date = trade_date  # expose current date to all hooks
+        self.strategy.trade_date = period_dates[0]
 
         # ── 5. Create contexts ─────────────────────────────────────────────────
-        day_ctx = DayStartContext(trade_date, self._cache, self.data_source)
-        bar_ctx = BarContext(self._cache, self.data_source, trade_date, clock)
+        day_ctx = DayStartContext(
+            period_dates[0],
+            self._cache,
+            self.data_source,
+            period_dates=period_dates,
+        )
+        bar_ctx = BarContext(
+            self._cache,
+            self.data_source,
+            period_dates[0],
+            clock,
+            period_dates=period_dates,
+        )
 
         # ── 6. on_day_start — user can prefetch and bail ──────────────────────
-        should_run = self.strategy.on_day_start(trade_date, day_ctx)
+        should_run = self.strategy.on_day_start(period_dates[0], day_ctx)
         if should_run is False:
             logger.info(
-                "Strategy skipped day %s (on_day_start returned False).", trade_date
+                "Strategy skipped period %s (on_day_start returned False).",
+                period_dates,
             )
             return
 
@@ -171,11 +209,11 @@ class BacktestEngine:
             bar_ctx.advance(tick, tick_index)
             self.strategy.run_one_cycle(tick, bar_ctx)
 
-        # ── 8. EOD force close — always fires, regardless of strategy state ───
+        # ── 8. EOD force close — always fires at period end ───────────────────
         last_tick = clock[-1]
         last_index = len(clock) - 1
         bar_ctx.advance(last_tick, last_index)  # ensure ctx is at last tick
         self.strategy._eod_force_close(last_tick, last_index, bar_ctx)
 
-        # ── 9. Post-day hook ──────────────────────────────────────────────────
+        # ── 9. Post-period hook ───────────────────────────────────────────────
         self.strategy.on_day_end(bar_ctx)

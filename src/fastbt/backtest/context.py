@@ -48,6 +48,27 @@ def _compute_atm(spot: float, step: int) -> int:
     return int(round(spot / step) * step)
 
 
+def _fetch_and_merge(
+    data_source: DataSource,
+    period_dates: List[str],
+    strike: int,
+    opt_type: str,
+) -> Dict:
+    """Fetch instrument data for all dates in period, merge into one dict.
+
+    Single-day periods use simple keys ('09:15:00').
+    Multi-day periods use composite keys ('2025-01-02 09:15:00').
+    """
+    multi_day = len(period_dates) > 1
+    merged: Dict = {}
+    for d in period_dates:
+        daily_data = data_source.get_instrument_data(d, strike, opt_type)
+        for time_key, bar in daily_data.items():
+            key = f"{d} {time_key}" if multi_day else time_key
+            merged[key] = bar
+    return merged
+
+
 class DayStartContext:
     """
     Restricted context available only during Strategy.on_day_start().
@@ -63,10 +84,17 @@ class DayStartContext:
     Option data may not be in cache yet when on_day_start fires.
     """
 
-    def __init__(self, trade_date: str, cache: Dict, data_source: DataSource):
+    def __init__(
+        self,
+        trade_date: str,
+        cache: Dict,
+        data_source: DataSource,
+        period_dates: Optional[List[str]] = None,
+    ):
         self.trade_date = trade_date
         self._cache = cache
         self._data_source = data_source
+        self._period_dates = period_dates or [trade_date]
 
     def get_spot(self) -> Tuple[Optional[float], int]:
         """
@@ -102,8 +130,11 @@ class DayStartContext:
         key = instrument.key()
         if key in self._cache:
             return  # already warm, no-op
-        data = self._data_source.get_instrument_data(
-            self.trade_date, instrument.strike, instrument.opt_type
+        data = _fetch_and_merge(
+            self._data_source,
+            self._period_dates,
+            instrument.strike,
+            instrument.opt_type,
         )
         if data:
             self._cache[key] = data
@@ -147,11 +178,13 @@ class BarContext:
         data_source: DataSource,
         trade_date: str,
         clock: List[Any],
+        period_dates: Optional[List[str]] = None,
     ):
         self._cache = cache
         self._data_source = data_source
         self._trade_date = trade_date
         self._clock = clock
+        self._period_dates = period_dates or [trade_date]
 
         # Mutated by advance() each loop iteration
         self.tick: Any = None
@@ -372,8 +405,11 @@ class BarContext:
             instrument.opt_type,
         )
 
-        data = self._data_source.get_instrument_data(
-            self._trade_date, instrument.strike, instrument.opt_type
+        data = _fetch_and_merge(
+            self._data_source,
+            self._period_dates,
+            instrument.strike,
+            instrument.opt_type,
         )
         if data:
             self._cache[instrument_key] = data
