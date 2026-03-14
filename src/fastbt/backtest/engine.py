@@ -26,6 +26,30 @@ from fastbt.backtest.strategy import Strategy
 logger = logging.getLogger(__name__)
 
 
+def group_by_day(dates: List[str]) -> List[List[str]]:
+    """Each date is its own period. Default behavior."""
+    return [[d] for d in dates]
+
+
+def group_by_n_days(dates: List[str], n: int) -> List[List[str]]:
+    """Chunk dates into groups of n. Last group may be smaller."""
+    return [dates[i : i + n] for i in range(0, len(dates), n)]
+
+
+def group_by_expiry(dates: List[str], data_source: DataSource) -> List[List[str]]:
+    """Group dates by their nearest expiry from the data source.
+
+    Uses min(expiries) to ensure nearest (earliest) expiry is selected,
+    regardless of sort order returned by the DataSource.
+    """
+    groups: dict = {}
+    for d in dates:
+        expiries = data_source.get_expiries(d)
+        nearest = min(expiries) if expiries else d
+        groups.setdefault(nearest, []).append(d)
+    return list(groups.values())
+
+
 class BacktestEngine:
     """
     Orchestrates a single-strategy backtest over a date range.
@@ -59,9 +83,9 @@ class BacktestEngine:
         self.data_source = data_source
         self.transaction_cost_pct = transaction_cost_pct
         self.max_cycles = max_cycles
-        self.user_clock = clock        # None = auto-derive each day from underlying
+        self.user_clock = clock  # None = auto-derive each day from underlying
         self.strategy: Optional[Strategy] = None
-        self._cache: Dict = {}         # shared cache, cleared each day
+        self._cache: Dict = {}  # shared cache, cleared each day
 
     def add_strategy(self, strategy: Strategy) -> None:
         """
@@ -113,8 +137,11 @@ class BacktestEngine:
         self._cache["NIFTY_SPOT"] = self.data_source.get_underlying_data(trade_date)
 
         # ── 3. Derive or use clock ────────────────────────────────────────────
-        clock = self.user_clock if self.user_clock is not None \
+        clock = (
+            self.user_clock
+            if self.user_clock is not None
             else list(self._cache["NIFTY_SPOT"].keys())
+        )
 
         if not clock:
             logger.warning(
@@ -134,7 +161,9 @@ class BacktestEngine:
         # ── 6. on_day_start — user can prefetch and bail ──────────────────────
         should_run = self.strategy.on_day_start(trade_date, day_ctx)
         if should_run is False:
-            logger.info("Strategy skipped day %s (on_day_start returned False).", trade_date)
+            logger.info(
+                "Strategy skipped day %s (on_day_start returned False).", trade_date
+            )
             return
 
         # ── 7. Clock loop ─────────────────────────────────────────────────────
@@ -145,7 +174,7 @@ class BacktestEngine:
         # ── 8. EOD force close — always fires, regardless of strategy state ───
         last_tick = clock[-1]
         last_index = len(clock) - 1
-        bar_ctx.advance(last_tick, last_index)   # ensure ctx is at last tick
+        bar_ctx.advance(last_tick, last_index)  # ensure ctx is at last tick
         self.strategy._eod_force_close(last_tick, last_index, bar_ctx)
 
         # ── 9. Post-day hook ──────────────────────────────────────────────────

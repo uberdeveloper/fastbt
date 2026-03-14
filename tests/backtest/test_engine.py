@@ -11,13 +11,19 @@ Focus on accuracy:
 - transaction_cost_pct passed through to strategy
 - Multi-day accumulation in closed_trades
 """
+
 from typing import Any, Dict, List, Optional, Union
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 
 from fastbt.backtest.data import DataSource
-from fastbt.backtest.engine import BacktestEngine
+from fastbt.backtest.engine import (
+    BacktestEngine,
+    group_by_day,
+    group_by_n_days,
+    group_by_expiry,
+)
 from fastbt.backtest.models import Instrument, Leg, Trade
 from fastbt.backtest.strategy import Strategy
 
@@ -35,9 +41,27 @@ class MockDataSource(DataSource):
         "09:17:00": 23420.0,
     }
     CE_DATA = {
-        "09:15:00": {"open": 100.0, "high": 105.0, "low": 98.0, "close": 102.0, "volume": 1000.0},
-        "09:16:00": {"open": 103.0, "high": 108.0, "low": 101.0, "close": 106.0, "volume": 800.0},
-        "09:17:00": {"open": 104.0, "high": 110.0, "low": 102.0, "close": 107.0, "volume": 900.0},
+        "09:15:00": {
+            "open": 100.0,
+            "high": 105.0,
+            "low": 98.0,
+            "close": 102.0,
+            "volume": 1000.0,
+        },
+        "09:16:00": {
+            "open": 103.0,
+            "high": 108.0,
+            "low": 101.0,
+            "close": 106.0,
+            "volume": 800.0,
+        },
+        "09:17:00": {
+            "open": 104.0,
+            "high": 110.0,
+            "low": 102.0,
+            "close": 107.0,
+            "volume": 900.0,
+        },
     }
 
     def get_underlying_data(self, date_str: str) -> Dict[str, float]:
@@ -64,7 +88,7 @@ class EventRecordingStrategy(Strategy):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.events: List[str] = []     # ordered event log
+        self.events: List[str] = []  # ordered event log
         self.day_start_return = True
         self.can_enter_return = False
         self.exit_condition = False
@@ -305,6 +329,7 @@ class TestEodForceClose:
                     [self.add(23400, "CE", "SELL")],
                     ctx,
                 )
+
             # No exit condition — relies on EOD
 
         s = HoldStrategy()
@@ -360,7 +385,7 @@ class TestMultiDayAccumulation:
     def test_date_range_filter(self, ds, strategy):
         """engine.run should only process days within start_date..end_date."""
         engine = make_engine(ds, strategy)
-        engine.run("2025-01-02", "2025-01-02")   # only one day
+        engine.run("2025-01-02", "2025-01-02")  # only one day
         day_starts = [e for e in strategy.events if e.startswith("day_start")]
         assert len(day_starts) == 1
         assert "day_start:2025-01-02" in strategy.events
@@ -409,3 +434,86 @@ class TestNoStrategy:
         engine = BacktestEngine(ds)
         with pytest.raises(ValueError, match="No strategy"):
             engine.run("2025-01-02", "2025-01-02")
+
+
+# ─── Period grouping ─────────────────────────────────────────────────────────
+
+
+class TestPeriodGrouping:
+    def test_group_by_day(self):
+        dates = ["2025-01-02", "2025-01-03", "2025-01-06"]
+        result = group_by_day(dates)
+        assert result == [["2025-01-02"], ["2025-01-03"], ["2025-01-06"]]
+
+    def test_group_by_n_days_exact(self):
+        dates = ["2025-01-02", "2025-01-03", "2025-01-06", "2025-01-07"]
+        result = group_by_n_days(dates, n=2)
+        assert result == [["2025-01-02", "2025-01-03"], ["2025-01-06", "2025-01-07"]]
+
+    def test_group_by_n_days_remainder(self):
+        """Last group may have fewer than n days."""
+        dates = ["2025-01-02", "2025-01-03", "2025-01-06"]
+        result = group_by_n_days(dates, n=2)
+        assert result == [["2025-01-02", "2025-01-03"], ["2025-01-06"]]
+
+    def test_group_by_n_days_single(self):
+        """n=1 is equivalent to group_by_day."""
+        dates = ["2025-01-02", "2025-01-03"]
+        result = group_by_n_days(dates, n=1)
+        assert result == [["2025-01-02"], ["2025-01-03"]]
+
+    def test_group_by_expiry(self, ds):
+        """Dates grouped by their nearest expiry from data source."""
+        # MockDataSource always returns expiry "2025-01-30" for all dates
+        dates = ["2025-01-02", "2025-01-03"]
+        result = group_by_expiry(dates, ds)
+        # Both dates have same expiry → one group
+        assert result == [["2025-01-02", "2025-01-03"]]
+
+    def test_group_by_expiry_multiple_expiries(self):
+        """Dates with different expiries form separate groups."""
+
+        class MultiExpiryDS(MockDataSource):
+            def get_expiries(self, trade_date):
+                if trade_date in ("2025-01-02", "2025-01-03"):
+                    return ["2025-01-03"]
+                return ["2025-01-10"]
+
+        ds = MultiExpiryDS()
+        dates = ["2025-01-02", "2025-01-03", "2025-01-06", "2025-01-07"]
+        result = group_by_expiry(dates, ds)
+        assert result == [["2025-01-02", "2025-01-03"], ["2025-01-06", "2025-01-07"]]
+
+    def test_group_by_expiry_preserves_order(self):
+        """Groups must be in chronological order."""
+
+        class OrderedExpiryDS(MockDataSource):
+            def get_expiries(self, trade_date):
+                if trade_date <= "2025-01-03":
+                    return ["2025-01-03"]
+                return ["2025-01-10"]
+
+        ds = OrderedExpiryDS()
+        dates = ["2025-01-02", "2025-01-03", "2025-01-06"]
+        result = group_by_expiry(dates, ds)
+        assert result[0] == ["2025-01-02", "2025-01-03"]
+        assert result[1] == ["2025-01-06"]
+
+    def test_group_by_n_days_empty(self):
+        assert group_by_n_days([], n=3) == []
+
+    def test_group_by_day_empty(self):
+        assert group_by_day([]) == []
+
+    def test_group_by_expiry_empty_expiries_fallback(self):
+        """If get_expiries returns empty list, date itself becomes the group key."""
+
+        class EmptyExpiryDS(MockDataSource):
+            def get_expiries(self, trade_date):
+                return []
+
+        ds = EmptyExpiryDS()
+        dates = ["2025-01-02", "2025-01-03"]
+        result = group_by_expiry(dates, ds)
+        # Each date falls back to using itself as key → separate groups
+        assert result == [["2025-01-02"], ["2025-01-03"]]
