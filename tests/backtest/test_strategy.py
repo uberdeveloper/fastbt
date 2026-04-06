@@ -5,6 +5,7 @@ Run with: uv run pytest tests/backtest/test_strategy.py -v
 Focus: state machine accuracy, try_fill all-or-nothing, positions dict,
 cycle management, EOD force close. These directly affect engine correctness.
 """
+
 from typing import Any, Dict, List, Optional, Union
 from unittest.mock import MagicMock
 
@@ -46,9 +47,9 @@ class ConcreteStrategy(Strategy):
         self.exit_calls = 0
 
         # Test control switches
-        self.day_start_return = True   # False → skip day
+        self.day_start_return = True  # False → skip day
         self.can_enter_return = False  # toggle to trigger entries
-        self.exit_condition = False    # toggle to trigger exits
+        self.exit_condition = False  # toggle to trigger exits
         self.legs_to_fill: Union[List[Leg], Dict[str, Leg], None] = None
 
     def on_day_start(self, trade_date, ctx):
@@ -267,7 +268,9 @@ class TestTryFillDictMode:
         strategy.try_fill({"first_ce": strategy.add(23600, "CE", "SELL")}, ctx)
         strategy.close_trade("first_ce", "09:20:00", 5, ctx, "manual")
         ctx2 = live_ctx("23600CE", tick="09:20:00", idx=5)
-        result = strategy.try_fill({"first_ce": strategy.add(23600, "CE", "SELL")}, ctx2)
+        result = strategy.try_fill(
+            {"first_ce": strategy.add(23600, "CE", "SELL")}, ctx2
+        )
         assert result is not None  # key was freed
 
 
@@ -425,8 +428,8 @@ class TestRunOneCycle:
         strategy.run_one_cycle("09:15:00", ctx_fail)
         assert strategy.entry_calls == 1
         strategy.run_one_cycle("09:16:00", ctx_live)
-        assert strategy.entry_calls == 2     # retried
-        assert strategy.state == "ACTIVE"   # filled on second attempt
+        assert strategy.entry_calls == 2  # retried
+        assert strategy.state == "ACTIVE"  # filled on second attempt
 
     def test_active_state_calls_on_adjust(self, strategy):
         strategy.state = "ACTIVE"
@@ -673,3 +676,97 @@ class TestUnrealizedPnl:
         strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
         ctx_no_data = MockBarContext(prices={})  # no data
         assert strategy.unrealized_pnl(ctx_no_data) == pytest.approx(0.0)
+
+
+# ─── Strategy.to_dataframe() / save_trades() ─────────────────────────────────
+
+
+class TestToDataframe:
+    def test_empty_returns_empty_dataframe(self, strategy):
+        import pandas as pd
+
+        df = strategy.to_dataframe()
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 0
+
+    def test_closed_trades_in_dataframe(self, strategy):
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        strategy.close_trade("23600CE", "09:20:00", 5, ctx, "SL")
+        df = strategy.to_dataframe()
+        assert len(df) == 1
+        assert df.iloc[0]["is_open"] == False
+        assert df.iloc[0]["label"] == "23600CE"
+
+    def test_open_trades_in_dataframe(self, strategy):
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        df = strategy.to_dataframe()
+        assert len(df) == 1
+        assert df.iloc[0]["is_open"] == True
+
+    def test_open_and_closed_combined(self, strategy):
+        ctx_ce = live_ctx("23600CE", price=100.0)
+        ctx_pe = live_ctx("23600PE", price=80.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx_ce)
+        strategy.try_fill([strategy.add(23600, "PE", "SELL")], ctx_pe)
+        strategy.close_trade("23600CE", "09:20:00", 5, ctx_ce, "SL")
+        df = strategy.to_dataframe()
+        assert len(df) == 2
+        assert df[df["is_open"] == False]["label"].iloc[0] == "23600CE"
+        assert df[df["is_open"] == True]["label"].iloc[0] == "23600PE"
+
+    def test_open_trade_has_null_exit_fields(self, strategy):
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        df = strategy.to_dataframe()
+        assert df.iloc[0]["exit_tick"] is None
+        assert df.iloc[0]["exit_price"] is None
+
+
+class TestSaveTrades:
+    def test_save_csv(self, strategy, tmp_path):
+        import pandas as pd
+
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        strategy.close_trade("23600CE", "09:20:00", 5, ctx, "SL")
+        path = tmp_path / "trades.csv"
+        strategy.save_trades(path)
+        df = pd.read_csv(path)
+        assert len(df) == 1
+        assert "label" in df.columns
+        assert "is_open" in df.columns
+
+    def test_save_parquet(self, strategy, tmp_path):
+        import pandas as pd
+
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        strategy.close_trade("23600CE", "09:20:00", 5, ctx, "SL")
+        path = tmp_path / "trades.parquet"
+        strategy.save_trades(path)
+        df = pd.read_parquet(path)
+        assert len(df) == 1
+        assert "is_open" in df.columns
+
+    def test_save_feather(self, strategy, tmp_path):
+        import pandas as pd
+
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        strategy.close_trade("23600CE", "09:20:00", 5, ctx, "SL")
+        path = tmp_path / "trades.feather"
+        strategy.save_trades(path)
+        df = pd.read_feather(path)
+        assert len(df) == 1
+        assert "is_open" in df.columns
+
+    def test_unsupported_extension_raises(self, strategy, tmp_path):
+        with pytest.raises(ValueError, match="Unsupported file format"):
+            strategy.save_trades(tmp_path / "trades.xlsx")
+
+    def test_accepts_string_path(self, strategy, tmp_path):
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        strategy.save_trades(str(tmp_path / "trades.csv"))

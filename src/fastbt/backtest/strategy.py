@@ -15,6 +15,7 @@ User subclasses override:
 
 import logging
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from fastbt.backtest.models import Instrument, Leg, Trade
@@ -236,6 +237,56 @@ class Strategy(ABC):
     def get_closed_by_instrument(self, instrument_key: str) -> List[Trade]:
         """Return all closed trades for the given instrument key (e.g. '23600CE')."""
         return [t for t in self.closed_trades if t.instrument == instrument_key]
+
+    def to_dataframe(self) -> Any:
+        """
+        Return all trades (open and closed) as a flat pandas DataFrame.
+
+        Closed trades have all exit_* fields populated.
+        Open trades have exit_* fields as None — filter on is_open to separate them.
+        metadata keys are merged into top-level columns.
+        """
+        import pandas as pd
+
+        rows = []
+        for trade in self.closed_trades:
+            row = trade.to_dict()
+            row["is_open"] = False
+            rows.append(row)
+        for trade in self.positions.values():
+            row = trade.to_dict()
+            row["is_open"] = True
+            rows.append(row)
+        return pd.DataFrame(rows)
+
+    def save_trades(self, path: Union[str, "Path"]) -> None:
+        """
+        Save all trades (open and closed) to a flat file.
+
+        Format is inferred from the file extension:
+            .parquet  — preserves dtypes, recommended for analysis
+            .feather  — fast round-trips within Python/pandas
+            .csv      — human-readable, loses dtype info
+
+        Args:
+            path: Destination file path. Parent directory must exist.
+
+        Raises:
+            ValueError: If the file extension is not supported.
+        """
+        path = Path(path)
+        df = self.to_dataframe()
+        ext = path.suffix.lower()
+        if ext == ".parquet":
+            df.to_parquet(path, index=False)
+        elif ext == ".feather":
+            df.to_feather(path)
+        elif ext == ".csv":
+            df.to_csv(path, index=False)
+        else:
+            raise ValueError(
+                f"Unsupported file format '{ext}'. Use .parquet, .feather, or .csv."
+            )
 
     def unrealized_pnl(self, ctx: Any) -> float:
         """
