@@ -3,15 +3,14 @@ fastbt.backtest.strategy
 ========================
 Abstract Strategy base class with:
 - State machine : IDLE → ACTIVE → DONE  (managed by engine via run_one_cycle)
-- try_fill()    : all-or-nothing fill via List[Leg]; use add(..., label=) for
-                  stable position keys, or omit label for auto-generated keys.
+- try_fill()    : all-or-nothing fill, both List[Leg] and Dict[str, Leg] modes
 - positions     : Dict[str, Trade] — keyed open trades
 - closed_trades : List[Trade]     — full history, never wiped
 - max_cycles    : strategy can reset N times per day (default 1)
 
 User subclasses override:
-  can_enter, on_entry                     (required)
-  on_day_start, on_adjust, on_exit_condition, on_exit   (optional, have safe defaults)
+  on_day_start, can_enter, on_entry       (required)
+  on_adjust, on_exit_condition, on_exit   (optional, have safe defaults)
 """
 
 import logging
@@ -75,9 +74,7 @@ class Strategy(ABC):
 
     # ─── Leg factory ──────────────────────────────────────────────────────────
 
-    def add(
-        self, strike: int, opt_type: str, side: str, qty: int = 1, label: str = None
-    ) -> Leg:
+    def add(self, strike: int, opt_type: str, side: str, qty: int = 1) -> Leg:
         """
         Create a Leg for use with try_fill().
 
@@ -86,15 +83,8 @@ class Strategy(ABC):
             opt_type: "CE" or "PE".
             side:     "BUY" or "SELL".
             qty:      Number of lots (default 1).
-            label:    Optional stable position key (e.g. "ce", "pe").
-                      When set, try_fill uses this as the Trade label /
-                      positions key instead of the auto-generated instrument
-                      key (e.g. "23600CE"). Useful when on_adjust needs to
-                      look up a leg by a stable name across days.
         """
-        return Leg(
-            instrument=Instrument(strike, opt_type), side=side, qty=qty, label=label
-        )
+        return Leg(instrument=Instrument(strike, opt_type), side=side, qty=qty)
 
     # ─── Fill mechanics ───────────────────────────────────────────────────────
 
@@ -107,38 +97,27 @@ class Strategy(ABC):
         All-or-nothing fill. Returns a dict of Trade objects keyed by label,
         or None if any leg has a stale or missing price.
 
-        Primary usage — List[Leg] with optional per-leg label:
-          self.try_fill([
-              self.add(atm, "CE", "SELL", label="ce"),
-              self.add(atm, "PE", "SELL", label="pe"),
-          ], ctx)
-
-          - If leg.label is set, it becomes the position key ("ce", "pe").
-          - If leg.label is None, key is auto-generated from instrument.key()
-            (e.g. "23600CE"). Useful for multi-leg structures where strike
-            values are self-documenting.
-
-        Advanced — Dict[str, Leg] mode (escape hatch):
-          Provide labels externally: {"wing_ce": leg, "wing_pe": leg}.
-          Labels in the dict override any leg.label values.
+        Two input modes:
+          List[Leg]       → keys auto-generated from Instrument.key()
+          Dict[str, Leg]  → user-provided keys (more readable for complex strategies)
 
         On success:
           - Trades stored in self.positions under their labels.
           - State transitions from IDLE → ACTIVE (noop if already ACTIVE).
 
         Raises ValueError:
-          - If two legs share the same resolved key.
+          - If two legs in the input share the same auto-key (List mode).
           - If any key already exists in self.positions (open position collision).
         """
         # Normalise to Dict[str, Leg]
         if isinstance(legs, list):
             named_legs: Dict[str, Leg] = {}
             for leg in legs:
-                key = leg.label if leg.label is not None else leg.instrument.key()
+                key = leg.instrument.key()
                 if key in named_legs:
                     raise ValueError(
-                        f"Duplicate key '{key}' in try_fill leg list. "
-                        "Use distinct label= values or unique strikes."
+                        f"Duplicate auto-key '{key}' in try_fill leg list. "
+                        "Use Dict mode with unique labels for same-instrument legs."
                     )
                 named_legs[key] = leg
         else:
@@ -160,10 +139,10 @@ class Strategy(ABC):
                 return None  # not all legs live — all-or-nothing
             prices[key] = price
 
-        # All live — create Trade objects (cost applied at close() time, not here)
+        # Build all Trade objects before mutating positions (atomic insertion)
         filled: Dict[str, Trade] = {}
         for key, leg in named_legs.items():
-            trade = Trade(
+            filled[key] = Trade(
                 label=key,
                 instrument=leg.instrument.key(),
                 side=leg.side,
@@ -173,8 +152,7 @@ class Strategy(ABC):
                 entry_index=ctx.tick_index,
                 entry_price=prices[key],
             )
-            self.positions[key] = trade
-            filled[key] = trade
+        self.positions.update(filled)
 
         # IDLE → ACTIVE transition (safe to call from on_adjust too)
         if self.state == "IDLE":
@@ -417,3 +395,4 @@ class Strategy(ABC):
 
         Use for post-day logging or analysis. Default: no-op.
         """
+        pass

@@ -518,6 +518,34 @@ class TestPeriodGrouping:
         # Each date falls back to using itself as key → separate groups
         assert result == [["2025-01-02"], ["2025-01-03"]]
 
+    def test_group_by_expiry_ignores_expired_contracts(self):
+        """Expiries before the trade date are excluded; only on/after is used."""
+
+        class StaleExpiryDS(MockDataSource):
+            def get_expiries(self, trade_date):
+                # Returns one already-expired contract and one valid one
+                return ["2025-01-02", "2025-01-30"]
+
+        ds = StaleExpiryDS()
+        dates = ["2025-01-06", "2025-01-07"]
+        result = group_by_expiry(dates, ds)
+        # "2025-01-02" is before both trade dates → filtered out
+        # nearest valid expiry is "2025-01-30" → both dates in one group
+        assert result == [["2025-01-06", "2025-01-07"]]
+
+    def test_group_by_expiry_all_expiries_expired_fallback(self):
+        """If all returned expiries are before the trade date, fall back to trade date."""
+
+        class AllExpiredDS(MockDataSource):
+            def get_expiries(self, trade_date):
+                return ["2024-12-26", "2024-12-19"]
+
+        ds = AllExpiredDS()
+        dates = ["2025-01-06", "2025-01-07"]
+        result = group_by_expiry(dates, ds)
+        # All expiries expired → each date forms its own group
+        assert result == [["2025-01-06"], ["2025-01-07"]]
+
 
 # ─── Period parameter ────────────────────────────────────────────────────────
 

@@ -39,13 +39,16 @@ def group_by_n_days(dates: List[str], n: int) -> List[List[str]]:
 def group_by_expiry(dates: List[str], data_source: DataSource) -> List[List[str]]:
     """Group dates by their nearest expiry from the data source.
 
-    Uses min(expiries) to ensure nearest (earliest) expiry is selected,
-    regardless of sort order returned by the DataSource.
+    Only considers expiries on or after the trade date (expired contracts
+    are excluded). Uses min() on the filtered list so the nearest valid
+    expiry is selected regardless of sort order from the DataSource.
+    Falls back to the trade date itself if no valid expiry exists.
     """
     groups: dict = {}
     for d in dates:
         expiries = data_source.get_expiries(d)
-        nearest = min(expiries) if expiries else d
+        valid = [e for e in expiries if e >= d]
+        nearest = min(valid) if valid else d
         groups.setdefault(nearest, []).append(d)
     return list(groups.values())
 
