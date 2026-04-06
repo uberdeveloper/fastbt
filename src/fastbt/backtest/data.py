@@ -12,10 +12,21 @@ completely agnostic to the underlying file format:
 """
 
 import logging
+import re
 
 import duckdb
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Union
+
+_VALID_COLUMN_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _validate_column_names(columns: List[str]) -> None:
+    """Raises ValueError if any column name is not a safe SQL identifier."""
+    for col in columns:
+        if not _VALID_COLUMN_RE.match(col):
+            raise ValueError(f"Invalid column name: {col!r}")
+
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +86,7 @@ class DuckDBParquetLoader(DataSource):
         """
         self.filepath = filepath
         self.extra_columns: List[str] = extra_columns or []
+        _validate_column_names(self.extra_columns)
         # Read-only memory connection for extreme speed
         self.con = duckdb.connect()
 
@@ -86,11 +98,11 @@ class DuckDBParquetLoader(DataSource):
         query = f"""
             SELECT DISTINCT trade_time, underlying_price
             FROM '{self.filepath}'
-            WHERE trade_date = '{date_str}'
+            WHERE trade_date = ?
               AND underlying_price IS NOT NULL
             ORDER BY trade_time
         """
-        cursor = self.con.execute(query)
+        cursor = self.con.execute(query, [date_str])
         # Directly construct dict from tuples, bypassing any DataFrame logic
         # row[0] is time (usually datetime.time), row[1] is price
         return {str(row[0]): float(row[1]) for row in cursor.fetchall()}
@@ -119,12 +131,12 @@ class DuckDBParquetLoader(DataSource):
         query = f"""
             SELECT {select_cols}
             FROM '{self.filepath}'
-            WHERE trade_date = '{date_str}'
-              AND option_type = '{opt_type}'
-              AND strike = {strike}
+            WHERE trade_date = ?
+              AND option_type = ?
+              AND strike = ?
             ORDER BY trade_time
         """
-        cursor = self.con.execute(query)
+        cursor = self.con.execute(query, [date_str, opt_type, strike])
         results = cursor.fetchall()
         column_names = [desc[0] for desc in cursor.description]
 
@@ -154,8 +166,8 @@ class DuckDBParquetLoader(DataSource):
 
     def get_expiries(self, trade_date: str) -> List[str]:
         """Returns all valid option expiry dates trading on a given trade date."""
-        query = f"SELECT DISTINCT expiry FROM '{self.filepath}' WHERE trade_date = '{trade_date}' ORDER BY expiry"
-        cursor = self.con.execute(query)
+        query = f"SELECT DISTINCT expiry FROM '{self.filepath}' WHERE trade_date = ? ORDER BY expiry"
+        cursor = self.con.execute(query, [trade_date])
         return [str(row[0]) for row in cursor.fetchall()]
 
     @staticmethod
@@ -201,6 +213,7 @@ class DuckDBVortexLoader(DataSource):
         """
         self.filepath = filepath
         self.extra_columns: List[str] = extra_columns or []
+        _validate_column_names(self.extra_columns)
         self.con = duckdb.connect()
         # Install once; subsequent calls are no-ops if already installed
         self.con.execute("INSTALL vortex; LOAD vortex;")
@@ -221,11 +234,11 @@ class DuckDBVortexLoader(DataSource):
         query = f"""
             SELECT DISTINCT trade_time, underlying_price
             FROM {self._src()}
-            WHERE trade_date = '{date_str}'
+            WHERE trade_date = ?
               AND underlying_price IS NOT NULL
             ORDER BY trade_time
         """
-        cursor = self.con.execute(query)
+        cursor = self.con.execute(query, [date_str])
         return {str(row[0]): float(row[1]) for row in cursor.fetchall()}
 
     def get_instrument_data(
@@ -252,12 +265,12 @@ class DuckDBVortexLoader(DataSource):
         query = f"""
             SELECT {select_cols}
             FROM {self._src()}
-            WHERE trade_date = '{date_str}'
-              AND option_type = '{opt_type}'
-              AND strike = {strike}
+            WHERE trade_date = ?
+              AND option_type = ?
+              AND strike = ?
             ORDER BY trade_time
         """
-        cursor = self.con.execute(query)
+        cursor = self.con.execute(query, [date_str, opt_type, strike])
         results = cursor.fetchall()
         column_names = [desc[0] for desc in cursor.description]
 
@@ -285,9 +298,9 @@ class DuckDBVortexLoader(DataSource):
         """Returns all valid option expiry dates trading on a given trade date."""
         query = f"""
             SELECT DISTINCT expiry FROM {self._src()}
-            WHERE trade_date = '{trade_date}' ORDER BY expiry
+            WHERE trade_date = ? ORDER BY expiry
         """
-        cursor = self.con.execute(query)
+        cursor = self.con.execute(query, [trade_date])
         return [str(row[0]) for row in cursor.fetchall()]
 
     @staticmethod
