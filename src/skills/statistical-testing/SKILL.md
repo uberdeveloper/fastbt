@@ -3,8 +3,8 @@ name: statistical-testing
 description: Rigorous statistical evaluation of trading strategy returns to determine if alpha is real or a statistical artifact. Supports hypothesis testing, benchmark comparison, conditional analysis, temporal validation, and distribution checks. Use when validating backtest results, comparing strategies, testing performance claims, optimizing parameters, or analyzing performance across market conditions.
 license: MIT
 metadata:
-  version: "2.0.0-alpha"
-  capabilities: ["hypothesis_testing", "intent_detection", "temporal_validation", "benchmark_comparison", "conditional_analysis", "distribution_checks", "multiple_testing_correction", "overfitting_detection"]
+  version: "2.1.0"
+  capabilities: ["hypothesis_testing", "intent_detection", "temporal_validation", "benchmark_comparison", "conditional_analysis", "distribution_checks", "multiple_testing_correction", "overfitting_detection", "effect_size", "autocorrelation_check", "fdr_correction"]
 ---
 
 # Statistical Testing Skill
@@ -325,26 +325,85 @@ IF benchmark fetch fails AND test is OPTIONAL:
 
 ### Step 4: Distribution Checks
 
-**Action:** Always check distribution before selecting parametric vs non-parametric tests
+**Action:** Always check distribution before selecting parametric vs non-parametric tests.
+Also check for autocorrelation — inflated t-statistics are the most common error in trading strategy validation.
 
-**Tests Performed:**
-1. **Shapiro-Wilk Test** (normality)
-2. **Jarque-Bera Test** (normality via skewness/kurtosis)
-
-**Decision Logic:**
+**Pre-Test: Autocorrelation Check (Always Run)**
 ```python
-IF p_value > 0.05 for both tests:
-    distribution = "normal"
-    use_parametric = True
+from scipy.stats import ljungbox
+
+# Ljung-Box test for serial correlation (lags 1-10)
+lb_result = ljungbox(returns, lags=10, return_df=True)
+significant_lags = lb_result[lb_result['lb_pvalue'] < 0.05]
+
+IF significant_lags is not empty:
+    max_autocorr = returns.autocorr(lag=1)
+    → WARN: "⚠️ Autocorrelation detected (lag 1: {max_autocorr:.2f}, Ljung-Box p={min_p:.3f})"
+    → WARN: "   Standard errors may be underestimated. Switching to HAC-robust standard errors."
+    use_hac = True
 ELSE:
+    use_hac = False  # Silent — no warning needed
+```
+
+**HAC-Robust Testing (when autocorrelation detected):**
+```python
+IF use_hac:
+    # Use Newey-West HAC standard errors instead of standard t-test
+    import statsmodels.api as sm
+    from statsmodels.stats.sandwich_covariance import cov_hac
+
+    model = sm.OLS(returns, np.ones(len(returns)))
+    hac_result = model.fit(cov_type='HAC', cov_kwds={'maxlags': int(len(returns)**0.25)})
+    p_value = hac_result.pvalues[0]
+    # Report: "HAC-robust t-test" instead of standard t-test
+```
+
+**Normality Tests (scale-aware):**
+```python
+N = len(returns)
+
+IF N <= 50:
+    # Shapiro-Wilk: most powerful for small samples
+    stat, p_sw = shapiro(returns)
+    normality_p = p_sw
+    normality_test_used = "Shapiro-Wilk"
+ELSE:
+    # Anderson-Darling: more powerful in tails for larger samples
+    # Shapiro-Wilk loses meaning and almost always rejects for N > 2000
+    from scipy.stats import anderson
+    result = anderson(returns, dist='norm')
+    # Use 5% critical value
+    normality_p = None  # Anderson-Darling returns critical values, not p-values
+    is_normal_ad = result.statistic < result.critical_values[2]  # index 2 = 5%
+    normality_test_used = "Anderson-Darling"
+
+# Always compute skewness and kurtosis regardless of N
+skewness = returns.skew()
+kurtosis = returns.kurtosis()  # excess kurtosis (normal = 0)
+
+# Decision rule: non-normal if ANY of:
+#   |skewness| > 1.0, OR
+#   excess kurtosis > 7, OR
+#   normality test rejects at 5%
+is_non_normal = (abs(skewness) > 1.0) or (kurtosis > 7) or (not is_normal)
+
+IF is_non_normal:
     distribution = "non-normal"
     use_parametric = False
-
-# Always inform user
-print(f"⚠️ Returns distribution: {distribution}")
+    # Always show the reason
+    reasons = []
+    if abs(skewness) > 1.0: reasons.append(f"skewness={skewness:.2f}")
+    if kurtosis > 7: reasons.append(f"excess kurtosis={kurtosis:.2f}")
+    if not is_normal: reasons.append(f"{normality_test_used} rejected")
+    print(f"⚠️ Non-normal distribution: {', '.join(reasons)}")
+ELSE:
+    distribution = "normal"
+    use_parametric = True
 
 # Auto-select appropriate tests
-IF use_parametric:
+IF use_hac:
+    tests = ["HAC-robust t-test (Newey-West)"]
+ELIF use_parametric:
     tests = ["t-test", "paired t-test"]
 ELSE:
     tests = ["Wilcoxon signed-rank", "Mann-Whitney U"]
@@ -353,7 +412,7 @@ ELSE:
 **User Override:**
 ```
 IF user explicitly requests parametric test BUT distribution is non-normal:
-  → WARN: "Returns are not normally distributed (p=X.XXX)"
+  → WARN: "Returns are not normally distributed ({reasons})"
   → Ask: "Proceed with parametric test anyway, or use non-parametric?"
   → Respect user's final decision
 ```
@@ -507,13 +566,46 @@ IF user explicitly requests parametric test BUT distribution is non-normal:
 | Conditional comparison | Normal | t-test |
 | Conditional comparison | Non-normal | Mann-Whitney U |
 
-**Multiple Testing Correction:**
+**Effect Size (Always Compute)**
+```python
+# Compute alongside every hypothesis test — never omit
+IF use_parametric:
+    # Cohen's d for t-tests
+    effect_size = (returns.mean() - mu0) / returns.std()
+    effect_label = "Cohen's d"
+ELSE:
+    # Rank-biserial correlation for Wilcoxon / Mann-Whitney
+    # r = 1 - (2W) / (n1 * n2)  for Mann-Whitney
+    # r = Z / sqrt(N)            for Wilcoxon signed-rank
+    effect_size = compute_rank_biserial(test_statistic, n)
+    effect_label = "rank-biserial r"
+
+# Magnitude labels (Cohen 1988)
+IF abs(effect_size) < 0.2:
+    magnitude = "negligible"
+ELIF abs(effect_size) < 0.5:
+    magnitude = "small"
+ELIF abs(effect_size) < 0.8:
+    magnitude = "medium"
+ELSE:
+    magnitude = "large"
 ```
+
+**Multiple Testing Correction:**
+```python
 IF running multiple tests (>1):
-  → Apply Bonferroni correction
-  → Adjusted alpha = 0.05 / number_of_tests
-  → Inform user in output:
-      "⚠️ Applied Bonferroni correction for 3 tests (adjusted α=0.017)"
+    # Default: Benjamini-Hochberg FDR (preferred for exploratory trading analysis)
+    # Controls false discovery rate — less conservative than Bonferroni
+    from statsmodels.stats.multitest import multipletests
+    reject, p_adjusted, _, _ = multipletests(p_values, method='fdr_bh')
+
+    print(f"⚠️ Applied Benjamini-Hochberg FDR correction for {n} tests")
+    # Use p_adjusted for significance decisions
+
+    # Switch to Bonferroni only when user explicitly wants confirmatory testing
+    IF user_requests_bonferroni:
+        reject, p_adjusted, _, _ = multipletests(p_values, method='bonferroni')
+        print(f"⚠️ Applied Bonferroni correction for {n} tests (adjusted α={0.05/n:.4f})")
 ```
 
 **Additional Metrics:**
@@ -733,11 +825,30 @@ IF user asks to optimize on full dataset:
 Key Metrics:
 - Sharpe: X.XX
 - p-value: 0.XXX
+- Effect size: X.XX ([Cohen's d | rank-biserial r]) — [negligible|small|medium|large]
+- Test: [test name]
 - Confidence: 95%
 
 🎯 Interpretation: [Plain English, 1-2 sentences]
 
-⚠️ Note: [Distribution warnings, if any]
+⚠️ Note: [Distribution warnings, autocorrelation warnings, if any]
+```
+
+**Two-Sample Comparison Output (always report both effect sizes):**
+
+```markdown
+📊 Result: [One-line verdict]
+
+Key Metrics:
+- p-value: 0.XXX
+- Cohen's d: X.XX — [negligible|small|medium|large]  (mean-based)
+- Rank-biserial r: X.XX — [negligible|small|medium|large]  (rank-based, robust)
+- Test: [test name]
+- Confidence: 95%
+
+🎯 Interpretation: [Plain English, 1-2 sentences]
+
+⚠️ Note: [Distribution warnings, autocorrelation warnings, if any]
 ```
 
 **Conditional Analysis Output:**
@@ -745,13 +856,13 @@ Key Metrics:
 ```markdown
 📊 Conditional Analysis: [Metric] when [Condition]
 
-| Condition | N | Median | Mean | Std Dev | p-value |
-|-----------|---|--------|------|---------|---------|
-| [Condition TRUE] | XXX | X.XX | X.XX | X.XX | - |
-| [Condition FALSE] | XXX | X.XX | X.XX | X.XX | - |
-| **Difference** | - | **X.XX** | **X.XX** | - | **0.XXX** |
+| Condition | N | Median | Mean | Std Dev | p-value | Cohen's d | Rank-biserial r |
+|-----------|---|--------|------|---------|---------|-----------|-----------------|
+| [Condition TRUE] | XXX | X.XX | X.XX | X.XX | - | - | - |
+| [Condition FALSE] | XXX | X.XX | X.XX | X.XX | - | - | - |
+| **Difference** | - | **X.XX** | **X.XX** | - | **0.XXX** | **X.XX ([mag])** | **X.XX ([mag])** |
 
-🎯 Result: [Interpretation of statistical significance]
+🎯 Result: [Interpretation of statistical significance and practical magnitude]
 
 Test: [Test name]
 Confidence: 95%
@@ -821,9 +932,11 @@ IF user requests plots:
     Key Metrics:
     - Median Return: 0.12% per day
     - p-value: 0.003
+    - Effect size: 0.31 (rank-biserial r) — small
+    - Test: Wilcoxon signed-rank
     - Confidence: 95%
 
-    🎯 Strong evidence of real alpha (not a statistical artifact)
+    🎯 Strong evidence of real alpha (not a statistical artifact). Effect is small — ensure transaction costs don't erode it.
 
     ⚠️ Note: Returns not normally distributed (used non-parametric test)
   </output>
@@ -871,8 +984,11 @@ IF user requests plots:
     - NIFTY50 Sharpe: 0.89
     - Excess Sharpe: +0.56
     - p-value: 0.012
+    - Effect size: 0.22 (rank-biserial r) — small
+    - Test: Wilcoxon signed-rank (paired)
+    - Confidence: 95%
 
-    🎯 Strong evidence of outperformance
+    🎯 Strong evidence of outperformance, though effect size is small.
 
     ⚠️ Note: Returns not normally distributed (used non-parametric test)
   </output>
@@ -1037,6 +1153,7 @@ Output: Which parameter set produces better risk-adjusted returns
 ```python
 # Core statistical testing
 import scipy.stats as stats
+from scipy.stats import shapiro, anderson, ljungbox
 
 # Data manipulation
 import pandas as pd
@@ -1045,8 +1162,11 @@ import numpy as np
 # Benchmark fetching
 import yfinance as yf
 
-# Advanced time series (on request)
-from statsmodels.tsa.stattools import adfuller, kpss
+# HAC standard errors, FDR correction, advanced time series
+import statsmodels.api as sm
+from statsmodels.stats.sandwich_covariance import cov_hac
+from statsmodels.stats.multitest import multipletests
+from statsmodels.tsa.stattools import adfuller, kpss  # on request
 
 # Visualization (on request)
 import matplotlib.pyplot as plt
@@ -1065,7 +1185,7 @@ This skill REQUIRES the `load-data` skill for initial data discovery.
 
 ---
 
-## Limitations (v2.0)
+## Limitations (v2.1)
 
 **Not Supported:**
 - Mixed AND/OR conditions: `(A AND B) OR C`
@@ -1074,13 +1194,22 @@ This skill REQUIRES the `load-data` skill for initial data discovery.
 - Automatic regime detection
 - Monte Carlo simulation
 - Bootstrap confidence intervals (manual request only)
+- Jobson-Korkie test for Sharpe ratio equality (manual request only)
 
 **Future Versions:**
-- v2.1: Refactor to separate `conditional-analysis` skill
-- v2.1: Support mixed logic conditions
+- v2.2: Refactor to separate `conditional-analysis` skill
+- v2.2: Support mixed logic conditions
 - v3.0: Automatic regime detection (Chow test, change point detection)
-- v3.0: Performance drift monitoring
+- v3.0: Structural break tests (Cusum)
 - v3.0: Automated parameter optimization with cross-validation
+
+**Recently Added (v2.1):**
+- ✅ Autocorrelation pre-check (Ljung-Box) — auto-switches to HAC when needed
+- ✅ Effect size mandatory in all outputs (Cohen's d / rank-biserial r)
+- ✅ Two-sample tests always report BOTH Cohen's d and rank-biserial r
+- ✅ Scale-aware normality tests (Anderson-Darling for N>50, Shapiro-Wilk for N≤50)
+- ✅ Multi-factor normality decision (skewness + kurtosis + test p-value)
+- ✅ Benjamini-Hochberg FDR as default multiple testing correction
 
 **Recently Added (v2.0):**
 - ✅ Intent detection (distinguishes observation vs optimization)
@@ -1102,6 +1231,18 @@ See additional documentation:
 ---
 
 ## Version History
+
+- **v2.1.0** (2026-04-07): Statistical validity improvements
+  - Autocorrelation pre-check (Ljung-Box) with HAC fallback
+  - Mandatory effect size in all output templates
+  - Scale-aware normality: Anderson-Darling for N>50, Shapiro-Wilk for N≤50
+  - Multi-factor normality decision (skewness, kurtosis, test)
+  - Benjamini-Hochberg FDR replaces Bonferroni as default
+
+- **v2.0.0-alpha** (2026-02-17): Temporal validation + intent detection
+  - Intent detection (observation vs optimization vs deployment)
+  - Walk-forward, train/test split, expanding window validation
+  - Overfitting detection and degradation metrics
 
 - **v1.0.0-alpha** (2026-02-17): Initial monolithic implementation
   - Core hypothesis tests
