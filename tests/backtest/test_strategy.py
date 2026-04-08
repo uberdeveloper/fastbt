@@ -26,14 +26,19 @@ class MockBarContext:
         tick: Any = "09:15:00",
         tick_index: int = 0,
         prices: Optional[Dict[str, tuple]] = None,
+        atm: int = 23600,
     ):
         self.tick = tick
         self.tick_index = tick_index
         # prices: {instrument_key: (price, lag)}  lag=0 → live
         self._prices: Dict[str, tuple] = prices or {}
+        self._atm = atm
 
     def get_price(self, key: str):
         return self._prices.get(key, (None, -1))
+
+    def get_atm(self, step: int = 50) -> int:
+        return self._atm
 
 
 class ConcreteStrategy(Strategy):
@@ -117,6 +122,140 @@ class TestStrategySAdd:
     def test_default_qty_is_one(self, strategy):
         leg = strategy.add(23600, "CE", "SELL")
         assert leg.qty == 1
+
+
+# ─── Strategy.add() — relative strike mode ────────────────────────────────────
+
+
+class TestRelativeStrikeMode:
+    """Tests for relative_strikes=True / strike_step class variables."""
+
+    def _make_ctx(self, atm: int = 23600) -> MockBarContext:
+        return MockBarContext(atm=atm)
+
+    def test_default_relative_strikes_is_false(self, strategy):
+        assert strategy.relative_strikes is False
+
+    def test_default_strike_step_is_50(self, strategy):
+        assert strategy.strike_step == 50
+
+    def test_absolute_mode_unchanged(self, strategy):
+        """Default mode: strike value is used as-is."""
+        leg = strategy.add(23600, "CE", "SELL")
+        assert leg.instrument.strike == 23600
+
+    def test_atm_strike_zero_ce(self, strategy):
+        strategy.relative_strikes = True
+        strategy._ctx = self._make_ctx(atm=23600)
+        leg = strategy.add(0, "CE", "SELL")
+        assert leg.instrument.strike == 23600
+
+    def test_atm_strike_zero_pe(self, strategy):
+        strategy.relative_strikes = True
+        strategy._ctx = self._make_ctx(atm=23600)
+        leg = strategy.add(0, "PE", "SELL")
+        assert leg.instrument.strike == 23600
+
+    def test_otm_1_ce(self, strategy):
+        """CE: OTM +1 step → atm + step."""
+        strategy.relative_strikes = True
+        strategy._ctx = self._make_ctx(atm=23600)
+        leg = strategy.add(1, "CE", "SELL")
+        assert leg.instrument.strike == 23650
+
+    def test_otm_1_pe(self, strategy):
+        """PE: OTM +1 step → atm - step."""
+        strategy.relative_strikes = True
+        strategy._ctx = self._make_ctx(atm=23600)
+        leg = strategy.add(1, "PE", "SELL")
+        assert leg.instrument.strike == 23550
+
+    def test_itm_negative_ce(self, strategy):
+        """CE: ITM -1 step → atm - step."""
+        strategy.relative_strikes = True
+        strategy._ctx = self._make_ctx(atm=23600)
+        leg = strategy.add(-1, "CE", "SELL")
+        assert leg.instrument.strike == 23550
+
+    def test_itm_negative_pe(self, strategy):
+        """PE: ITM -1 step → atm + step."""
+        strategy.relative_strikes = True
+        strategy._ctx = self._make_ctx(atm=23600)
+        leg = strategy.add(-1, "PE", "SELL")
+        assert leg.instrument.strike == 23650
+
+    def test_custom_strike_step(self, strategy):
+        """BankNifty uses step=100."""
+        strategy.relative_strikes = True
+        strategy.strike_step = 100
+        strategy._ctx = self._make_ctx(atm=51200)
+        leg = strategy.add(1, "CE", "SELL")
+        assert leg.instrument.strike == 51300
+
+    def test_multiple_steps_otm(self, strategy):
+        strategy.relative_strikes = True
+        strategy._ctx = self._make_ctx(atm=23600)
+        leg = strategy.add(3, "CE", "SELL")
+        assert leg.instrument.strike == 23750  # 23600 + 3*50
+
+    def test_relative_mode_via_run_one_cycle(self):
+        """ctx stored on self._ctx during run_one_cycle is used by add()."""
+
+        class RelativeStrategy(Strategy):
+            relative_strikes = True
+            strike_step = 50
+            last_leg = None
+
+            def can_enter(self, tick, ctx):
+                return True
+
+            def on_entry(self, tick, ctx):
+                self.last_leg = self.add(1, "CE", "SELL")
+
+            def on_exit_condition(self, tick, ctx):
+                return False
+
+        s = RelativeStrategy()
+        ctx = MockBarContext(atm=23600)
+        s.run_one_cycle("09:15:00", ctx)
+        assert s.last_leg.instrument.strike == 23650
+
+    def test_absolute_strike_in_relative_mode_produces_no_fill(self, strategy):
+        """
+        Misuse: passing an absolute strike (e.g. 23600) in relative mode.
+        Resolves to atm + 23600*50 = an absurdly large strike that will never
+        have a price in the data → try_fill returns None (no trade entered).
+        """
+        strategy.relative_strikes = True
+        strategy._ctx = self._make_ctx(atm=23600)
+        # strike=23600 in relative mode → 23600 + 23600*50 = 1,203,600
+        leg = strategy.add(23600, "CE", "SELL")
+        ctx = MockBarContext(prices={})  # no prices for any strike
+        result = strategy.try_fill([leg], ctx)
+        assert result is None  # no fill — instrument doesn't exist
+
+    def test_ctx_updated_each_tick(self):
+        """If ATM changes between ticks, add() uses the latest ctx."""
+
+        class RelativeStrategy(Strategy):
+            relative_strikes = True
+            strike_step = 50
+            strikes_seen = []
+
+            def can_enter(self, tick, ctx):
+                return True
+
+            def on_entry(self, tick, ctx):
+                leg = self.add(0, "CE", "SELL")
+                self.strikes_seen.append(leg.instrument.strike)
+
+            def on_exit_condition(self, tick, ctx):
+                return False
+
+        s = RelativeStrategy()
+        s.run_one_cycle("09:15:00", MockBarContext(atm=23600))
+        s.run_one_cycle("09:16:00", MockBarContext(atm=23650))
+        assert s.strikes_seen == [23600, 23650]
 
 
 # ─── Strategy.try_fill() — List mode (auto-key) ───────────────────────────────

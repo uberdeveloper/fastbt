@@ -38,6 +38,13 @@ class Strategy(ABC):
     - closed_trades accumulates across ALL days and cycles — never wiped.
     """
 
+    # Relative strike mode: when True, strike values passed to add() are
+    # interpreted as offsets from ATM (0=ATM, 1=1 step OTM, -1=1 step ITM).
+    # OTM direction is inferred from opt_type (CE → above ATM, PE → below ATM).
+    # When False (default), strike is an absolute price — existing behaviour.
+    relative_strikes: bool = False
+    strike_step: int = 50  # step size used for ATM rounding and offset resolution
+
     def __init__(self, name: str = "BaseStrategy"):
         self.name = name
         self.engine = None  # injected by BacktestEngine.add_strategy()
@@ -51,6 +58,11 @@ class Strategy(ABC):
         # Trade tracking
         self.positions: Dict[str, Trade] = {}  # keyed open trades
         self.closed_trades: List[Trade] = []  # all-time accumulator
+
+        # Current bar context — injected by run_one_cycle() each tick.
+        # Used by add() to resolve relative strikes without threading ctx
+        # through every call site.
+        self._ctx: Any = None
 
     @property
     def open_trades(self) -> List[Trade]:
@@ -80,12 +92,26 @@ class Strategy(ABC):
         Create a Leg for use with try_fill().
 
         Args:
-            strike:   Option strike price (e.g., 23600).
+            strike:   Absolute strike price (e.g., 23600) when relative_strikes=False.
+                      Offset from ATM when relative_strikes=True:
+                        0  → ATM
+                        1  → 1 step OTM  (CE: atm+step, PE: atm-step)
+                       -1  → 1 step ITM  (CE: atm-step, PE: atm+step)
             opt_type: "CE" or "PE".
             side:     "BUY" or "SELL".
             qty:      Number of lots (default 1).
         """
-        return Leg(instrument=Instrument(strike, opt_type), side=side, qty=qty)
+        if self.relative_strikes:
+            atm = self._ctx.get_atm(self.strike_step)
+            direction = 1 if opt_type.upper() == "CE" else -1
+            absolute_strike = atm + strike * direction * self.strike_step
+        else:
+            absolute_strike = strike
+        return Leg(
+            instrument=Instrument(absolute_strike, opt_type.upper()),
+            side=side.upper(),
+            qty=qty,
+        )
 
     # ─── Fill mechanics ───────────────────────────────────────────────────────
 
@@ -323,6 +349,7 @@ class Strategy(ABC):
           IDLE:   can_enter? → on_entry
           ACTIVE: on_adjust → on_exit_condition? → on_exit → _handle_cycle_done
         """
+        self._ctx = ctx  # makes ctx available to add() for relative strike resolution
         if self.state == "DONE":
             return
 
