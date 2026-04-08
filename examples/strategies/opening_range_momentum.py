@@ -29,8 +29,6 @@ Run:
 from datetime import datetime, timedelta
 from typing import Any, List, Optional
 
-import pandas as pd
-
 from fastbt.backtest.data import DuckDBParquetLoader
 from fastbt.backtest.engine import BacktestEngine
 from fastbt.backtest.metrics import PerformanceAnalyzer
@@ -190,23 +188,28 @@ def print_results(strategy: OpeningRangeMomentum) -> None:
     print(f"  Bearish days (PE bought) : {pe_count}")
     print(f"  No-signal days (skipped) : {61 - ce_count - pe_count}")
 
-    if trades:
-        rows = [t.to_dict() for t in trades]
-        df = pd.DataFrame(rows)[
-            [
-                "label",
-                "instrument",
-                "side",
-                "entry_tick",
-                "entry_price",
-                "exit_tick",
-                "exit_price",
-                "exit_reason",
-                "net_pnl",
-            ]
-        ]
+    # Trade log (open + closed)
+    df = strategy.to_dataframe()
+    cols = [
+        "label",
+        "instrument",
+        "side",
+        "entry_tick",
+        "entry_price",
+        "exit_tick",
+        "exit_price",
+        "exit_reason",
+        "net_pnl",
+        "is_open",
+    ]
+    if not df.empty:
         print("\nTrade log (first 20 rows):")
-        print(df.head(20).to_string(index=False))
+        print(df[cols].head(20).to_string(index=False))
+
+    # Save trades — uncomment preferred format:
+    # strategy.save_trades("trades.parquet")  # preserves dtypes (recommended)
+    # strategy.save_trades("trades.feather")  # fast Python round-trips
+    # strategy.save_trades("trades.csv")      # human-readable
 
 
 def run() -> None:

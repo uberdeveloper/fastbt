@@ -20,7 +20,6 @@ Run:
 
 from typing import Any
 
-import pandas as pd
 
 from fastbt.backtest.data import DuckDBParquetLoader
 from fastbt.backtest.engine import BacktestEngine
@@ -135,23 +134,28 @@ def run() -> None:
     print(f"\n  Legs stopped out  : {len(sl_trades)}")
     print(f"  Legs EOD-closed   : {len(eod_trades)}")
 
-    if trades:
-        rows = [t.to_dict() for t in trades]
-        df = pd.DataFrame(rows)[
-            [
-                "label",
-                "instrument",
-                "side",
-                "entry_tick",
-                "entry_price",
-                "exit_tick",
-                "exit_price",
-                "exit_reason",
-                "net_pnl",
-            ]
-        ]
+    # Trade log (open + closed)
+    df = strategy.to_dataframe()
+    cols = [
+        "label",
+        "instrument",
+        "side",
+        "entry_tick",
+        "entry_price",
+        "exit_tick",
+        "exit_price",
+        "exit_reason",
+        "net_pnl",
+        "is_open",
+    ]
+    if not df.empty:
         print("\nTrade log (first 20 rows):")
-        print(df.head(20).to_string(index=False))
+        print(df[cols].head(20).to_string(index=False))
+
+    # Save trades — uncomment preferred format:
+    # strategy.save_trades("trades.parquet")  # preserves dtypes (recommended)
+    # strategy.save_trades("trades.feather")  # fast Python round-trips
+    # strategy.save_trades("trades.csv")      # human-readable
 
 
 if __name__ == "__main__":
