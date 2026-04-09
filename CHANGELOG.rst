@@ -1,6 +1,13 @@
 =========
 History
 =========
+v0.9.0
+------
+* Code formatting and whitespace cleanup with ruff/black
+* Removed `label` field from Leg dataclass
+* Bumped collation size limit from 100MB to 1000MB
+* Dropped Vortex loader test coverage (see #13)
+
 v0.8.0
 ------
 * **NEW**: Added statistical testing skill v1.0-alpha with comprehensive test scripts
