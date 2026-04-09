@@ -411,5 +411,4 @@ class BarContext:
             instrument.strike,
             instrument.opt_type,
         )
-        if data:
-            self._cache[instrument_key] = data
+        self._cache[instrument_key] = data
