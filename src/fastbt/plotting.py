@@ -1,6 +1,7 @@
 """
 A plotting module for easy plotting of financial charts
 """
+
 from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource
 import pandas as pd

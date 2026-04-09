@@ -1,8 +1,8 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request
 import sys
-import os
 
 sys.path.append("../")
+
 
 class CustomFlask(Flask):
     jinja_options = Flask.jinja_options.copy()
@@ -17,7 +17,9 @@ class CustomFlask(Flask):
         )
     )
 
+
 app = CustomFlask(__name__)
+
 
 @app.route("/")
 def hello_world():

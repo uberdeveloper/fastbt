@@ -6,6 +6,7 @@ Don't use them.
 This is intended to be a place to develop new functions instead of
 having an entirely new branch
 """
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -673,8 +674,8 @@ def summary_plot(data):
 
         button.on_click(update)
 
-        l = layout([[[condition, button], col], pre])
-        doc.add_root(l)
+        lyt = layout([[[condition, button], col], pre])
+        doc.add_root(lyt)
 
     return document
 
@@ -725,8 +726,8 @@ def slider_plot(data, cols):
 
         button.on_click(update)
 
-        l = layout([column(sliders), [select, button]], pre)
-        doc.add_root(l)
+        lyt = layout([column(sliders), [select, button]], pre)
+        doc.add_root(lyt)
 
     return document
 

@@ -2,6 +2,7 @@
 This is the meta trading class from which other classes
 are derived
 """
+
 from fastbt.tradebook import TradeBook
 from fastbt.utils import tick
 from collections import namedtuple, Counter, defaultdict
@@ -26,7 +27,9 @@ from typing import (
 # Define a TypeVar for functions that can be decorated by pre/post
 F = TypeVar("F", bound=Callable[..., Any])
 # Define a TypeVar for 'self' in pre/post, expecting get_override and rename methods
-T = TypeVar("T", bound="Broker")  # Assuming Broker or similar interface for these methods
+T = TypeVar(
+    "T", bound="Broker"
+)  # Assuming Broker or similar interface for these methods
 
 
 class Status(Enum):
@@ -60,7 +63,11 @@ def post(func: F) -> F:
         response: Any = func(*args, **kwargs)
         if override:
             if isinstance(response, list):
-                return [self_obj.rename(r, override) for r in response if isinstance(r, dict)]
+                return [
+                    self_obj.rename(r, override)
+                    for r in response
+                    if isinstance(r, dict)
+                ]
             elif isinstance(response, dict):
                 return self_obj.rename(response, override)
         return response
@@ -164,7 +171,7 @@ class TradingSystem:
         and the position argument is a call to the
         insert method of the list object
         """
-        if position is None: # Check for None explicitly
+        if position is None:  # Check for None explicitly
             position = len(self._pipeline)
         if getattr(self, method, None) is not None:
             self._pipeline.insert(position, (method, kwargs))
@@ -180,7 +187,9 @@ class TradingSystem:
         """
         for method, fkwargs in self._pipeline:
             # Returns None if method not found
-            func_to_call = getattr(self, method, lambda **k: None) # Ensure kwargs are accepted
+            func_to_call = getattr(
+                self, method, lambda **k: None
+            )  # Ensure kwargs are accepted
             func_to_call(**fkwargs)
         self._cycle += 1
 
@@ -202,7 +211,7 @@ class ExtTradingSystem(TradingSystem):
         date_str: str = datetime.datetime.today().strftime("%Y-%m-%d")
         # namedtuple("Time", "hour,minute") # This line doesn't seem to be used
         self.date: str = date_str
-        self.log: Dict[Any, Any] = {} # Define more specific type if possible
+        self.log: Dict[Any, Any] = {}  # Define more specific type if possible
         self._symbol: Optional[str] = symbol
         self._timestamp: datetime.datetime = datetime.datetime.now()
         self.name: str = name
@@ -218,7 +227,7 @@ class ExtTradingSystem(TradingSystem):
                 setattr(self, k, kwargs.pop(k))
             else:
                 setattr(self, k, v)
-        super(ExtTradingSystem, self).__init__(**kwargs) # Pass remaining kwargs
+        super(ExtTradingSystem, self).__init__(**kwargs)  # Pass remaining kwargs
 
     @property
     def timestamp(self) -> datetime.datetime:
@@ -295,10 +304,10 @@ class CandleStickSystem(TradingSystem):
         entry_price: Optional[float] = None,
         exit_price: Optional[float] = None,
         symbol: str = "symbol",
-        **kwargs: Any, # Added to catch auth/tradebook from super
+        **kwargs: Any,  # Added to catch auth/tradebook from super
     ) -> None:
         print("Hello world")
-        self.pattern: Any = pattern # Define more specific type if possible
+        self.pattern: Any = pattern  # Define more specific type if possible
         self.entry_price: Optional[float] = entry_price
         self.exit_price: Optional[float] = exit_price
         self.signal: Optional[str] = None  # to be one of LONG/SHORT/None
@@ -306,9 +315,8 @@ class CandleStickSystem(TradingSystem):
         self.c: Counter[Any] = Counter()
         self.MAX_TRADES: int = 2
         # self._cycle = 0 # Already initialized in TradingSystem
-        self.timestamp: Optional[datetime.datetime] = None # Or datetime.datetime
+        self.timestamp: Optional[datetime.datetime] = None  # Or datetime.datetime
         super(CandleStickSystem, self).__init__(**kwargs)
-
 
     def add_trade(self, **kwargs: Any) -> None:
         """
@@ -321,7 +329,7 @@ class CandleStickSystem(TradingSystem):
             "symbol": self.symbol,
             "price": 0,
             "qty": 1,
-            "order": "B", # Default order type
+            "order": "B",  # Default order type
             "cycle": self.cycle,
         }
         defaults.update(**kwargs)
@@ -359,23 +367,23 @@ class Broker:
             "order_cancel": {},
             "order_modify": {},
         }
-        kwargs.pop("is_override", True) # is_override is used to enable/disable reading override file
+        kwargs.pop(
+            "is_override", True
+        )  # is_override is used to enable/disable reading override file
         # Determine file_path for the derived class, not Broker itself
         actual_class: Type[Broker] = self.__class__
         file_path_str: str = inspect.getfile(actual_class)
         # Ensure it's a .py file path before slicing
         if file_path_str.endswith(".py"):
-             file_path_base = file_path_str[:-3]
-        else: # Fallback or error handling if not a .py file (e.g. interactive)
-             file_path_base = file_path_str
+            file_path_base = file_path_str[:-3]
+        else:  # Fallback or error handling if not a .py file (e.g. interactive)
+            file_path_base = file_path_str
 
-        override_file: str = kwargs.pop(
-            "override_file", f"{file_path_base}.yaml"
-        )
+        override_file: str = kwargs.pop("override_file", f"{file_path_base}.yaml")
         try:
             with open(override_file, "r") as f:
                 dct: Dict[str, Dict[str, str]] = yaml.safe_load(f)
-            if dct: # Check if dct is not None
+            if dct:  # Check if dct is not None
                 for k, v in dct.items():
                     self.set_override(k, v)
         except FileNotFoundError:
@@ -383,8 +391,9 @@ class Broker:
         except yaml.YAMLError:
             print(f"Error parsing YAML file: {override_file}")
 
-
-    def get_override(self, key: Optional[str] = None) -> Union[Dict[str, str], Dict[str, Dict[str, str]]]:
+    def get_override(
+        self, key: Optional[str] = None
+    ) -> Union[Dict[str, str], Dict[str, Dict[str, str]]]:
         """
         get the override for the given key
         returns all if key is not specified
@@ -406,7 +415,7 @@ class Broker:
         returns the key if added
         """
         self._override[key] = values
-        return self.get_override(key) # type: ignore # get_override can return more
+        return self.get_override(key)  # type: ignore # get_override can return more
 
     def authenticate(self) -> Any:
         """
@@ -416,7 +425,7 @@ class Broker:
         """
         raise NotImplementedError
 
-    def profile(self) -> Any: # Define more specific return type in subclasses
+    def profile(self) -> Any:  # Define more specific return type in subclasses
         """
         Return the user profile
         """
@@ -440,25 +449,31 @@ class Broker:
         """
         raise NotImplementedError
 
-    def order_place(self, **kwargs: Any) -> Any: # Define more specific return type
+    def order_place(self, **kwargs: Any) -> Any:  # Define more specific return type
         """
         Place an order
         """
         raise NotImplementedError
 
-    def order_modify(self, order_id: Any, **kwargs: Any) -> Any: # Define specific type for order_id
+    def order_modify(
+        self, order_id: Any, **kwargs: Any
+    ) -> Any:  # Define specific type for order_id
         """
         Modify an order with the given order id
         """
         raise NotImplementedError
 
-    def order_cancel(self, order_id: Any, **kwargs: Any) -> Any: # Define specific type for order_id
+    def order_cancel(
+        self, order_id: Any, **kwargs: Any
+    ) -> Any:  # Define specific type for order_id
         """
         Cancel an order with the given order id
         """
         raise NotImplementedError
 
-    def quote(self, symbol: str, **kwargs: Any) -> Any: # Define more specific return type
+    def quote(
+        self, symbol: str, **kwargs: Any
+    ) -> Any:  # Define more specific return type
         """
         Get the quote for the given symbol
         """
@@ -482,16 +497,18 @@ class Broker:
         in kwargs are matched and only those dictionaries that
         match all the conditions are returned
         """
-        if not lst: # Simpler check for empty list
+        if not lst:  # Simpler check for empty list
             # print("Nothing in the list") # This print can be noisy, consider removing or logging
             return []
         new_lst: List[Dict[str, Any]] = []
-        for d_item in lst: # Renamed 'd' to 'd_item' to avoid conflict if 'd' is a kwarg key
+        for (
+            d_item
+        ) in lst:  # Renamed 'd' to 'd_item' to avoid conflict if 'd' is a kwarg key
             case: bool = True
             for k, v in kwargs.items():
                 if d_item.get(k) != v:
                     case = False
-                    break # Optimization: no need to check further if one condition fails
+                    break  # Optimization: no need to check further if one condition fails
             if case:
                 new_lst.append(d_item)
         return new_lst
@@ -517,7 +534,7 @@ class Broker:
         """
         new_dct: Dict[str, Any] = {}
         for k, v in dct.items():
-            if k in keys: # More direct check
+            if k in keys:  # More direct check
                 new_dct[keys[k]] = v
             else:
                 new_dct[k] = v
@@ -536,8 +553,8 @@ class Broker:
             # Assuming `at` was a typo for `self` or a missing import `fastbt.utils`
             # For now, assuming it's self.dict_filter
             current_orders = self.dict_filter(current_orders, **kwargs)
-        if len(current_orders) > 0: # Check filtered orders
-            for order in current_orders: # Iterate through filtered orders
+        if len(current_orders) > 0:  # Check filtered orders
+            for order in current_orders:  # Iterate through filtered orders
                 if "order_id" in order:
                     self.order_cancel(order["order_id"])
                 # else: log or handle missing order_id
@@ -560,10 +577,18 @@ class Broker:
                 # Assuming position side is 'B' or 'S'. If not, this will fail.
                 original_side: Optional[str] = position.get("side")
 
-                if qty > 0 and symbol and original_side and original_side in self._sides:
+                if (
+                    qty > 0
+                    and symbol
+                    and original_side
+                    and original_side in self._sides
+                ):
                     closing_side: str = self._sides[original_side]
                     self.order_place(
-                        symbol=symbol, quantity=qty, order_type="MARKET", side=closing_side
+                        symbol=symbol,
+                        quantity=qty,
+                        order_type="MARKET",
+                        side=closing_side,
                     )
                 # else: log or handle missing keys or invalid side
 
@@ -586,32 +611,36 @@ class Broker:
 
         for o in pending_orders:
             symbol: Optional[str] = o.get("symbol")
-            if not symbol: continue # Skip if no symbol
+            if not symbol:
+                continue  # Skip if no symbol
 
             price: float = max(o.get("price", 0.0), o.get("trigger_price", 0.0))
             quantity: float = o.get("quantity", 0.0)
             filled_quantity: float = o.get("filled_quantity", 0.0)
             side: Optional[str] = o.get("side")
-            if side is None: continue # Skip if no side
+            if side is None:
+                continue  # Skip if no side
 
             qty_to_consider: float = abs(quantity) - abs(filled_quantity)
             value: float = abs(price * qty_to_consider)
 
             dct[symbol][side] += qty_to_consider
             text: str = f"{side}_value"
-            dct[symbol][text] += value # Use += for Counter update consistency
+            dct[symbol][text] += value  # Use += for Counter update consistency
 
         current_positions: List[Dict[str, Any]] = self.positions()
         current_positions = self.dict_filter(current_positions, **kwargs)
 
         for p in current_positions:
             symbol = p.get("symbol")
-            if not symbol: continue
+            if not symbol:
+                continue
 
             price = p.get("average_price", 0.0)
             quantity = p.get("quantity", 0.0)
             side = p.get("side")
-            if side is None: continue
+            if side is None:
+                continue
 
             value = abs(price * quantity)
             text = f"{side}_value"
@@ -621,7 +650,7 @@ class Broker:
 
     def not_covered(
         self, tick_size: float = 0.05, **kwargs: Any
-    ) -> List[NamedTuple]: # More specific NamedTuple if defined
+    ) -> List[NamedTuple]:  # More specific NamedTuple if defined
         """
         Get the list of orders/positions not covered.
         returns a named tuple containing the symbol, the side not covered,
@@ -638,19 +667,21 @@ class Broker:
         3) Bracket, OCO and other order types not covered
         """
         all_orders: DefaultDict[str, Counter[Any]] = self.consolidated(**kwargs)
-        UncoveredTuple = namedtuple( # type: ignore
+        UncoveredTuple = namedtuple(  # type: ignore
             "uncovered", ["symbol", "side", "quantity", "price"]
         )
-        uncovered_list: List[NamedTuple] = [] # Use the specific namedtuple type
+        uncovered_list: List[NamedTuple] = []  # Use the specific namedtuple type
 
-        for k, v_counter in all_orders.items(): # k is symbol, v_counter is the Counter
+        for k, v_counter in all_orders.items():  # k is symbol, v_counter is the Counter
             buy_qty: float = v_counter.get("BUY", 0.0)
             sell_qty: float = v_counter.get("SELL", 0.0)
             buy_value: float = v_counter.get("BUY_value", 0.0)
             sell_value: float = v_counter.get("SELL_value", 0.0)
 
             if buy_qty > sell_qty:
-                avg_price: float = tick(buy_value / buy_qty if buy_qty else 0, tick_size)
+                avg_price: float = tick(
+                    buy_value / buy_qty if buy_qty else 0, tick_size
+                )
                 tp = UncoveredTuple(k, "SELL", buy_qty - sell_qty, avg_price)
                 uncovered_list.append(tp)
             elif sell_qty > buy_qty:
@@ -667,7 +698,9 @@ class Broker:
         percent
             percentage of stop loss on the average price
         """
-        not_covered_list: List[NamedTuple] = self.not_covered(tick_size=tick_size, **kwargs)
+        not_covered_list: List[NamedTuple] = self.not_covered(
+            tick_size=tick_size, **kwargs
+        )
         lst: List[Dict[str, Any]] = []
 
         def get_sl(price: float, side: str, stop_percent: Union[int, float]) -> float:
@@ -679,19 +712,19 @@ class Broker:
             already knew the side to place the order and
             the price is that of the opposite side
             """
-            if side == "BUY": # Need to buy to cover short, so SL is higher
+            if side == "BUY":  # Need to buy to cover short, so SL is higher
                 return tick(price * (1 + stop_percent * 0.01), tick_size)
-            elif side == "SELL": # Need to sell to cover long, so SL is lower
+            elif side == "SELL":  # Need to sell to cover long, so SL is lower
                 return tick(price * (1 - stop_percent * 0.01), tick_size)
-            else: # Should not happen with current logic of not_covered
+            else:  # Should not happen with current logic of not_covered
                 return price
 
         for nc in not_covered_list:
             dct: Dict[str, Any] = {}
             # Assuming nc is the NamedTuple("uncovered", ["symbol", "side", "quantity", "price"])
-            dct["symbol"] = nc.symbol     # type: ignore
-            dct["quantity"] = nc.quantity # type: ignore
-            dct["side"] = nc.side         # type: ignore
-            dct["price"] = get_sl(nc.price, nc.side, percent) # type: ignore
+            dct["symbol"] = nc.symbol  # type: ignore
+            dct["quantity"] = nc.quantity  # type: ignore
+            dct["side"] = nc.side  # type: ignore
+            dct["price"] = get_sl(nc.price, nc.side, percent)  # type: ignore
             lst.append(dct)
         return lst

@@ -228,7 +228,6 @@ class TestDataSourceReindex(unittest.TestCase):
 
 
 class TestDataSourceTALIB(unittest.TestCase):
-
     """
     Test TALIB indicators
     """

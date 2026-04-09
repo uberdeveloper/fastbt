@@ -18,7 +18,7 @@ pending_orders:
   order_status: status
 positions:
    trading_symbol: symbol
-   net_quantity: quantity 
+   net_quantity: quantity
    average_price: average_price
 order_place:
   symbol: tradingsymbol

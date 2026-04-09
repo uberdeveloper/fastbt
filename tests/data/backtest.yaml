@@ -17,4 +17,3 @@ conditions:
 - open > prevclose
 sort_by: price
 sort_mode: True
-

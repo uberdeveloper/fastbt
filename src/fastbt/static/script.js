@@ -1,7 +1,7 @@
 console.log("Hello world");
 /*
 Interface for python backtest
-Columns are converted into their respective counterparts 
+Columns are converted into their respective counterparts
 in DataSource
 */
 var app = new Vue({
@@ -52,7 +52,7 @@ var app = new Vue({
     },
     methods: {
         setStatus(text) {
-            /* 
+            /*
             Set the status of the given text to true
             and the others to false since only one
             of them could be active at a time

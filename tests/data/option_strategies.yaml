@@ -66,9 +66,3 @@
   output:
     - [buy, put, 17000]
     - [buy, call, 17400]
-  
-  
-    
-  
-  
-    

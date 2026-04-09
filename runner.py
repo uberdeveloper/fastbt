@@ -1,15 +1,26 @@
 import argparse
 from dummy_engine import IntradayDummyEngine
 
+
 def main():
-    parser = argparse.ArgumentParser(description="Run the dummy backtest engine for specific dates.")
-    parser.add_argument("--dates", nargs="+", help="Dates to run the backtest for (YYYY-MM-DD format). If not provided, runs for a default set of dates.")
-    parser.add_argument("--data", default="/home/pi/data/q1_2025.parquet", help="Path to the parquet data file.")
-    
+    parser = argparse.ArgumentParser(
+        description="Run the dummy backtest engine for specific dates."
+    )
+    parser.add_argument(
+        "--dates",
+        nargs="+",
+        help="Dates to run the backtest for (YYYY-MM-DD format). If not provided, runs for a default set of dates.",
+    )
+    parser.add_argument(
+        "--data",
+        default="/home/pi/data/q1_2025.parquet",
+        help="Path to the parquet data file.",
+    )
+
     args = parser.parse_args()
-    
+
     engine = IntradayDummyEngine(args.data)
-    
+
     if args.dates:
         dates_to_run = args.dates
     else:
@@ -27,6 +38,7 @@ def main():
         engine.logs = []
         engine.run_day(date_str)
         print("-" * 40)
+
 
 if __name__ == "__main__":
     main()
