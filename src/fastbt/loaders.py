@@ -610,7 +610,7 @@ def collate_data(
 
     total_size_mb = sum(os.path.getsize(f) for f in files) / (1024 * 1024)
 
-    if total_size_mb > 100:
+    if total_size_mb > 1000:
         print(
             f"Total size {total_size_mb:.2f}MB exceeds 100MB limit for collation. Use individual efficient_load."
         )

@@ -1,6 +1,21 @@
 =========
 History
 =========
+v0.8.0
+------
+* **NEW**: Added statistical testing skill v1.0-alpha with comprehensive test scripts
+  * Includes hypothesis testing for trading strategy validation
+  * Supports benchmark comparison, conditional analysis, and temporal validation
+  * Added out-of-sample testing capabilities
+* **ENHANCED**: Simulation module improvements
+  * Refactored generators into Time and Sequence engines
+  * Added IID lognormal distribution support
+  * New generator modes and parameters for more flexible simulation
+  * Fixed price stagnation in tick/quote generators
+* Added regression tests for tick generator price movement
+* Updated documentation for simulation module with new examples
+* Code quality improvements with pre-commit hooks
+
 v0.7.0 (BREAKING)
 ------
 * **BREAKING**: Migrated to Pydantic v2.0 compatibility (requires pydantic>=2.0.0)
