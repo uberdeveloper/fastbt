@@ -9,7 +9,7 @@ import inspect
 import pandas as pd
 import pytest
 
-from fastbt.backtest.data import DataSource, DuckDBParquetLoader, DuckDBVortexLoader
+from fastbt.backtest.data import DataSource, DuckDBParquetLoader
 
 REAL_DATA = os.path.expandvars("$HOME/data/q1_2025.parquet")
 
@@ -50,25 +50,8 @@ def parquet_path(tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
-def vortex_path(tmp_path_factory, parquet_path):
-    """Convert the minimal parquet fixture to vortex format for testing."""
-    import duckdb
-
-    tmp = tmp_path_factory.mktemp("vortex_data")
-    path = tmp / "test.vortex"
-    con = duckdb.connect()
-    con.execute("INSTALL vortex; LOAD vortex;")
-    con.execute(f"COPY (SELECT * FROM '{parquet_path}') TO '{path}' (FORMAT vortex)")
-    return str(path)
-
-
-@pytest.fixture(scope="module", params=["parquet", "vortex"])
-def loader(request, parquet_path, vortex_path):
-    """Yields both DuckDBParquetLoader and DuckDBVortexLoader to run all tests twice."""
-    if request.param == "parquet":
-        return DuckDBParquetLoader(parquet_path)
-    else:
-        return DuckDBVortexLoader(vortex_path)
+def loader(parquet_path):
+    return DuckDBParquetLoader(parquet_path)
 
 
 # ─── DataSource protocol ──────────────────────────────────────────────────────
@@ -242,6 +225,11 @@ class TestRealDataIntegration:
         spot = list(loader.get_underlying_data(dates[0]).values())[0]
         atm = DuckDBParquetLoader.get_atm_strike(spot, step=50)
         result = loader.get_instrument_data(dates[0], atm, "CE")
+        assert len(result) > 0
+        first_tick = next(iter(result))
+        assert first_tick.startswith(
+            "09:15"
+        ), f"Expected full-day data starting 09:15, got {first_tick}"
         assert len(result) > 0
         first_tick = next(iter(result))
         assert first_tick.startswith(

@@ -37,19 +37,13 @@ class Leg:
     """
     A single leg of a multi-leg order — input to Strategy.try_fill().
 
-    label: optional stable position key (e.g. "ce", "pe").
-      - When set, try_fill uses it as the Trade label / positions key.
-      - When None (default), try_fill auto-generates the key from
-        instrument.key() (e.g. "23600CE").
-
-    Set via Strategy.add(..., label="ce") — no need for Dict[str, Leg] mode.
+    The dict key provided to try_fill() is used as the trade label.
     Default qty=1.
     """
 
     instrument: Instrument
     side: str  # "BUY" or "SELL"
     qty: int = 1
-    label: Optional[str] = None
 
 
 @dataclass
