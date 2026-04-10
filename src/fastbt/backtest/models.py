@@ -38,12 +38,14 @@ class Leg:
     A single leg of a multi-leg order — input to Strategy.try_fill().
 
     The dict key provided to try_fill() is used as the trade label.
-    Default qty=1.
+    Default qty=1. Extra keyword args passed to Strategy.add() are stored
+    in meta and copied into trade.metadata at fill time (no prefix).
     """
 
     instrument: Instrument
     side: str  # "BUY" or "SELL"
     qty: int = 1
+    meta: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -69,6 +71,9 @@ class Trade:
     entry_tick: Any  # clock value when filled (str, int, datetime, ...)
     entry_index: int  # tick_index when filled (absolute counter)
     entry_price: float
+
+    # Trade date (stamped by try_fill from strategy.trade_date)
+    trade_date: str = ""
 
     # Exit (populated by Trade.close())
     exit_tick: Any = None

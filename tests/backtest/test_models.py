@@ -2,6 +2,7 @@
 Tests for fastbt.backtest.models — Instrument, Leg, Trade.
 Run with: uv run pytest tests/backtest/test_models.py -v
 """
+
 import pytest
 from dataclasses import FrozenInstanceError
 
@@ -77,6 +78,28 @@ class TestLeg:
         assert leg.side == "SELL"
         assert leg.qty == 50
 
+    def test_meta_default_empty(self):
+        """Leg.meta defaults to an empty dict."""
+        leg = Leg(instrument=Instrument(23600, "CE"), side="SELL")
+        assert leg.meta == {}
+
+    def test_meta_stores_values(self):
+        """Leg.meta stores arbitrary user-supplied key/value pairs."""
+        leg = Leg(
+            instrument=Instrument(23600, "CE"),
+            side="SELL",
+            meta={"strikes_away": 2, "tag": "straddle"},
+        )
+        assert leg.meta["strikes_away"] == 2
+        assert leg.meta["tag"] == "straddle"
+
+    def test_meta_not_shared_between_instances(self):
+        """Each Leg gets its own meta dict (default_factory)."""
+        a = Leg(instrument=Instrument(23600, "CE"), side="SELL")
+        b = Leg(instrument=Instrument(23600, "PE"), side="SELL")
+        a.meta["x"] = 1
+        assert "x" not in b.meta
+
 
 # ─── Trade ────────────────────────────────────────────────────────────────────
 
@@ -90,6 +113,7 @@ def make_trade(
     entry_tick="09:30:00",
     entry_index=15,
     entry_price=100.0,
+    trade_date="",
 ) -> Trade:
     """Factory helper — creates an open Trade with sane defaults."""
     return Trade(
@@ -101,6 +125,7 @@ def make_trade(
         entry_tick=entry_tick,
         entry_index=entry_index,
         entry_price=entry_price,
+        trade_date=trade_date,
     )
 
 
@@ -152,6 +177,16 @@ class TestTradeCreation:
         """Clock ticks can be integers, not just time strings."""
         t = make_trade(entry_tick=42, entry_index=42)
         assert t.entry_tick == 42
+
+    def test_trade_date_default_empty(self):
+        """trade_date defaults to empty string when not provided."""
+        t = make_trade()
+        assert t.trade_date == ""
+
+    def test_trade_date_stored(self):
+        """trade_date is stored correctly when provided."""
+        t = make_trade(trade_date="2025-01-15")
+        assert t.trade_date == "2025-01-15"
 
 
 class TestTradeClose:
@@ -260,12 +295,30 @@ class TestTradeToDict:
         t.close("10:00", 45, 80.0, "SL")
         d = t.to_dict()
         required = {
-            "label", "instrument", "side", "qty", "cycle",
-            "entry_tick", "entry_index", "entry_price",
-            "exit_tick", "exit_index", "exit_price", "exit_reason",
-            "gross_pnl", "transaction_cost", "net_pnl",
+            "label",
+            "instrument",
+            "side",
+            "qty",
+            "cycle",
+            "trade_date",
+            "entry_tick",
+            "entry_index",
+            "entry_price",
+            "exit_tick",
+            "exit_index",
+            "exit_price",
+            "exit_reason",
+            "gross_pnl",
+            "transaction_cost",
+            "net_pnl",
         }
         assert required.issubset(d.keys())
+
+    def test_to_dict_trade_date_included(self):
+        """trade_date appears as a top-level key in to_dict()."""
+        t = make_trade(trade_date="2025-01-15")
+        d = t.to_dict()
+        assert d["trade_date"] == "2025-01-15"
 
     def test_to_dict_values_correct(self):
         t = make_trade(side="SELL", entry_price=100.0)

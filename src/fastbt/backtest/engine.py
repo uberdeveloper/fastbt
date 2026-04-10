@@ -76,6 +76,7 @@ class BacktestEngine:
         max_cycles: int = 1,
         clock: Optional[List[Any]] = None,
         period: Union[str, int] = "day",
+        info_attributes: Optional[List[str]] = None,
     ):
         """
         Args:
@@ -85,12 +86,18 @@ class BacktestEngine:
             clock:                Optional list of tick values. If None, auto-derived
                                   from NIFTY_SPOT keys (underlying timestamps).
             period:               Grouping mode: "day" (default), "expiry", or int (N days).
+            info_attributes:      Bar-data column names to auto-capture into trade.metadata
+                                  at fill time (entry_<attr>) and close time (exit_<attr>).
+                                  Columns must be in the instrument's bar dict — declare them
+                                  in DuckDBParquetLoader.extra_columns or use standard OHLCV.
+                                  Example: ["iv", "delta", "open_interest"]
         """
         self.data_source = data_source
         self.transaction_cost_pct = transaction_cost_pct
         self.max_cycles = max_cycles
         self.user_clock = clock
         self.period = period
+        self.info_attributes: List[str] = info_attributes or []
         self.strategy: Optional[Strategy] = None
         self._cache: Dict = {}
 

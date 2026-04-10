@@ -87,7 +87,7 @@ class Strategy(ABC):
 
     # ─── Leg factory ──────────────────────────────────────────────────────────
 
-    def add(self, strike: int, opt_type: str, side: str, qty: int = 1) -> Leg:
+    def add(self, strike: int, opt_type: str, side: str, qty: int = 1, **kwargs) -> Leg:
         """
         Create a Leg for use with try_fill().
 
@@ -100,6 +100,9 @@ class Strategy(ABC):
             opt_type: "CE" or "PE".
             side:     "BUY" or "SELL".
             qty:      Number of lots (default 1).
+            **kwargs: Arbitrary per-leg metadata (e.g. strikes_away=2, tag="straddle").
+                      Stored in Leg.meta and copied to trade.metadata at fill time
+                      (no prefix — user controls naming).
         """
         if self.relative_strikes:
             atm = self._ctx.get_atm(self.strike_step)
@@ -111,6 +114,7 @@ class Strategy(ABC):
             instrument=Instrument(absolute_strike, opt_type.upper()),
             side=side.upper(),
             qty=qty,
+            meta=kwargs,
         )
 
     # ─── Fill mechanics ───────────────────────────────────────────────────────
@@ -181,6 +185,19 @@ class Strategy(ABC):
             )
         self.positions.update(filled)
 
+        # ── Stamp trade_date + info_attributes + leg meta ─────────────────────────
+        info_attrs = self.engine.info_attributes if self.engine else []
+        for key, trade in filled.items():
+            # Core identity: trade date from strategy
+            trade.trade_date = self.trade_date
+            # Auto-capture bar-level info_attributes (entry_ prefix)
+            if info_attrs:
+                bar, _ = ctx.get_bar(trade.instrument)
+                for attr in info_attrs:
+                    trade.metadata[f"entry_{attr}"] = bar.get(attr) if bar else None
+            # Per-leg kwargs from add() (no prefix)
+            trade.metadata.update(named_legs[key].meta)
+
         # IDLE → ACTIVE transition (safe to call from on_adjust too)
         if self.state == "IDLE":
             self.state = "ACTIVE"
@@ -231,6 +248,14 @@ class Strategy(ABC):
             reason=reason,
             transaction_cost_pct=cost_pct,
         )
+
+        # ── Capture exit info_attributes (exit_ prefix) ─────────────────────────
+        info_attrs = self.engine.info_attributes if self.engine else []
+        if info_attrs:
+            bar, _ = ctx.get_bar(trade.instrument)
+            for attr in info_attrs:
+                trade.metadata[f"exit_{attr}"] = bar.get(attr) if bar else None
+
         self.closed_trades.append(trade)
         return trade
 

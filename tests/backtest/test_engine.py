@@ -161,6 +161,16 @@ class TestEngineInit:
         engine = BacktestEngine(ds)
         assert engine.strategy is None
 
+    def test_default_info_attributes_empty(self, ds):
+        """info_attributes defaults to an empty list."""
+        engine = BacktestEngine(ds)
+        assert engine.info_attributes == []
+
+    def test_custom_info_attributes_stored(self, ds):
+        """info_attributes passed at init are stored on the engine."""
+        engine = BacktestEngine(ds, info_attributes=["iv", "delta"])
+        assert engine.info_attributes == ["iv", "delta"]
+
 
 # ─── add_strategy() ──────────────────────────────────────────────────────────
 

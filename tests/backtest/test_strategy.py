@@ -19,7 +19,7 @@ from fastbt.backtest.strategy import Strategy
 
 
 class MockBarContext:
-    """Minimal ctx stub — returns predefined prices."""
+    """Minimal ctx stub — returns predefined prices and bars."""
 
     def __init__(
         self,
@@ -27,18 +27,33 @@ class MockBarContext:
         tick_index: int = 0,
         prices: Optional[Dict[str, tuple]] = None,
         atm: int = 23600,
+        bars: Optional[Dict[str, tuple]] = None,
     ):
         self.tick = tick
         self.tick_index = tick_index
         # prices: {instrument_key: (price, lag)}  lag=0 → live
         self._prices: Dict[str, tuple] = prices or {}
         self._atm = atm
+        # bars: {instrument_key: (bar_dict, lag)}
+        self._bars: Dict[str, tuple] = bars or {}
 
     def get_price(self, key: str):
         return self._prices.get(key, (None, -1))
 
     def get_atm(self, step: int = 50) -> int:
         return self._atm
+
+    def get_bar(self, key: str):
+        """Returns (bar_dict, lag) or (None, -1) if no bar data."""
+        return self._bars.get(key, (None, -1))
+
+
+class MockEngine:
+    """Minimal engine stub for testing info_attributes capture."""
+
+    def __init__(self, info_attributes=None, transaction_cost_pct=0.0):
+        self.info_attributes: List[str] = info_attributes or []
+        self.transaction_cost_pct: float = transaction_cost_pct
 
 
 class ConcreteStrategy(Strategy):
@@ -909,3 +924,225 @@ class TestSaveTrades:
         ctx = live_ctx("23600CE", price=100.0)
         strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
         strategy.save_trades(str(tmp_path / "trades.csv"))
+
+
+# ─── Strategy.add() — kwargs → Leg.meta ──────────────────────────────────────
+
+
+class TestAddKwargs:
+    def test_no_kwargs_gives_empty_meta(self, strategy):
+        """add() without extra kwargs → Leg.meta is empty."""
+        leg = strategy.add(23600, "CE", "SELL")
+        assert leg.meta == {}
+
+    def test_single_kwarg_stored_in_meta(self, strategy):
+        leg = strategy.add(23600, "CE", "SELL", strikes_away=2)
+        assert leg.meta["strikes_away"] == 2
+
+    def test_multiple_kwargs_stored_in_meta(self, strategy):
+        leg = strategy.add(23600, "CE", "SELL", strikes_away=2, tag="straddle")
+        assert leg.meta["strikes_away"] == 2
+        assert leg.meta["tag"] == "straddle"
+
+    def test_qty_not_captured_as_meta(self, strategy):
+        """qty is a named param — must not bleed into meta."""
+        leg = strategy.add(23600, "CE", "SELL", qty=2)
+        assert "qty" not in leg.meta
+        assert leg.qty == 2
+
+    def test_kwargs_not_shared_between_legs(self, strategy):
+        """Each add() call produces an independent meta dict."""
+        leg_a = strategy.add(23600, "CE", "SELL", tag="ce")
+        leg_b = strategy.add(23600, "PE", "SELL", tag="pe")
+        assert leg_a.meta["tag"] == "ce"
+        assert leg_b.meta["tag"] == "pe"
+
+
+# ─── try_fill() metadata capture ─────────────────────────────────────────────
+
+
+class TestTryFillMetadata:
+    def test_stamps_trade_date_from_strategy(self, strategy):
+        """trade_date on Trade is populated from strategy.trade_date."""
+        strategy.trade_date = "2025-01-15"
+        ctx = live_ctx("23600CE")
+        result = strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        assert result["23600CE"].trade_date == "2025-01-15"
+
+    def test_trade_date_empty_when_strategy_date_not_set(self, strategy):
+        """trade_date defaults to empty string if strategy.trade_date is unset."""
+        ctx = live_ctx("23600CE")
+        result = strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        assert result["23600CE"].trade_date == ""
+
+    def test_leg_kwargs_copied_to_trade_metadata(self, strategy):
+        """Leg.meta items (from add kwargs) appear in trade.metadata (no prefix)."""
+        ctx = live_ctx("23600CE")
+        leg = strategy.add(23600, "CE", "SELL", strikes_away=2, tag="straddle")
+        result = strategy.try_fill([leg], ctx)
+        trade = result["23600CE"]
+        assert trade.metadata["strikes_away"] == 2
+        assert trade.metadata["tag"] == "straddle"
+
+    def test_leg_kwargs_per_leg_in_dict_mode(self, strategy):
+        """In dict mode, each leg's meta is copied to its own Trade."""
+        ctx = MockBarContext(prices={"23600CE": (100.0, 0), "23600PE": (80.0, 0)})
+        result = strategy.try_fill(
+            {
+                "ce": strategy.add(23600, "CE", "SELL", tag="ce_leg"),
+                "pe": strategy.add(23600, "PE", "SELL", tag="pe_leg"),
+            },
+            ctx,
+        )
+        assert result["ce"].metadata["tag"] == "ce_leg"
+        assert result["pe"].metadata["tag"] == "pe_leg"
+
+    def test_captures_entry_info_attributes_from_bar(self, strategy):
+        """entry_<attr> stamped from ctx.get_bar() for each info_attribute."""
+        strategy.engine = MockEngine(info_attributes=["iv", "delta"])
+        bar = {"close": 100.0, "iv": 0.18, "delta": -0.45, "volume": 500.0}
+        ctx = MockBarContext(
+            tick="09:15:00",
+            tick_index=0,
+            prices={"23600CE": (100.0, 0)},
+            bars={"23600CE": (bar, 0)},
+        )
+        result = strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        trade = result["23600CE"]
+        assert trade.metadata["entry_iv"] == pytest.approx(0.18)
+        assert trade.metadata["entry_delta"] == pytest.approx(-0.45)
+
+    def test_entry_attr_none_when_bar_missing(self, strategy):
+        """entry_<attr> is None when ctx.get_bar() returns no data."""
+        strategy.engine = MockEngine(info_attributes=["iv"])
+        ctx = live_ctx("23600CE")  # no bars dict → get_bar returns (None, -1)
+        result = strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        assert result["23600CE"].metadata["entry_iv"] is None
+
+    def test_entry_attr_none_when_column_not_in_bar(self, strategy):
+        """entry_<attr> is None when bar exists but column is absent."""
+        strategy.engine = MockEngine(info_attributes=["iv"])
+        bar = {"close": 100.0, "volume": 500.0}  # no 'iv'
+        ctx = MockBarContext(
+            prices={"23600CE": (100.0, 0)},
+            bars={"23600CE": (bar, 0)},
+        )
+        result = strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        assert result["23600CE"].metadata["entry_iv"] is None
+
+    def test_no_info_capture_when_engine_is_none(self, strategy):
+        """When engine=None (unit‐test isolation), no entry_ keys are added."""
+        strategy.engine = None
+        ctx = live_ctx("23600CE")
+        result = strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        trade = result["23600CE"]
+        assert not any(k.startswith("entry_") for k in trade.metadata)
+
+    def test_no_info_capture_when_info_attributes_empty(self, strategy):
+        """Empty info_attributes → no entry_ keys in metadata."""
+        strategy.engine = MockEngine(info_attributes=[])
+        ctx = live_ctx("23600CE")
+        result = strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        assert not any(k.startswith("entry_") for k in result["23600CE"].metadata)
+
+    def test_failed_fill_does_not_capture_metadata(self, strategy):
+        """If try_fill returns None (stale price), no metadata is stamped."""
+        strategy.engine = MockEngine(info_attributes=["iv"])
+        ctx = stale_ctx("23600CE")  # lag > 0 → fill fails
+        result = strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        assert result is None
+        assert strategy.closed_trades == []
+
+
+# ─── close_trade() metadata capture ──────────────────────────────────────────
+
+
+class TestCloseTradeMetadata:
+    def _setup_open_trade(self, strategy, bar_at_entry=None):
+        """Helper: fill one CE trade with optional bar data at entry."""
+        strategy.engine = MockEngine(info_attributes=["iv"])
+        entry_bar = bar_at_entry or {"close": 100.0, "iv": 0.18}
+        ctx = MockBarContext(
+            tick="09:15:00",
+            tick_index=0,
+            prices={"23600CE": (100.0, 0)},
+            bars={"23600CE": (entry_bar, 0)},
+        )
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        return ctx
+
+    def test_captures_exit_info_attributes(self, strategy):
+        """exit_<attr> stamped from ctx.get_bar() when trade is closed."""
+        self._setup_open_trade(strategy)
+        exit_bar = {"close": 80.0, "iv": 0.14}
+        ctx_exit = MockBarContext(
+            tick="10:00:00",
+            tick_index=15,
+            prices={"23600CE": (80.0, 0)},
+            bars={"23600CE": (exit_bar, 0)},
+        )
+        trade = strategy.close_trade("23600CE", "10:00:00", 15, ctx_exit)
+        assert trade.metadata["exit_iv"] == pytest.approx(0.14)
+
+    def test_entry_attrs_still_present_after_close(self, strategy):
+        """entry_ attrs from try_fill are still in metadata after close."""
+        self._setup_open_trade(strategy, bar_at_entry={"close": 100.0, "iv": 0.18})
+        exit_bar = {"close": 80.0, "iv": 0.14}
+        ctx_exit = MockBarContext(
+            tick="10:00:00",
+            tick_index=15,
+            prices={"23600CE": (80.0, 0)},
+            bars={"23600CE": (exit_bar, 0)},
+        )
+        trade = strategy.close_trade("23600CE", "10:00:00", 15, ctx_exit)
+        assert trade.metadata["entry_iv"] == pytest.approx(0.18)
+        assert trade.metadata["exit_iv"] == pytest.approx(0.14)
+
+    def test_exit_attr_none_when_bar_missing_at_close(self, strategy):
+        """exit_<attr> is None when get_bar() returns no data at exit."""
+        self._setup_open_trade(strategy)
+        ctx_exit = MockBarContext(
+            tick="10:00:00",
+            tick_index=15,
+            prices={"23600CE": (80.0, 0)},
+            # no bars → get_bar returns (None, -1)
+        )
+        trade = strategy.close_trade("23600CE", "10:00:00", 15, ctx_exit)
+        assert trade.metadata["exit_iv"] is None
+
+    def test_no_exit_capture_when_engine_is_none(self, strategy):
+        """When engine=None, no exit_ keys added on close."""
+        ctx = live_ctx("23600CE", price=100.0)
+        strategy.engine = None
+        strategy.try_fill([strategy.add(23600, "CE", "SELL")], ctx)
+        trade = strategy.close_trade("23600CE", "10:00:00", 15, ctx)
+        assert not any(k.startswith("exit_") for k in trade.metadata)
+
+    def test_to_dataframe_includes_metadata_columns(self, strategy):
+        """entry_/exit_ attrs and leg kwargs all appear as DataFrame columns."""
+        import pandas as pd
+
+        strategy.engine = MockEngine(info_attributes=["iv"])
+        strategy.trade_date = "2025-01-15"
+        bar = {"close": 100.0, "iv": 0.18}
+        ctx_in = MockBarContext(
+            prices={"23600CE": (100.0, 0)},
+            bars={"23600CE": (bar, 0)},
+        )
+        strategy.try_fill([strategy.add(23600, "CE", "SELL", strikes_away=0)], ctx_in)
+        exit_bar = {"close": 80.0, "iv": 0.12}
+        ctx_out = MockBarContext(
+            prices={"23600CE": (80.0, 0)},
+            bars={"23600CE": (exit_bar, 0)},
+        )
+        strategy.close_trade("23600CE", "10:00:00", 15, ctx_out)
+
+        df = strategy.to_dataframe()
+        assert "trade_date" in df.columns
+        assert "entry_iv" in df.columns
+        assert "exit_iv" in df.columns
+        assert "strikes_away" in df.columns
+        assert df.iloc[0]["trade_date"] == "2025-01-15"
+        assert df.iloc[0]["entry_iv"] == pytest.approx(0.18)
+        assert df.iloc[0]["exit_iv"] == pytest.approx(0.12)
+        assert df.iloc[0]["strikes_away"] == 0
