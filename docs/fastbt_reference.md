@@ -79,8 +79,16 @@ loader = DuckDBParquetLoader(
     extra_columns=["iv", "delta"],   # optional: extra columns to fetch alongside OHLCV
 )
 
-# Vortex (faster, requires DuckDB >= 1.4.2)
-loader = DuckDBVortexLoader("/data/q1_2025.vortex")
+# Vortex — preferred for repeated runs; faster reads, same API as Parquet
+# Requires DuckDB >= 1.4.2. Convert once: parquet → vortex, then use everywhere.
+loader = DuckDBVortexLoader(
+    filepath="/data/q1_2025.vortex",
+    extra_columns=["iv", "delta"],   # same extra_columns support as Parquet
+)
+# Convert parquet → vortex (run once):
+#   con = duckdb.connect()
+#   con.execute("INSTALL vortex; LOAD vortex;")
+#   con.execute("COPY (SELECT * FROM 'data.parquet') TO 'data.vortex' (FORMAT vortex)")
 
 engine = BacktestEngine(
     data_source=loader,
@@ -116,11 +124,14 @@ engine = BacktestEngine(loader, clock=make_clock())
 
 Subclass `Strategy`. Two abstract methods **must** be implemented: `can_enter` and `on_entry`.
 
+**Strike modes** — set as class attributes, not instance attributes:
+- `relative_strikes = False` (default) — pass absolute strike prices to `add()` (e.g. `23600`)
+- `relative_strikes = True` — pass offsets from ATM to `add()` (e.g. `0`=ATM, `1`=1-step OTM). See Section 6.
+
 ```python
 class MyStrategy(Strategy):
-    # Optional class attributes for relative strike mode (see Section 6)
-    relative_strikes: bool = False
-    strike_step: int = 50
+    relative_strikes: bool = False  # set True for offset-based strike selection
+    strike_step: int = 50           # step size for ATM rounding and OTM offsets
 
     def __init__(self):
         super().__init__(name="MyStrategy")
@@ -607,14 +618,23 @@ def on_adjust(self, tick, ctx):
         pass
 ```
 
-**Prefetch known instruments for performance:**
+**Prefetch instruments at day start (when strikes are known upfront):**
+
+`prefetch` is worth using when you know the strikes before the clock loop starts —
+e.g. ATM-based strategies, fixed strikes, or OTM offsets you can compute from the open.
+It eliminates lazy-fetch warnings and moves DuckDB I/O out of the hot loop.
+Skip it when strike selection depends on mid-session data (e.g. a price level hit intraday).
+
 ```python
 from fastbt.backtest.models import Instrument
 
 def on_day_start(self, trade_date, ctx):
     atm = ctx.get_atm(step=50)
-    ctx.prefetch(Instrument(atm, "CE"))
-    ctx.prefetch(Instrument(atm, "PE"))
+    # Prefetch all instruments this strategy will trade today
+    for opt_type in ("CE", "PE"):
+        for offset in (0, 50, 100, 150):       # ATM + OTM strikes
+            strike = atm + offset if opt_type == "CE" else atm - offset
+            ctx.prefetch(Instrument(strike, opt_type))
     return True
 ```
 
