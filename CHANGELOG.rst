@@ -1,6 +1,13 @@
 =========
 History
 =========
+v0.10.0
+------
+* **NEW**: MultiStrategyEngine with shared warm cache and deepcopy isolation
+* **NEW**: Trade metadata enrichment — trade_date, info_attributes, leg kwargs
+* **FIX**: Cache empty results to prevent repeated queries for missing strikes
+* Added FastBT LLM reference document and design spec
+
 v0.9.0
 ------
 * Code formatting and whitespace cleanup with ruff/black
