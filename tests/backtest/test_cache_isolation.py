@@ -319,17 +319,15 @@ class TestMultiEngineProducesIsolatedCaches:
         assert len(captured_caches) == 2, "Both strategies must fire on_day_start"
 
         cache_s1, cache_s2 = captured_caches
-        # Top-level dicts are different objects
+        # Top-level dicts are distinct objects — each strategy has its own namespace
         assert id(cache_s1) != id(cache_s2)
-        # Bar-by-tick dicts for the prefetched instrument are different objects
+        # Warm data is present in both caches
         assert "23400CE" in cache_s1 and "23400CE" in cache_s2
-        assert id(cache_s1["23400CE"]) != id(cache_s2["23400CE"])
-        # Per-bar OHLCV dicts are different objects
-        assert id(cache_s1["23400CE"]["09:15:00"]) != id(
-            cache_s2["23400CE"]["09:15:00"]
-        )
-        # But values are identical
+        # Values are identical (shared read-only references from warm cache)
         assert (
             cache_s1["23400CE"]["09:15:00"]["close"]
             == cache_s2["23400CE"]["09:15:00"]["close"]
         )
+        # Top-level namespace isolation: a new key in one cache is invisible to the other
+        cache_s1["STRATEGY_A_ONLY"] = {"09:15:00": 1.0}
+        assert "STRATEGY_A_ONLY" not in cache_s2

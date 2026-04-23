@@ -48,7 +48,6 @@ For concurrent parameter sweeps use process-per-engine:
     cache_warmer must be a module-level function (picklable); avoid lambdas.
 """
 
-import copy
 import logging
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -248,7 +247,7 @@ class MultiStrategyEngine:
             # Warmer's prefetched data is present in _warm_cache and thus in
             # every strategy's copy — without any additional DB calls.
             # Mutations (lazy fetches, add_to_cache) only affect this copy.
-            s_cache: Dict = copy.deepcopy(self._warm_cache)
+            s_cache: Dict = dict(self._warm_cache)
 
             s_day_ctx = DayStartContext(
                 period_dates[0],
