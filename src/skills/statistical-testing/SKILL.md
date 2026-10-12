@@ -1,10 +1,10 @@
 ---
 name: statistical-testing
-description: Rigorous statistical evaluation of trading strategy returns to determine if alpha is real or a statistical artifact. Supports hypothesis testing, benchmark comparison, conditional analysis, temporal validation, and distribution checks. Use when validating backtest results, comparing strategies, testing performance claims, optimizing parameters, or analyzing performance across market conditions.
+description: Rigorous statistical evaluation of trading strategy returns to determine if alpha is real or a statistical artifact. Supports hypothesis testing, benchmark comparison, conditional analysis, temporal validation, and distribution checks. Use when validating backtest results, comparing strategies, testing performance claims, optimizing parameters, or analyzing performance across market conditions. On-request advanced tests: adversarial robustness battery (sign-flip permutation, path shuffle, regime stress, sub-period consistency, block bootstrap, parameter plateau) and robust statistics (trimmed mean/Yuen, edge concentration, robust Sharpe) — run only when explicitly requested.
 license: MIT
 metadata:
-  version: "2.1.0"
-  capabilities: "hypothesis_testing, intent_detection, temporal_validation, benchmark_comparison, conditional_analysis, distribution_checks, multiple_testing_correction, overfitting_detection, effect_size, autocorrelation_check, fdr_correction"
+  version: "2.2.0"
+  capabilities: "hypothesis_testing, intent_detection, temporal_validation, benchmark_comparison, conditional_analysis, distribution_checks, multiple_testing_correction, overfitting_detection, effect_size, autocorrelation_check, fdr_correction, advanced_tests, sign_flip_permutation, path_shuffle, regime_stress, sub_period_consistency, block_bootstrap, parameter_plateau, trimmed_mean_yuen, edge_concentration, robust_sharpe"
 ---
 
 # Statistical Testing Skill
@@ -815,6 +815,196 @@ IF user asks to optimize on full dataset:
 
 ---
 
+### Step 6.6: Advanced Tests (On Request ONLY)
+
+**Reference implementation:** `references/advanced_tests.py` — canonical, verified functions for all tests below (A1–A6, B1–B3, `run_battery()`); numpy/pandas/scipy only. Prefer copying/importing from it over re-implementing from prose.
+
+**Original references (Group A ports):** the adversarial tests are adapted from [QuantGPT](https://github.com/Miasyster/QuantGPT) (MIT License):
+- https://github.com/Miasyster/QuantGPT/blob/main/quantgpt/adversarial_validator.py — label permutation, temporal shuffle, random universe, noise injection
+- https://github.com/Miasyster/QuantGPT/blob/main/quantgpt/anti_overfit.py — IC stability, sub-sample stress, placebo, half-life
+
+Port mapping (factor tests → returns-series analogs) is documented in fastbt issues #17–#19.
+
+Two suites of advanced tests are available. **They are NEVER auto-run** — not by
+intent detection, not by workflow logic, not as "helpful extras". Running any of
+them is entirely the user's choice.
+
+**CRITICAL RULES:**
+```
+1. Run an advanced test ONLY on explicit user request
+2. Invocation ambiguous → list available tests (table below) and ask. NEVER guess.
+3. Standard reports may append AT MOST a one-line footer:
+   "Advanced tests available on request: adversarial battery, robust statistics."
+   No prompts, no confirmations, no auto-runs.
+```
+
+#### Catalog
+
+**Group A — Adversarial Robustness** *("does the edge survive attempts to destroy it?")*
+
+| ID | Test | Answers | Pass criterion | Needs |
+|----|------|---------|----------------|-------|
+| A1 | Sign-flip permutation | Is the mean positive by chance? Exact-ish null, no normality assumption, fat-tail immune | p < 0.05 vs 1000 sign-flipped means | date + returns |
+| A2 | Path shuffle (block) | Is my drawdown/streak sequencing luck? | real max drawdown not an outlier vs 1000 block-shuffled paths | date + returns |
+| A3 | Regime stress | Does the edge hold across regimes (bull/bear/sideways, high/low vol)? | same-sign mean return in ≥60% of regimes (≥30 obs each) | benchmark |
+| A4 | Sub-period consistency | Is the edge stable across years? | positive-day rate ≥55% AND no yearly sign reversal | date + returns |
+| A5 | Block bootstrap stability | Is the edge stable across resampled histories? Also yields CIs on mean & Sharpe | ≥70% of resamples sign-consistent | date + returns |
+| A6 | Parameter plateau | Is my optimum a plateau or an overfit spike? | neighbor metric at θ*±δ retains ≥50% of optimum | sweep table (param → metric) |
+
+**Group B — Robust Statistics** *("is the edge outlier-dependent?")*
+
+| ID | Test | Answers | Output | Needs |
+|----|------|---------|--------|-------|
+| B1 | Edge concentration | How much P&L comes from a few lucky days? | mean / 10%-trimmed mean / median trio + top-5-day % of cumulative return + verdict. Optional pass: trimmed mean ≥ 50% of mean | date + returns |
+| B2 | Yuen's trimmed t-test | Is the typical-day mean positive, robust to tails? (middle rung: t-test → Yuen → Wilcoxon) | t, p on trimmed mean | date + returns |
+| B3 | Robust Sharpe | Is my Sharpe tail-inflated? | trimmed mean / winsorized vol and median / (1.4826·MAD) variants vs standard Sharpe | date + returns |
+
+#### Invocation Parsing
+
+| User says (examples) | Runs |
+|----------------------|------|
+| "run A3", "run the sign-flip permutation test", "do a permutation test" | That single test |
+| "run the adversarial battery", "stress test my strategy", "robustness tests" | Group A (A1–A5; A6 auto-included only if a sweep table is present or user provides one) |
+| "run robust statistics", "robust stats suite", "trimmed mean analysis" | Group B (B1–B3) |
+| "run everything", "full suite", "run both batteries" | Group A + Group B |
+| "run A1, A3 and edge concentration" | Exactly those tests |
+
+```
+IF request names a known test/group → run it (those tests only)
+IF request mentions a suite keyword but scope unclear → ask: "Both groups or just [A|B]?"
+IF request mentions an unknown test name → list catalog + ask
+```
+
+#### Prerequisites
+
+```
+A3: benchmark required → resolve via existing Step 3 (column > user-specified > fetch w/ permission).
+    Unavailable → ask user; skip only if user says so.
+A6: sweep table required (param + metric columns, e.g. threshold → sharpe).
+    Absent → inform + skip. NEVER fabricate/perturb data to simulate neighbors.
+    (Engine-driven re-runs tracked in fastbt issue #19.)
+All others: date + returns only.
+```
+
+#### Test Specifications
+
+**A1 — Sign-flip permutation**
+```python
+B = 1000
+rng = np.random.default_rng(seed)  # seed user-configurable, default 42
+real_mean = returns.mean()
+flips = rng.choice([-1, 1], size=(B, len(returns)))
+null_means = (returns.values * flips).mean(axis=1)
+p_perm = float((null_means >= real_mean).mean())  # one-sided positive-mean H1
+# Exact under symmetric null. IF Ljung-Box flagged autocorrelation →
+# use block sign-flip (flip whole ~10d blocks) or defer to A5 bootstrap.
+```
+
+**A2 — Path shuffle** ⚠️ *Only sequencing-sensitive statistics are testable — mean, vol, and Sharpe are INVARIANT under shuffling. Never use this test on Sharpe.*
+```python
+block, B = 10, 1000
+n_blocks = len(returns) // block
+blocks = returns.values[:n_blocks * block].reshape(n_blocks, block)
+for _ in range(B):
+    order = rng.permutation(n_blocks)
+    path = blocks[order].ravel()
+    mdd = max_drawdown(path)          # + worst streak / ulcer index
+# Pass: real max drawdown within [5th, 95th] pctile of shuffled mdd distribution
+```
+
+**A3 — Regime stress** (reuses Step 3 benchmark + Step 5 machinery)
+```python
+cum = bench_ret.rolling(60, min_periods=30).sum()
+vol = bench_ret.rolling(60, min_periods=30).std()
+regimes = {"bull": cum > 0.05, "bear": cum < -0.05,
+           "sideways": (cum.abs() <= 0.05),
+           "high_vol": vol > vol.median(), "low_vol": vol <= vol.median()}
+# Per regime with ≥30 obs: mean strategy return + effect size.
+# Pass: ≥60% of qualifying regimes share the overall sign.
+```
+
+**A4 — Sub-period consistency**
+```python
+yearly = returns.groupby(returns.index.year)
+# Pass: (positive-day rate ≥ 0.55) AND (every year's mean shares overall sign)
+# <2 years of data → calendar halves; <6 months → HALT (insufficient)
+```
+
+**A5 — Block bootstrap** (keyed off existing Step 4 Ljung-Box pre-check)
+```python
+block = 10 if use_hac else 1          # moving-block if autocorrelated, else iid
+B = 1000 → resampled mean & Sharpe per draw
+# Outputs: sign-consistency rate (pass ≥ 0.70), percentile CIs on mean & Sharpe
+```
+
+**A6 — Parameter plateau** (data-only tier; engine tier = issue #19)
+```python
+# Locate optimum θ*, take available neighbors θ*±δ (±2δ if present)
+retention = min(neighbor_metric) / optimal_metric
+# Pass: retention ≥ 0.50. Also flag high local curvature (loess/quadratic fit).
+# Output: ASCII neighborhood table + PLATEAU ✅ / SPIKE ⚠️ verdict
+```
+
+**B1 — Edge concentration**
+```python
+from scipy.stats import trim_mean
+tm = trim_mean(returns, 0.1)          # trim FIXED at 10% (20% extreme tails);
+                                       # NEVER tune trim for significance
+top5_pct = returns.nlargest(5).sum() / returns.sum()
+# Report trio + top5_pct + verdict:
+#   mean ≈ trimmed → "edge spread across typical days" (robust)
+#   mean ≫ trimmed or top5 dominant → "outlier-dependent edge" (fragile,
+#   capacity-limited, cost-sensitive)
+```
+
+**B2 — Yuen's trimmed t-test** — two-sample: native `scipy.stats.ttest_ind(a, b, trim=0.1)`
+One-sample (scipy's `ttest_1samp` has NO trim param — verified): manual impl:
+```python
+def yuen_1samp(x, trim=0.1, mu=0.0):
+    n = len(x); g = int(np.floor(trim * n)); df = n - 2*g - 1
+    xs = np.sort(x)
+    w = xs.copy(); w[:g] = xs[g]; w[-g:] = xs[-g-1]      # Winsorize
+    se = np.sqrt(np.sum((w - w.mean())**2) / df / ((1 - 2*trim)**2 * n))
+    t = (xs[g:-g].mean() - mu) / se
+    return t, 2 * stats.t.sf(abs(t), df)
+```
+Caveat: on skewed returns the trimmed mean estimates "mean of the middle 80% of days" — label it as such, never as "the mean".
+
+**B3 — Robust Sharpe**
+```python
+from scipy.stats import trim_mean, mstats
+winsor_vol = mstats.winsorize(returns, limits=[0.05, 0.05]).std()
+robust_sharpe = trim_mean(returns, 0.1) / winsor_vol
+mad_scale = np.median(np.abs(returns - np.median(returns))) * 1.4826
+median_sharpe = np.median(returns) / mad_scale
+# Report alongside standard Sharpe; flag large divergence as tail-inflation
+```
+
+#### Composite Scoring (groups / full suite only; single tests report individually)
+
+```
+score = passed / total × 100   (diagnostic-only outputs B1/B3 excluded from scoring
+                               unless user opted into their pass criteria)
+≥80 PASS | 60–79 CAUTION | 40–59 DOUBTFUL | <40 HIGH-RISK
+Group A and B scored separately when both run; also report combined score.
+```
+
+**Output format:**
+```markdown
+🛡️ Advanced Tests: [Group A | Group B | Full Suite]
+
+| Test | Result | Key Metric |
+|------|--------|------------|
+| A1 Sign-flip permutation | ✅ PASS | p = 0.012 |
+| ...
+
+Composite: 5/5 passed → 100 → PASS
+🎯 Interpretation: [1-2 sentences]
+⚠️ Notes: [autocorrelation/block settings, skipped tests + why]
+```
+
+---
+
 ### Step 7: Report Generation
 
 **Default Output Format (Tweet-Style):**
@@ -1185,23 +1375,27 @@ This skill REQUIRES the `load-data` skill for initial data discovery.
 
 ---
 
-## Limitations (v2.1)
+## Limitations (v2.2)
 
 **Not Supported:**
 - Mixed AND/OR conditions: `(A AND B) OR C`
 - Nested conditions: `NOT (A OR B)`
 - Range syntax: `feature BETWEEN 1 AND 5`
-- Automatic regime detection
-- Monte Carlo simulation
-- Bootstrap confidence intervals (manual request only)
+- Cross-sectional factor panel tests (IC half-life, label permutation on factor values) — tracked in fastbt #17
+- Signal-column time-shift decay — tracked in fastbt #18
+- Engine-driven parameter re-runs for plateau check — tracked in fastbt #19
 - Jobson-Korkie test for Sharpe ratio equality (manual request only)
 
 **Future Versions:**
-- v2.2: Refactor to separate `conditional-analysis` skill
-- v2.2: Support mixed logic conditions
-- v3.0: Automatic regime detection (Chow test, change point detection)
-- v3.0: Structural break tests (Cusum)
+- v2.3: Refactor to separate `conditional-analysis` skill
+- v2.3: Support mixed logic conditions
+- v3.0: Structural break tests (Chow test, change point detection, Cusum)
 - v3.0: Automated parameter optimization with cross-validation
+
+**Recently Added (v2.2):**
+- ✅ Advanced Tests suite (Step 6.6) — strictly on-request: adversarial battery (A1–A6) + robust statistics (B1–B3), runnable as single tests, per-group, or full suite (user's choice)
+- ✅ Sign-flip permutation, block path-shuffle, block bootstrap CIs, auto regime stress (delivers former v3.0 "regime detection" roadmap item)
+- ✅ Yuen trimmed t-test, edge concentration, robust Sharpe variants
 
 **Recently Added (v2.1):**
 - ✅ Autocorrelation pre-check (Ljung-Box) — auto-switches to HAC when needed
@@ -1231,6 +1425,12 @@ See additional documentation:
 ---
 
 ## Version History
+
+- **v2.2.0** (2026-05-09): Advanced Tests (on request only)
+  - Step 6.6: Group A adversarial robustness (sign-flip permutation, path shuffle, regime stress, sub-period consistency, block bootstrap, parameter plateau) + Group B robust statistics (trimmed mean/Yuen, edge concentration, robust Sharpe)
+  - Invocation fully user-driven: single test / single group / both groups / custom subset; never auto-triggered
+  - Composite scoring (PASS/CAUTION/DOUBTFUL/HIGH-RISK) for group runs
+  - Unported cross-sectional factor tests tracked as fastbt issues #17, #18, #19
 
 - **v2.1.0** (2026-04-07): Statistical validity improvements
   - Autocorrelation pre-check (Ljung-Box) with HAC fallback
