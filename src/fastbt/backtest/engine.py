@@ -126,7 +126,7 @@ class BacktestEngine:
             )
 
         all_dates = self.data_source.get_available_dates()
-        trading_days = [d for d in all_dates if start_date <= d <= end_date]
+        trading_days = [d for d in all_dates if start_date <= str(d)[:10] <= end_date]
 
         # Group dates into periods
         if self.period == "day":
