@@ -401,6 +401,27 @@ class TestMultiDayAccumulation:
         assert "day_start:2025-01-02" in strategy.events
         assert "day_start:2025-01-03" not in strategy.events
 
+    def test_date_range_filter_includes_timestamp_end_date(self, strategy):
+        """Timestamp-shaped dates on the end day remain inside the range."""
+
+        class TimestampDataSource(MockDataSource):
+            def get_available_dates(self):
+                return [f"{date} 00:00:00" for date in self.DATES]
+
+            def get_underlying_data(self, date_str):
+                return super().get_underlying_data(str(date_str)[:10])
+
+            def get_instrument_data(self, date_str, strike, opt_type):
+                return super().get_instrument_data(str(date_str)[:10], strike, opt_type)
+
+        engine = make_engine(TimestampDataSource(), strategy)
+        engine.run("2025-01-02", "2025-01-03")
+        day_starts = [event for event in strategy.events if event.startswith("day_start:")]
+        assert day_starts == [
+            "day_start:2025-01-02 00:00:00",
+            "day_start:2025-01-03 00:00:00",
+        ]
+
 
 # ─── transaction_cost_pct propagation ────────────────────────────────────────
 
